@@ -6,4 +6,15 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <Folder Include="Common\Behaviors\" />
+    <Folder Include="Events\DomainEventHandlers\" />
+    <Folder Include="Events\IntegrationEventHandlers\" />
+    <Folder Include="Features\DatingProfile\Commands\CreateDatingProfile\" />
+    <Folder Include="Features\DatingProfile\Queries\GetDatingProfile\" />
+    <Folder Include="Features\DatingEvent\" />
+    <Folder Include="Interfaces\Services\" />
+    <Folder Include="Services\Orchestration\" />
+  </ItemGroup>
+
 </Project>
