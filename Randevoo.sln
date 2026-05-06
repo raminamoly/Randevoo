@@ -1,13 +1,17 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.14.36518.9
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.36422.26
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{FF514C20-E195-4148-9EEF-F492500D8984}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Randevoo.Domain", "src\Randevoo.Domain\Randevoo.Domain.csproj", "{186E7C1C-3C59-4E33-B7D0-C94DED583696}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Randevoo.Domain", "src\Randevoo.Domain\Randevoo.Domain.csproj", "{186E7C1C-3C59-4E33-B7D0-C94DED583696}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Randevoo.Application", "src\Randevoo.Application\Randevoo.Application.csproj", "{CFDC9EA2-C9F4-4855-8A09-A8CE001F4EC2}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Randevoo.Infrastructure", "src\Randevoo.Infrastructure\Randevoo.Infrastructure.csproj", "{BDD7D563-BC3C-4F60-B136-20B3948654BD}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -19,12 +23,22 @@ Global
 		{186E7C1C-3C59-4E33-B7D0-C94DED583696}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{186E7C1C-3C59-4E33-B7D0-C94DED583696}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{186E7C1C-3C59-4E33-B7D0-C94DED583696}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CFDC9EA2-C9F4-4855-8A09-A8CE001F4EC2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CFDC9EA2-C9F4-4855-8A09-A8CE001F4EC2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CFDC9EA2-C9F4-4855-8A09-A8CE001F4EC2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CFDC9EA2-C9F4-4855-8A09-A8CE001F4EC2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BDD7D563-BC3C-4F60-B136-20B3948654BD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BDD7D563-BC3C-4F60-B136-20B3948654BD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BDD7D563-BC3C-4F60-B136-20B3948654BD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BDD7D563-BC3C-4F60-B136-20B3948654BD}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{186E7C1C-3C59-4E33-B7D0-C94DED583696} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{CFDC9EA2-C9F4-4855-8A09-A8CE001F4EC2} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{BDD7D563-BC3C-4F60-B136-20B3948654BD} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {F4604B35-5158-4595-B386-E32EEA3691C9}
