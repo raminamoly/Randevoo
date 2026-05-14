@@ -1,7 +1,6 @@
 ﻿// Domain/Events/UserProfileEvents.cs
 using Randevoo.Domain.Common;
 using Randevoo.Domain.Entities;
-using Randevoo.Domain.ValueObjects;
 
 namespace Randevoo.Domain.Events;
 

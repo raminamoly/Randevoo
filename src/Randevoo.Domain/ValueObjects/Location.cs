@@ -8,11 +8,15 @@ public class Location : BaseValueObject
     public string Country { get; private set; }
     public string City { get; private set; }
     public string? Region { get; private set; }
+    public Coordinates Coordinates { get; private set; }   
 
     private Location() { } // EF Core
 
-    public Location(string country, string city, string? region = null)
+    public Location(string country, string city, Coordinates coordinates, string? region = null)
     {
+        // Existing validation + coordinates validation
+        Coordinates = GuardAgainst.Object.Null(coordinates, nameof(coordinates));
+        
         // DEFENSIVE PROGRAMMING
         Country = GuardAgainst.String.InvalidLength(
             country,
@@ -51,4 +55,9 @@ public class Location : BaseValueObject
     }
 
     public override string ToString() => GetFullAddress();
+
+   
+
+
+    
 }

@@ -7,7 +7,7 @@ using Randevoo.Domain.ValueObjects;
 
 namespace Randevoo.Domain.Entities;
 
-public class UserProfile : BaseEntity
+public class UserProfile : BaseEntity , IAggregateRoot
 {
     public string DisplayName { get; private set; }
     public Gender Gender { get; private set; }
@@ -15,12 +15,18 @@ public class UserProfile : BaseEntity
     public Height Height { get; private set; }
     public EducationLevel EducationLevel { get; private set; }
     public bool Smoking { get; private set; }
+    //public IReadOnlyList<Interest> Interests => _interests.AsReadOnly();
+    //private readonly List<Interest> _interests;
+
+    private readonly List<Interest> _interests = new();
     public IReadOnlyList<Interest> Interests => _interests.AsReadOnly();
+    internal ICollection<Interest> InterestsCollection => _interests;
+
     public Location Location { get; private set; }
 
     public int Age => CalculateAge(DateOfBirth);
 
-    private readonly List<Interest> _interests;
+
 
     // EF Core constructor
     private UserProfile() : base()
@@ -117,12 +123,18 @@ public class UserProfile : BaseEntity
         GuardAgainst.Object.Null(interest, nameof(interest));
 
         if (_interests.Count >= 10)
-            throw new DomainException("Maximum 10 interests allowed");
+            throw new BusinessRuleViolationException(
+                "Maximum interests exceeded",
+                "User cannot have more than 10 interests");
 
         if (_interests.Any(i => i == interest))
-            throw new DomainException($"Interest '{interest.Name}' already added");
+            throw new BusinessRuleViolationException(
+                "Duplicate interest",
+                $"Interest '{interest.Name}' already added");
 
         _interests.Add(interest);
+        interest.IncrementUsage(); // Track popularity
+
         UpdateTimestamp();
 
         AddDomainEvent(new InterestAddedEvent(this, interest));
@@ -133,9 +145,12 @@ public class UserProfile : BaseEntity
         GuardAgainst.Object.Null(interest, nameof(interest));
 
         if (!_interests.Contains(interest))
-            throw new DomainException("Interest not found");
+            throw new BusinessRuleViolationException(" not found",
+                "Interest not found"
+                );
 
         _interests.Remove(interest);
+        interest.DecrementUsage();
         UpdateTimestamp();
 
         AddDomainEvent(new InterestRemovedEvent(this, interest));
