@@ -9,7 +9,8 @@ public abstract class DomainEvent : IDomainEvent
 
     protected DomainEvent()
     {
-        EventId = Guid.NewGuid();
+        EventId = Guid.NewGuid(); 
+
         OccurredOn = DateTime.UtcNow;
     }
 }
