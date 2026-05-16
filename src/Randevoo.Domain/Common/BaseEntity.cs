@@ -1,5 +1,6 @@
 ﻿// Domain/Common/BaseEntity.cs
 using System.Collections.Generic;
+using Randevoo.Domain.Common.Events;
 using Randevoo.Domain.Events;
 
 namespace Randevoo.Domain.Common;

@@ -6,15 +6,12 @@ namespace Randevoo.Domain.Interfaces;
 
 public interface IUserProfileRepository
 {
-    // Basic CRUD (but specific to UserProfile)
     Task<UserProfile?> GetByIdAsync(long id, CancellationToken cancellationToken = default);
     Task<UserProfile?> GetByIdWithDetailsAsync(long id, CancellationToken cancellationToken = default);
 
-    // Query methods - named for business needs
     Task<UserProfile?> GetByDisplayNameAsync(string displayName, CancellationToken cancellationToken = default);
     Task<UserProfile?> GetByEmailAsync(string email, CancellationToken cancellationToken = default); // For auth
 
-    // Domain-specific queries
     Task<IReadOnlyList<UserProfile>> GetPotentialMatchesAsync(
         long userId,
         int limit = 20,

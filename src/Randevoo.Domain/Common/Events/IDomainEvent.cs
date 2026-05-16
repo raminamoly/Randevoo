@@ -1,5 +1,5 @@
 ﻿// Domain/Common/IDomainEvent.cs
-namespace Randevoo.Domain.Common;
+namespace Randevoo.Domain.Common.Events;
 
 public interface IDomainEvent
 {

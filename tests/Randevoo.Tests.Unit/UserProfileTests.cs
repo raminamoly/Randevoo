@@ -15,6 +15,11 @@ namespace Randevoo.Tests.Unit
 {
     public class UserProfileTests
     {
+        private static User CreateUser() {
+            return new User(email : "Ramin.Amoly@gamil.com", passwordHash : "123");
+        }
+          
+
         private static Location CreateLocation() =>
             new Location("USA", "Seattle", new Coordinates(47.6062m, -122.3321m));
 
@@ -23,6 +28,7 @@ namespace Randevoo.Tests.Unit
 
         private static UserProfile CreateValidProfile(DateOnly? dob = null) =>
             new UserProfile(
+                user: CreateUser(),
                 displayName: "Alice",
                 dateOfBirth: dob ?? DateOnly.FromDateTime(DateTime.UtcNow).AddYears(-30),
                 gender: Gender.Female,
@@ -41,7 +47,7 @@ namespace Randevoo.Tests.Unit
             Assert.False(profile.Smoking);
             Assert.NotNull(profile.Location);
             Assert.True(profile.Age >= 30 - 1); // basic sanity; exact depends on date
-            Assert.Contains(profile.DomainEvents, e => e is UserProfileCreatedEvent);
+            Assert.Contains(profile.DomainEvents, e => e is EntityCreatedEvent<UserProfile>);
         }
 
         [Fact]
@@ -53,7 +59,7 @@ namespace Randevoo.Tests.Unit
             profile.UpdateDisplayName("Bob");
 
             Assert.Equal("Bob", profile.DisplayName);
-            Assert.Contains(profile.DomainEvents, e => e is UserProfileUpdatedEvent);
+            Assert.Contains(profile.DomainEvents, e => e is EntityUpdatedEvent<UserProfile>);
         }
 
         [Fact]
@@ -129,10 +135,10 @@ namespace Randevoo.Tests.Unit
             profile.SoftDelete();
 
             Assert.True(profile.IsDeleted);
-            Assert.Contains(profile.DomainEvents, e => e is UserProfileUpdatedEvent);
+            Assert.Contains(profile.DomainEvents, e => e is EntityUpdatedEvent<UserProfile>);
         }
 
-        [Fact]
+        [Fact]  
         public void Age_Calculation_IsConsistent()
         {
             // Ensure a deterministic birthday: today minus 20 years (birthday today)

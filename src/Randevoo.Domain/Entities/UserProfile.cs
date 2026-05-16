@@ -9,6 +9,10 @@ namespace Randevoo.Domain.Entities;
 
 public class UserProfile : BaseEntity , IAggregateRoot
 {
+    public long UserId { get; private set; }
+    public User User { get; private set; }
+
+
     public string DisplayName { get; private set; }
     public Gender Gender { get; private set; }
     public DateOnly DateOfBirth { get; private set; }
@@ -36,6 +40,7 @@ public class UserProfile : BaseEntity , IAggregateRoot
 
     // Public constructor
     public UserProfile(
+        User user,
         string displayName,
         DateOnly dateOfBirth,
         Gender gender,
@@ -54,7 +59,7 @@ public class UserProfile : BaseEntity , IAggregateRoot
         Smoking = false;
 
         // Add domain event for creation
-        AddDomainEvent(new UserProfileCreatedEvent(this));
+        AddDomainEvent(new EntityCreatedEvent<UserProfile>(this));
     }
 
     // Behavior methods with domain events
@@ -65,7 +70,7 @@ public class UserProfile : BaseEntity , IAggregateRoot
         DisplayName = GuardAgainst.String.InvalidLength(newName, nameof(newName), 2, 50);
         UpdateTimestamp();
 
-        AddDomainEvent(new UserProfileUpdatedEvent(this, nameof(DisplayName), oldName, newName));
+        AddDomainEvent(new EntityUpdatedEvent<UserProfile>(this, nameof(DisplayName), oldName, newName));
     }
 
     public void UpdateLocation(Location newLocation)
@@ -75,7 +80,7 @@ public class UserProfile : BaseEntity , IAggregateRoot
         Location = GuardAgainst.Object.Null(newLocation, nameof(newLocation));
         UpdateTimestamp();
 
-        AddDomainEvent(new UserProfileUpdatedEvent(this, nameof(Location), oldLocation, newLocation));
+        AddDomainEvent(new EntityUpdatedEvent<UserProfile>(this, nameof(Location), oldLocation, newLocation));
     }
 
     public void UpdateHeight(Height newHeight)
@@ -85,7 +90,7 @@ public class UserProfile : BaseEntity , IAggregateRoot
         Height = GuardAgainst.Object.Null(newHeight, nameof(newHeight));
         UpdateTimestamp();
 
-        AddDomainEvent(new UserProfileUpdatedEvent(this, nameof(Height), oldHeight, newHeight));
+        AddDomainEvent(new EntityUpdatedEvent<UserProfile>(this, nameof(Height), oldHeight, newHeight));
     }
 
     public void UpdateEducationLevel(EducationLevel level)
@@ -95,7 +100,7 @@ public class UserProfile : BaseEntity , IAggregateRoot
         EducationLevel = GuardAgainst.Number.AgainstInvalidEnum<EducationLevel>((int)level, nameof(level));
         UpdateTimestamp();
 
-        AddDomainEvent(new UserProfileUpdatedEvent(this, nameof(EducationLevel), oldLevel, level));
+        AddDomainEvent(new EntityUpdatedEvent<UserProfile>(this, nameof(EducationLevel), oldLevel, level));
     }
 
     public void UpdateGender(Gender gender)
@@ -105,7 +110,7 @@ public class UserProfile : BaseEntity , IAggregateRoot
         Gender = GuardAgainst.Number.AgainstInvalidEnum<Gender>((int)gender, nameof(gender));
         UpdateTimestamp();
 
-        AddDomainEvent(new UserProfileUpdatedEvent(this, nameof(Gender), oldGender, gender));
+        AddDomainEvent(new EntityUpdatedEvent<UserProfile>(this, nameof(Gender), oldGender, gender));
     }
 
     public void SetSmoking(bool smokes)
@@ -115,7 +120,7 @@ public class UserProfile : BaseEntity , IAggregateRoot
         Smoking = smokes;
         UpdateTimestamp();
 
-        AddDomainEvent(new UserProfileUpdatedEvent(this, nameof(Smoking), oldValue, smokes));
+        AddDomainEvent(new EntityUpdatedEvent<UserProfile>(this, nameof(Smoking), oldValue, smokes));
     }
 
     public void AddInterest(Interest interest)
@@ -160,7 +165,7 @@ public class UserProfile : BaseEntity , IAggregateRoot
     public override void SoftDelete()
     {
         base.SoftDelete();
-        AddDomainEvent(new UserProfileUpdatedEvent(this, nameof(IsDeleted), false, true));
+        AddDomainEvent(new EntityUpdatedEvent<UserProfile>(this, nameof(IsDeleted), false, true));
     }
 
     private static int CalculateAge(DateOnly birthDate)
