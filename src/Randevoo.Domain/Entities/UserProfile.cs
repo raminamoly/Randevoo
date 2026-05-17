@@ -19,8 +19,7 @@ public class UserProfile : BaseEntity , IAggregateRoot
     public Height Height { get; private set; }
     public EducationLevel EducationLevel { get; private set; }
     public bool Smoking { get; private set; }
-    //public IReadOnlyList<Interest> Interests => _interests.AsReadOnly();
-    //private readonly List<Interest> _interests;
+   
 
     private readonly List<Interest> _interests = new();
     public IReadOnlyList<Interest> Interests => _interests.AsReadOnly();
@@ -33,7 +32,7 @@ public class UserProfile : BaseEntity , IAggregateRoot
 
 
     // EF Core constructor
-    private UserProfile() : base()
+    private UserProfile()  
     {
         _interests = new List<Interest>();
     }
@@ -45,10 +44,13 @@ public class UserProfile : BaseEntity , IAggregateRoot
         DateOnly dateOfBirth,
         Gender gender,
         Location location,
-        Height? height = null) : base()
+        Height? height = null)  
     {
+        GuardAgainst.Object.Null(user, nameof(user));
         _interests = new List<Interest>();
 
+        User = user;
+        UserId = user.Id;
         DisplayName = GuardAgainst.String.InvalidLength(displayName, nameof(displayName), 2, 50);
         Gender = GuardAgainst.Number.AgainstInvalidEnum<Gender>((int)gender, nameof(gender));
         DateOfBirth = GuardAgainst.Date.AgeRequirement(dateOfBirth, 18, nameof(dateOfBirth));
@@ -150,9 +152,9 @@ public class UserProfile : BaseEntity , IAggregateRoot
         GuardAgainst.Object.Null(interest, nameof(interest));
 
         if (!_interests.Contains(interest))
-            throw new BusinessRuleViolationException(" not found",
-                "Interest not found"
-                );
+            throw new BusinessRuleViolationException(
+                "Interest not found",
+                $"Interest '{interest.Name}' does not exist in user's interests");
 
         _interests.Remove(interest);
         interest.DecrementUsage();

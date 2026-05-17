@@ -8,5 +8,5 @@ using System.Threading.Tasks;
 
 namespace Randevoo.Domain.Events
 {
- 
+   
 }

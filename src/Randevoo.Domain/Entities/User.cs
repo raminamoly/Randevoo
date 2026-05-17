@@ -1,4 +1,5 @@
 ﻿using Randevoo.Domain.Common;
+using Randevoo.Domain.Common.Events;
 using Randevoo.Domain.Enums;
 using Randevoo.Domain.Events;
 using Randevoo.Domain.Exceptions;
@@ -8,7 +9,7 @@ namespace Randevoo.Domain.Entities;
 
 public class User : BaseEntity, IAggregateRoot
 {
-    // User identity properties
+
     public string Email { get; private set; }
     public string PasswordHash { get; private set; }
     public UserRole Role { get; private set; }
@@ -25,8 +26,10 @@ public class User : BaseEntity, IAggregateRoot
         PasswordHash = GuardAgainst.String.NullOrWhiteSpace(passwordHash, nameof(passwordHash));
         Role = UserRole.Basic;
         IsActive = true;
-         
+
         // Profile will be created later via CreateProfile()
+
+        AddDomainEvent(new EntityCreatedEvent<User>(this));
     }
 
   
@@ -46,19 +49,28 @@ public class User : BaseEntity, IAggregateRoot
 
     public void UpdatePassword(string newHash)
     {
+        string OldPasswordHash = PasswordHash;
         PasswordHash = newHash;
         UpdateTimestamp();
+
+        AddDomainEvent(new EntityUpdatedEvent<User>(this, nameof(PasswordHash), OldPasswordHash, newHash));
+
+
     }
 
     public void Deactivate()
     {
+        bool OldIsActive = IsActive;
         IsActive = false;
         UpdateTimestamp();
+        AddDomainEvent(new EntityUpdatedEvent<User>(this, nameof(IsActive), OldIsActive, IsActive));
     }
 
-    public void PromoteToPremium()
+    public void ChangeUserRole(UserRole userRole)
     {
-        Role = UserRole.Premium;
+        UserRole OldUserRole = Role;
+        Role = userRole;
         UpdateTimestamp();
+        AddDomainEvent(new EntityUpdatedEvent<User>(this, nameof(Role), OldUserRole, userRole));
     }
 }

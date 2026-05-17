@@ -16,10 +16,9 @@ namespace Randevoo.Tests.Unit
     public class UserProfileTests
     {
         private static User CreateUser() {
-            return new User(email : "Ramin.Amoly@gamil.com", passwordHash : "123");
+            return new User(email : "Ramin.Amoly@gmail.com", passwordHash : "123");
         }
           
-
         private static Location CreateLocation() =>
             new Location("USA", "Seattle", new Coordinates(47.6062m, -122.3321m));
 
@@ -141,11 +140,24 @@ namespace Randevoo.Tests.Unit
         [Fact]  
         public void Age_Calculation_IsConsistent()
         {
-            // Ensure a deterministic birthday: today minus 20 years (birthday today)
-            var birth = DateOnly.FromDateTime(DateTime.UtcNow).AddYears(-20);
+
+            var birth = new DateOnly(2000, 1, 1);
             var profile = CreateValidProfile(birth);
 
             Assert.Equal(20, profile.Age);
+        }
+
+        [Fact]
+        public void Constructor_WithNullUser_ThrowsException()
+        {
+            var ex = Assert.Throws<ArgumentNullException>(() =>
+                new UserProfile(
+                    user: null!,  // Explicitly null
+                    displayName: "Alice",
+                    dateOfBirth: DateOnly.FromDateTime(DateTime.UtcNow).AddYears(-30),
+                    gender: Gender.Female,
+                    location: CreateLocation()
+                ));
         }
     }
 }
