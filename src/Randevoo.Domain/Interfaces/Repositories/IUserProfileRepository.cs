@@ -17,7 +17,7 @@ public interface IUserProfileRepository
         int limit = 20,
         CancellationToken cancellationToken = default);
 
-    Task<IReadOnlyList<UserProfile>> GetNearbyUsersAsync(
+    Task<IReadOnlyList<UserProfile>> GetNearbyUsersAsync( 
         Coordinates location,
         int maxDistanceKm,
         int limit = 50,
