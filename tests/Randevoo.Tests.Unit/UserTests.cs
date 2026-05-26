@@ -3,23 +3,30 @@ using Randevoo.Domain.Entities;
 using Randevoo.Domain.Enums;
 using Randevoo.Domain.Exceptions;
 using Randevoo.Domain.ValueObjects;
+using Randevoo.Tests.Unit.Builder;
 using Xunit;
 
 namespace Randevoo.Tests.Unit;
 
 public class UserTests
 {
+    UserBuilder userBuider;
+
+    public UserTests()
+    {
+        this.userBuider = new UserBuilder();
+    }
+
     private static Location CreateLocation() =>
       new Location("Iran", "Tehran", new Coordinates(35.6895m, 51.3890m));
 
-    private static User CreateUser(string email = "ramin.amoly@gmail.com", string password = "123") =>
-        new User(email, password);
+    
 
     [Fact]
     public void Constructor_WithValidData_SetsPropertiesAndRaisesCreatedEvent()
     {
         // Arrange / Act
-        var user = CreateUser();
+        var user = userBuider.Build();
 
         // Assert
         user.Email.Should().Be("ramin.amoly@gmail.com");
@@ -33,7 +40,7 @@ public class UserTests
     public void Constructor_WithInvalidEmail_ThrowsBusinessRuleViolationException()
     {
         // Arrange
-        Action act = () => new User("", "pwd");
+        Action act = () => userBuider.WithEmail("pwd").Build();
 
         // Act / Assert
         act.Should().Throw<BusinessRuleViolationException>();
@@ -43,7 +50,7 @@ public class UserTests
     public void CreateProfile_WithValidData_SetsProfileAndRaisesEvent()
     {
         // Arrange
-        var user = CreateUser();
+        var user = userBuider.Build();
         user.ClearDomainEvents();
 
         // Act
@@ -67,7 +74,7 @@ public class UserTests
     public void CreateProfile_WhenAlreadyExists_ThrowsBusinessRuleViolationException()
     {
         // Arrange
-        var user = CreateUser();
+        var user = userBuider.Build();
         user.CreateProfile("X", DateOnly.FromDateTime(DateTime.UtcNow).AddYears(-30), Gender.Male, CreateLocation());
 
         // Act
@@ -81,7 +88,7 @@ public class UserTests
     public void UpdatePassword_WithValidData_UpdatesPasswordAndRaisesEvent()
     {
         // Arrange
-        var user = CreateUser();
+        var user = userBuider.Build();
         user.ClearDomainEvents();
         var before = user.UpdatedAt;
 
@@ -98,7 +105,7 @@ public class UserTests
     public void Deactivate_ShouldSetIsActiveToFalseAndRaiseEvent()
     {
         // Arrange
-        var user = CreateUser();
+        var user = userBuider.Build();
         user.ClearDomainEvents();
 
         // Act
@@ -114,7 +121,7 @@ public class UserTests
     public void ChangeUserRole_ShouldUpdateRoleAndRaiseEvent()
     {
         // Arrange
-        var user = CreateUser();
+        var user = userBuider.Build();
         user.ClearDomainEvents();
 
         // Act
