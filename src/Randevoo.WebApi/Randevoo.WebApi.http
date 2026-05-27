@@ -1,0 +1,6 @@
+@Randevoo.WebApi_HostAddress = http://localhost:5031
+
+GET {{Randevoo.WebApi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

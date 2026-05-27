@@ -2,7 +2,7 @@
 using Randevoo.Domain.Entities;
 using Randevoo.Domain.ValueObjects;
 
-namespace Randevoo.Domain.Interfaces;
+namespace Randevoo.Domain.Interfaces.Repositories;
 
 public interface IUserProfileRepository
 {

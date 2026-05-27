@@ -10,11 +10,19 @@
     <Folder Include="Common\Behaviors\" />
     <Folder Include="Events\DomainEventHandlers\" />
     <Folder Include="Events\IntegrationEventHandlers\" />
-    <Folder Include="Features\DatingProfile\Commands\CreateDatingProfile\" />
     <Folder Include="Features\DatingProfile\Queries\GetDatingProfile\" />
     <Folder Include="Features\DatingEvent\" />
     <Folder Include="Interfaces\Services\" />
     <Folder Include="Services\Orchestration\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MediatR" Version="14.1.0" />
+    <PackageReference Include="MediatR.Extensions.Microsoft.DependencyInjection" Version="11.1.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Randevoo.Domain\Randevoo.Domain.csproj" />
   </ItemGroup>
 
 </Project>
