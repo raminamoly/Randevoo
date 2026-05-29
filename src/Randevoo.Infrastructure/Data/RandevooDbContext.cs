@@ -22,9 +22,14 @@ public class RandevooDbContext : DbContext
         modelBuilder.Entity<User>(b =>
         {
             b.HasKey(u => u.Id);
-            b.Property(u => u.Email).IsRequired().HasMaxLength(100);
-            b.HasIndex(u => u.Email).IsUnique();
-            b.Property(u => u.PasswordHash).IsRequired().HasMaxLength(500);
+            b.Property(u => u.MobileNumber).IsRequired().HasMaxLength(20);
+            b.HasIndex(u => u.MobileNumber).IsUnique();
+            b.Property(u => u.Email).HasMaxLength(100);
+            b.HasIndex(u => u.Email).IsUnique()
+                .HasFilter("[Email] IS NOT NULL");
+            b.Property(u => u.PendingEmail).HasMaxLength(100);
+            b.Property(u => u.MobileLoginCodeHash).HasMaxLength(128);
+            b.Property(u => u.EmailConfirmationTokenHash).HasMaxLength(128);
             b.HasQueryFilter(u => !u.IsDeleted);
             b.HasOne(u => u.Profile)
              .WithOne(p => p.User)

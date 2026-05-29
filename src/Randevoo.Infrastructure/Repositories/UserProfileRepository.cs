@@ -127,6 +127,6 @@ public class UserProfileRepository : IUserProfileRepository
 
     public async Task<bool> ExistsByEmailAsync(string email, CancellationToken cancellationToken = default)
     {
-        return await _db.Users.AnyAsync(u => u.Email == email, cancellationToken);
+        return await _db.Users.AnyAsync(u => u.Email == email || u.PendingEmail == email, cancellationToken);
     }
 }

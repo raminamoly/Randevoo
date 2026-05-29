@@ -11,7 +11,7 @@ public class UserProfileTests
 {
     private static User CreateUser()
     {
-        return new User(email: "Ramin.Amoly@gmail.com", passwordHash: "123");
+        return new User("+989121234567");
     }
 
     private static Location CreateLocation() =>

@@ -1,4 +1,4 @@
-﻿using FluentAssertions;
+using FluentAssertions;
 using Randevoo.Domain.Entities;
 using Randevoo.Domain.Enums;
 using Randevoo.Domain.Events;
@@ -11,61 +11,84 @@ namespace Randevoo.Tests.Unit;
 
 public class UserTests
 {
-    UserBuilder userBuider;
-
-    public UserTests()
-    {
-        this.userBuider = new UserBuilder();
-    }
+    private readonly UserBuilder _userBuilder = new();
 
     private static Location CreateLocation() =>
-      new Location("Iran", "Tehran", new Coordinates(35.6895m, 51.3890m));
-
-    
+        new("Iran", "Tehran", new Coordinates(35.6895m, 51.3890m));
 
     [Fact]
-    public void Constructor_WithValidData_SetsPropertiesAndRaisesCreatedEvent()
+    public void Constructor_WithValidMobileNumber_SetsPropertiesAndRaisesCreatedEvent()
     {
-        // Arrange / Act
-        var user = userBuider.Build();
+        var user = _userBuilder.Build();
 
-        // Assert
-        user.Email.Should().Be("ramin.amoly@gmail.com");
-        user.PasswordHash.Should().Be("123");
+        user.MobileNumber.Should().Be("+989121234567");
+        user.Email.Should().BeNull();
+        user.IsEmailConfirmed.Should().BeFalse();
         user.Role.Should().Be(UserRole.Basic);
         user.IsActive.Should().BeTrue();
         user.DomainEvents.Should().Contain(e => e is EntityCreatedEvent<User>);
     }
 
     [Fact]
-    public void Constructor_WithInvalidEmail_ThrowsBusinessRuleViolationException()
+    public void Constructor_WithInvalidMobileNumber_ThrowsBusinessRuleViolationException()
     {
-        // Arrange
-        Action act = () => userBuider.WithEmail("pwd").Build();
+        Action act = () => _userBuilder.WithMobileNumber("pwd").Build();
 
-        // Act / Assert
         act.Should().Throw<BusinessRuleViolationException>();
+    }
+
+    [Fact]
+    public void MobileLogin_WithValidCode_CompletesAndClearsCode()
+    {
+        var user = _userBuilder.Build();
+
+        user.StartMobileLogin("hash", DateTime.UtcNow.AddMinutes(5));
+        user.CompleteMobileLogin("hash", DateTime.UtcNow);
+
+        user.MobileLoginCodeHash.Should().BeNull();
+        user.MobileLoginCodeExpiresAt.Should().BeNull();
+    }
+
+    [Fact]
+    public void MobileLogin_WithWrongCode_ThrowsBusinessRuleViolationException()
+    {
+        var user = _userBuilder.Build();
+        user.StartMobileLogin("hash", DateTime.UtcNow.AddMinutes(5));
+
+        Action act = () => user.CompleteMobileLogin("wrong", DateTime.UtcNow);
+
+        act.Should().Throw<BusinessRuleViolationException>();
+    }
+
+    [Fact]
+    public void ConfirmEmail_WithValidToken_SetsConfirmedEmail()
+    {
+        var user = _userBuilder.Build();
+
+        user.StartEmailConfirmation("Ramin.Amoly@gmail.com", "token-hash", DateTime.UtcNow.AddHours(1));
+        user.ConfirmEmail("token-hash", DateTime.UtcNow);
+
+        user.Email.Should().Be("ramin.amoly@gmail.com");
+        user.IsEmailConfirmed.Should().BeTrue();
+        user.PendingEmail.Should().BeNull();
+        user.EmailConfirmationTokenHash.Should().BeNull();
     }
 
     [Fact]
     public void CreateProfile_WithValidData_SetsProfileAndRaisesEvent()
     {
-        // Arrange
-        var user = userBuider.Build();
+        var user = _userBuilder.Build();
         user.ClearDomainEvents();
 
-        // Act
         user.CreateProfile(
             "Ramin Amoly",
             new DateOnly(1990, 1, 1),
             Gender.Male,
             CreateLocation(),
-            new Height(177)
-        );
+            new Height(177));
 
-        // Assert
         user.Profile.Should().NotBeNull();
-        user.Profile.DisplayName.Should().Be("Ramin Amoly");
+        user.Profile!.DisplayName.Should().Be("Ramin Amoly");
         user.Profile.DateOfBirth.Should().Be(new DateOnly(1990, 1, 1));
         user.Profile.Gender.Should().Be(Gender.Male);
         user.Profile.DomainEvents.Should().Contain(e => e is EntityCreatedEvent<UserProfile>);
@@ -74,45 +97,22 @@ public class UserTests
     [Fact]
     public void CreateProfile_WhenAlreadyExists_ThrowsBusinessRuleViolationException()
     {
-        // Arrange
-        var user = userBuider.Build();
+        var user = _userBuilder.Build();
         user.CreateProfile("First Profile", DateOnly.FromDateTime(DateTime.UtcNow).AddYears(-30), Gender.Male, CreateLocation());
 
-        // Act
-        Action act = () => user.CreateProfile("Y", DateOnly.FromDateTime(DateTime.UtcNow).AddYears(-25), Gender.Female, CreateLocation());
+        Action act = () => user.CreateProfile("Second Profile", DateOnly.FromDateTime(DateTime.UtcNow).AddYears(-25), Gender.Female, CreateLocation());
 
-        // Assert
         act.Should().Throw<BusinessRuleViolationException>();
-    }
-   
-    [Fact]
-    public void UpdatePassword_WithValidData_UpdatesPasswordAndRaisesEvent()
-    {
-        // Arrange
-        var user = userBuider.Build();
-        user.ClearDomainEvents();
-        var before = user.UpdatedAt;
-
-        // Act
-        user.UpdatePassword("new-hash");
-
-        // Assert
-        user.PasswordHash.Should().Be("new-hash");
-        user.UpdatedAt.Should().NotBe(before);
-        user.DomainEvents.Should().Contain(e => e.GetType().Name.Contains("EntityUpdated"));
     }
 
     [Fact]
     public void Deactivate_ShouldSetIsActiveToFalseAndRaiseEvent()
     {
-        // Arrange
-        var user = userBuider.Build();
+        var user = _userBuilder.Build();
         user.ClearDomainEvents();
 
-        // Act
         user.Deactivate();
 
-        // Assert
         user.IsActive.Should().BeFalse();
         user.UpdatedAt.Should().NotBeNull();
         user.DomainEvents.Should().Contain(e => e.GetType().Name.Contains("EntityUpdated"));
@@ -121,17 +121,12 @@ public class UserTests
     [Fact]
     public void ChangeUserRole_ShouldUpdateRoleAndRaiseEvent()
     {
-        // Arrange
-        var user = userBuider.Build();
+        var user = _userBuilder.Build();
         user.ClearDomainEvents();
 
-        // Act
         user.ChangeUserRole(UserRole.Admin);
 
-        // Assert
         user.Role.Should().Be(UserRole.Admin);
         user.DomainEvents.Should().Contain(e => e.GetType().Name.Contains("EntityUpdated"));
     }
-
 }
-

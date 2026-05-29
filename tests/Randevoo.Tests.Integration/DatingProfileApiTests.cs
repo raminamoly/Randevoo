@@ -151,7 +151,7 @@ public class DatingProfileApiTests
             await db.Database.EnsureDeletedAsync();
             await db.Database.EnsureCreatedAsync();
 
-            var user = new User("ramin.amoly@gmail.com", "hash");
+            var user = new User("+989121234567");
             db.Users.Add(user);
             await db.SaveChangesAsync();
             return user.Id;

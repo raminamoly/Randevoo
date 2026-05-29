@@ -5,24 +5,18 @@ namespace Randevoo.Tests.Unit.Builder
 
     public class UserBuilder
     {
-        string _email = "Ramin.Amoly@gmail.com";
-        string _password = "123";
+        string _mobileNumber = "+989121234567";
 
         public UserBuilder() { }
-        public UserBuilder WithEmail(string email)
+        public UserBuilder WithMobileNumber(string mobileNumber)
         {
-            this._email = email;
-            return this;
-        }
-        public UserBuilder WithPassword(string password)
-        {
-            this._password = password;
+            this._mobileNumber = mobileNumber;
             return this;
         }
 
         public User Build()
         {
-            return new User(_email, _password);
+            return new User(_mobileNumber);
         }
 
     }

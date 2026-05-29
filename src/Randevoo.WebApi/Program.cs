@@ -1,3 +1,6 @@
+using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
 using Randevoo.Application;
 using Randevoo.Infrastructure;
 using Randevoo.WebApi.Endpoints;
@@ -13,6 +16,27 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddRandevooInfrastructure(connectionString);
 builder.Services.AddRandevooApplication();
 
+var jwtSecret = builder.Configuration["Jwt:Secret"] ?? "development-secret-key-change-me-with-at-least-32-chars";
+var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "Randevoo";
+var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "Randevoo";
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = jwtIssuer,
+            ValidAudience = jwtAudience,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret))
+        };
+    });
+
+builder.Services.AddAuthorization();
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -22,6 +46,9 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseAuthentication();
+app.UseAuthorization();
+app.MapAuthEndpoints();
 app.MapDatingProfileEndpoints();
 
 app.Run();

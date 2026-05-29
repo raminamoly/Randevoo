@@ -14,6 +14,16 @@ public class UserRepository : IUserRepository
     public async Task<User?> GetByIdAsync(long id, CancellationToken cancellationToken = default) =>
         await _db.Users.FindAsync(new object[] { id }, cancellationToken);
 
+    public async Task<User?> GetByMobileNumberAsync(string mobileNumber, CancellationToken cancellationToken = default)
+    {
+        return await _db.Users.FirstOrDefaultAsync(u => u.MobileNumber == mobileNumber, cancellationToken);
+    }
+
+    public async Task<bool> ExistsByEmailAsync(string email, CancellationToken cancellationToken = default)
+    {
+        return await _db.Users.AnyAsync(u => u.Email == email || u.PendingEmail == email, cancellationToken);
+    }
+
     public async Task AddAsync(User user, CancellationToken cancellationToken = default)
     {
         _db.Users.Add(user);
