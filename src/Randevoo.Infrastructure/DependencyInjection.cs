@@ -1,10 +1,10 @@
 ﻿  
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Randevoo.Domain.Interfaces;
 using Randevoo.Domain.Interfaces.Repositories;
 using Randevoo.Infrastructure.Data;
 using Randevoo.Infrastructure.Repositories;
-using System;
 
 namespace Randevoo.Infrastructure;
 
@@ -18,6 +18,7 @@ public static class DependencyInjection
         services.AddScoped<IUserRepository, UserRepository>();
 
         services.AddScoped<IUserProfileRepository, UserProfileRepository>();
+        services.AddScoped<IUnitOfWork, UnitOfWork>();
 
        
         return services;

@@ -2,7 +2,6 @@
 using Microsoft.EntityFrameworkCore;
 using Randevoo.Domain.Entities;
 using Randevoo.Domain.Interfaces.Repositories;
-using Randevoo.Domain.Interfaces;
 using Randevoo.Domain.ValueObjects;
 using Randevoo.Infrastructure.Data;
 
@@ -17,24 +16,33 @@ public class UserProfileRepository : IUserProfileRepository
     public async Task AddAsync(UserProfile userProfile, CancellationToken cancellationToken = default)
     {
         _db.UserProfiles.Add(userProfile);
-        await _db.SaveChangesAsync(cancellationToken);
+        await Task.CompletedTask;
     }
 
     public async Task UpdateAsync(UserProfile userProfile, CancellationToken cancellationToken = default)
     {
         _db.UserProfiles.Update(userProfile);
-        await _db.SaveChangesAsync(cancellationToken);
+        await Task.CompletedTask;
     }
 
     public async Task DeleteAsync(UserProfile userProfile, CancellationToken cancellationToken = default)
     {
-        _db.UserProfiles.Remove(userProfile);
-        await _db.SaveChangesAsync(cancellationToken);
+        userProfile.SoftDelete();
+        _db.UserProfiles.Update(userProfile);
+        await Task.CompletedTask;
     }
 
     public async Task<UserProfile?> GetByIdAsync(long id, CancellationToken cancellationToken = default)
     {
         return await _db.UserProfiles.FindAsync(new object[] { id }, cancellationToken);
+    }
+
+    public async Task<UserProfile?> GetByUserIdAsync(long userId, CancellationToken cancellationToken = default)
+    {
+        return await _db.UserProfiles
+            .Include(p => p.User)
+            .Include(p => p.Interests)
+            .FirstOrDefaultAsync(p => p.UserId == userId, cancellationToken);
     }
 
     public async Task<UserProfile?> GetByIdWithDetailsAsync(long id, CancellationToken cancellationToken = default)
@@ -110,6 +118,11 @@ public class UserProfileRepository : IUserProfileRepository
     public async Task<bool> ExistsByDisplayNameAsync(string displayName, CancellationToken cancellationToken = default)
     {
         return await _db.UserProfiles.AnyAsync(p => p.DisplayName == displayName, cancellationToken);
+    }
+
+    public async Task<bool> ExistsByDisplayNameAsync(string displayName, long excludedProfileId, CancellationToken cancellationToken = default)
+    {
+        return await _db.UserProfiles.AnyAsync(p => p.DisplayName == displayName && p.Id != excludedProfileId, cancellationToken);
     }
 
     public async Task<bool> ExistsByEmailAsync(string email, CancellationToken cancellationToken = default)

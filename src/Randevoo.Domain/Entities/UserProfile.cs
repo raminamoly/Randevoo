@@ -10,13 +10,13 @@ namespace Randevoo.Domain.Entities;
 public class UserProfile : BaseEntity , IAggregateRoot
 {
     public long UserId { get; private set; }
-    public User User { get; private set; }
+    public User User { get; private set; } = null!;
 
 
-    public string DisplayName { get; private set; }
+    public string DisplayName { get; private set; } = null!;
     public Gender Gender { get; private set; }
     public DateOnly DateOfBirth { get; private set; }
-    public Height Height { get; private set; }
+    public Height Height { get; private set; } = null!;
     public EducationLevel EducationLevel { get; private set; }
     public bool Smoking { get; private set; }
    
@@ -25,7 +25,7 @@ public class UserProfile : BaseEntity , IAggregateRoot
     public IReadOnlyList<Interest> Interests => _interests.AsReadOnly();
     internal ICollection<Interest> InterestsCollection => _interests;
 
-    public Location Location { get; private set; }
+    public Location Location { get; private set; } = null!;
 
     public int Age => CalculateAge(DateOfBirth);
 
@@ -50,7 +50,6 @@ public class UserProfile : BaseEntity , IAggregateRoot
         _interests = new List<Interest>();
 
         User = user;
-        UserId = user.Id;
         DisplayName = GuardAgainst.String.InvalidLength(displayName, nameof(displayName), 2, 50);
         Gender = GuardAgainst.Number.AgainstInvalidEnum<Gender>((int)gender, nameof(gender));
         DateOfBirth = GuardAgainst.Date.AgeRequirement(dateOfBirth, 18, nameof(dateOfBirth));
@@ -123,6 +122,22 @@ public class UserProfile : BaseEntity , IAggregateRoot
         UpdateTimestamp();
 
         AddDomainEvent(new EntityUpdatedEvent<UserProfile>(this, nameof(Smoking), oldValue, smokes));
+    }
+
+    public void UpdateProfile(
+        string displayName,
+        Gender gender,
+        Location location,
+        Height height,
+        EducationLevel educationLevel,
+        bool smoking)
+    {
+        UpdateDisplayName(displayName);
+        UpdateGender(gender);
+        UpdateLocation(location);
+        UpdateHeight(height);
+        UpdateEducationLevel(educationLevel);
+        SetSmoking(smoking);
     }
 
     public void AddInterest(Interest interest)

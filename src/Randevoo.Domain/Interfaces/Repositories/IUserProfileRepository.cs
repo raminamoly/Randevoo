@@ -7,6 +7,7 @@ namespace Randevoo.Domain.Interfaces.Repositories;
 public interface IUserProfileRepository
 {
     Task<UserProfile?> GetByIdAsync(long id, CancellationToken cancellationToken = default);
+    Task<UserProfile?> GetByUserIdAsync(long userId, CancellationToken cancellationToken = default);
     Task<UserProfile?> GetByIdWithDetailsAsync(long id, CancellationToken cancellationToken = default);
 
     Task<UserProfile?> GetByDisplayNameAsync(string displayName, CancellationToken cancellationToken = default);
@@ -35,6 +36,7 @@ public interface IUserProfileRepository
 
     // Existence checks
     Task<bool> ExistsByDisplayNameAsync(string displayName, CancellationToken cancellationToken = default);
+    Task<bool> ExistsByDisplayNameAsync(string displayName, long excludedProfileId, CancellationToken cancellationToken = default);
     Task<bool> ExistsByEmailAsync(string email, CancellationToken cancellationToken = default);
 
     // Statistics

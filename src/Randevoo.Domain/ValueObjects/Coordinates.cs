@@ -8,6 +8,8 @@ public class Coordinates : BaseValueObject
     public decimal Latitude { get; private set; }
     public decimal Longitude { get; private set; }
 
+    private Coordinates() { }
+
     public Coordinates(decimal latitude, decimal longitude)
     {
         Latitude = GuardAgainst.Number.OutOfRange(latitude, nameof(latitude), -90, 90);

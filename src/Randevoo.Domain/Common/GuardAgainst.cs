@@ -225,7 +225,7 @@ public static class GuardAgainst
         {
             if (entity == null)
                 throw new NotFoundException(entityName, id);
-            return entity;
+            return entity!;
         }
 
         public static T AlreadyExists<T>(T? entity, string entityName, string identifier) where T : class

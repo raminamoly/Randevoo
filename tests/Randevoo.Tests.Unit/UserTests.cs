@@ -1,6 +1,7 @@
 ﻿using FluentAssertions;
 using Randevoo.Domain.Entities;
 using Randevoo.Domain.Enums;
+using Randevoo.Domain.Events;
 using Randevoo.Domain.Exceptions;
 using Randevoo.Domain.ValueObjects;
 using Randevoo.Tests.Unit.Builder;
@@ -33,7 +34,7 @@ public class UserTests
         user.PasswordHash.Should().Be("123");
         user.Role.Should().Be(UserRole.Basic);
         user.IsActive.Should().BeTrue();
-        user.DomainEvents.Should().NotBeNull().And.BeEmpty(); // constructor may add event depending on implementation
+        user.DomainEvents.Should().Contain(e => e is EntityCreatedEvent<User>);
     }
 
     [Fact]
@@ -67,7 +68,7 @@ public class UserTests
         user.Profile.DisplayName.Should().Be("Ramin Amoly");
         user.Profile.DateOfBirth.Should().Be(new DateOnly(1990, 1, 1));
         user.Profile.Gender.Should().Be(Gender.Male);
-        user.DomainEvents.Should().Contain(e => e.GetType().Name.Contains("EntityCreated")); // created event for profile
+        user.Profile.DomainEvents.Should().Contain(e => e is EntityCreatedEvent<UserProfile>);
     }
 
     [Fact]
@@ -75,7 +76,7 @@ public class UserTests
     {
         // Arrange
         var user = userBuider.Build();
-        user.CreateProfile("X", DateOnly.FromDateTime(DateTime.UtcNow).AddYears(-30), Gender.Male, CreateLocation());
+        user.CreateProfile("First Profile", DateOnly.FromDateTime(DateTime.UtcNow).AddYears(-30), Gender.Male, CreateLocation());
 
         // Act
         Action act = () => user.CreateProfile("Y", DateOnly.FromDateTime(DateTime.UtcNow).AddYears(-25), Gender.Female, CreateLocation());

@@ -5,10 +5,10 @@ namespace Randevoo.Domain.ValueObjects;
 
 public class Location : BaseValueObject
 {
-    public string Country { get; private set; }
-    public string City { get; private set; }
+    public string Country { get; private set; } = null!;
+    public string City { get; private set; } = null!;
     public string? Region { get; private set; }
-    public Coordinates Coordinates { get; private set; }   
+    public Coordinates Coordinates { get; private set; } = null!;
 
     private Location() { } // EF Core
 
@@ -45,6 +45,7 @@ public class Location : BaseValueObject
         yield return Country;
         yield return City;
         yield return Region;
+        yield return Coordinates;
     }
 
     public string GetFullAddress()

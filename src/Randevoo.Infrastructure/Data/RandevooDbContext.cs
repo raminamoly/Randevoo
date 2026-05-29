@@ -1,5 +1,6 @@
 ﻿
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata;
 using Randevoo.Domain.Entities;
 using Randevoo.Domain.ValueObjects;
 
@@ -21,11 +22,14 @@ public class RandevooDbContext : DbContext
         modelBuilder.Entity<User>(b =>
         {
             b.HasKey(u => u.Id);
-            b.Property(u => u.Email).IsRequired().HasMaxLength(200);
-            b.Property(u => u.PasswordHash).IsRequired();
+            b.Property(u => u.Email).IsRequired().HasMaxLength(100);
+            b.HasIndex(u => u.Email).IsUnique();
+            b.Property(u => u.PasswordHash).IsRequired().HasMaxLength(500);
+            b.HasQueryFilter(u => !u.IsDeleted);
             b.HasOne(u => u.Profile)
              .WithOne(p => p.User)
-             .HasForeignKey<UserProfile>(p => p.UserId);
+             .HasForeignKey<UserProfile>(p => p.UserId)
+             .OnDelete(DeleteBehavior.Cascade);
         });
 
         // UserProfile
@@ -33,37 +37,52 @@ public class RandevooDbContext : DbContext
         {
             b.HasKey(p => p.Id);
             b.Property(p => p.DisplayName).IsRequired().HasMaxLength(50);
-            b.OwnsOne(typeof(Height), "Height", hb =>
+            b.HasIndex(p => p.DisplayName).IsUnique();
+            b.HasIndex(p => p.UserId).IsUnique();
+            b.HasQueryFilter(p => !p.IsDeleted);
+            b.OwnsOne(p => p.Height, hb =>
             {
-                // If Height is a value object class, map its Centimeters property (adjust name if needed)
-                hb.Property<int>("Centimeters").HasColumnName("HeightCentimeters");
+                hb.Property(h => h.Centimeters)
+                    .HasColumnName("HeightCentimeters")
+                    .IsRequired();
             });
 
-            // Location is a value object: store as owned
-            b.OwnsOne(typeof(Location), "Location", lb =>
+            b.OwnsOne(p => p.Location, lb =>
             {
-                lb.Property<string>("Country").HasColumnName("Location_Country").HasMaxLength(100);
-                lb.Property<string>("City").HasColumnName("Location_City").HasMaxLength(100);
-                // Coordinates inside Location
-                lb.OwnsOne(typeof(Coordinates), "Coordinates", cb =>
+                lb.Property(l => l.Country).HasColumnName("Location_Country").HasMaxLength(100).IsRequired();
+                lb.Property(l => l.City).HasColumnName("Location_City").HasMaxLength(100).IsRequired();
+                lb.Property(l => l.Region).HasColumnName("Location_Region").HasMaxLength(100);
+                lb.OwnsOne(l => l.Coordinates, cb =>
                 {
-                    cb.Property<decimal>("Latitude").HasColumnName("Location_Latitude");
-                    cb.Property<decimal>("Longitude").HasColumnName("Location_Longitude");
+                    cb.Property(c => c.Latitude).HasColumnName("Location_Latitude").HasPrecision(9, 6).IsRequired();
+                    cb.Property(c => c.Longitude).HasColumnName("Location_Longitude").HasPrecision(9, 6).IsRequired();
                 });
             });
 
-            // Many-to-many between UserProfile and Interest (EF Core 5+ implicit join)
-            b.HasMany(typeof(Interest), "_interests")
-             .WithMany("UserProfiles");
+            b.HasMany(p => p.Interests)
+             .WithMany(i => i.UserProfiles)
+             .UsingEntity<Dictionary<string, object>>(
+                 "UserProfileInterest",
+                 r => r.HasOne<Interest>().WithMany().HasForeignKey("InterestId").OnDelete(DeleteBehavior.Cascade),
+                 l => l.HasOne<UserProfile>().WithMany().HasForeignKey("UserProfileId").OnDelete(DeleteBehavior.Cascade),
+                 j =>
+                 {
+                     j.HasKey("UserProfileId", "InterestId");
+                     j.ToTable("UserProfileInterests");
+                 });
+
+            b.Navigation(p => p.Interests).UsePropertyAccessMode(PropertyAccessMode.Field);
         });
 
         // Interest
         modelBuilder.Entity<Interest>(b =>
         {
             b.HasKey(i => i.Id);
-            b.Property(i => i.Name).IsRequired().HasMaxLength(100);
-            b.Property(i => i.Category).HasMaxLength(100);
+            b.Property(i => i.Name).IsRequired().HasMaxLength(50);
+            b.HasIndex(i => i.Name).IsUnique();
+            b.Property(i => i.Category).HasMaxLength(30);
             b.Property(i => i.UsageCount).IsRequired();
+            b.HasQueryFilter(i => !i.IsDeleted);
         });
     }
 }

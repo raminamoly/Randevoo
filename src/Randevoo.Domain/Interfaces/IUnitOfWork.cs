@@ -1,12 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+namespace Randevoo.Domain.Interfaces;
 
-namespace Randevoo.Domain.Interfaces
+public interface IUnitOfWork
 {
-    internal class IUnitOfWork
-    {
-    }
+    Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

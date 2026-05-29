@@ -2,7 +2,6 @@
 using Microsoft.EntityFrameworkCore;
 using Randevoo.Domain.Entities;
 using Randevoo.Domain.Interfaces.Repositories;
-using Randevoo.Domain.Interfaces;
 using Randevoo.Infrastructure.Data;
 
 namespace Randevoo.Infrastructure.Repositories;
@@ -18,12 +17,12 @@ public class UserRepository : IUserRepository
     public async Task AddAsync(User user, CancellationToken cancellationToken = default)
     {
         _db.Users.Add(user);
-        await _db.SaveChangesAsync(cancellationToken);
+        await Task.CompletedTask;
     }
 
     public async Task UpdateAsync(User user, CancellationToken cancellationToken = default)
     {
         _db.Users.Update(user);
-        await _db.SaveChangesAsync(cancellationToken);
+        await Task.CompletedTask;
     }
 }

@@ -6,7 +6,7 @@ namespace Randevoo.Domain.Entities;
 
 public class Interest : BaseEntity
 {
-    public string Name { get; private set; }
+    public string Name { get; private set; } = null!;
     public string? Category { get; private set; }
     public int UsageCount { get; private set; } // Popularity tracking
     public ICollection<UserProfile> UserProfiles { get; private set; }
