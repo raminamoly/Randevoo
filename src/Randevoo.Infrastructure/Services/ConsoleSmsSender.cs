@@ -17,4 +17,10 @@ public class ConsoleSmsSender : ISmsSender
         _logger.LogInformation("Login code for {MobileNumber}: {Code}", mobileNumber, code);
         return Task.CompletedTask;
     }
+
+    public Task SendMessageAsync(string mobileNumber, string message, CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("SMS to {MobileNumber}: {Message}", mobileNumber, message);
+        return Task.CompletedTask;
+    }
 }

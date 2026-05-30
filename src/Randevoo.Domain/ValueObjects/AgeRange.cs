@@ -9,6 +9,8 @@ public class AgeRange : BaseValueObject
     public int Min { get; private set; }
     public int Max { get; private set; }
 
+    private AgeRange() { }
+
     public AgeRange(int min, int max)
     {
         Min = GuardAgainst.Number.OutOfRange(min, nameof(min), 18, 100);

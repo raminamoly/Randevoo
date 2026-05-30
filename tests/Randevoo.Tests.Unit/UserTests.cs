@@ -24,7 +24,7 @@ public class UserTests
         user.MobileNumber.Should().Be("+989121234567");
         user.Email.Should().BeNull();
         user.IsEmailConfirmed.Should().BeFalse();
-        user.Role.Should().Be(UserRole.Basic);
+        user.Role.Should().Be(UserRole.EndUser);
         user.IsActive.Should().BeTrue();
         user.DomainEvents.Should().Contain(e => e is EntityCreatedEvent<User>);
     }

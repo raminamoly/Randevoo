@@ -25,7 +25,7 @@ public class User : BaseEntity, IAggregateRoot
     public User(string mobileNumber)
     {
         MobileNumber = NormalizeMobileNumber(mobileNumber);
-        Role = UserRole.Basic;
+        Role = UserRole.EndUser;
         IsActive = true;
 
         AddDomainEvent(new EntityCreatedEvent<User>(this));
@@ -113,6 +113,14 @@ public class User : BaseEntity, IAggregateRoot
         Role = userRole;
         UpdateTimestamp();
         AddDomainEvent(new EntityUpdatedEvent<User>(this, nameof(Role), oldUserRole, userRole));
+    }
+
+    public void BecomeEventPlanner()
+    {
+        if (Role == UserRole.Admin)
+            return;
+
+        ChangeUserRole(UserRole.EventPlanner);
     }
 
     private static string NormalizeMobileNumber(string mobileNumber)

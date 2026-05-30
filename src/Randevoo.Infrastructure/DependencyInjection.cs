@@ -21,6 +21,14 @@ public static class DependencyInjection
         services.AddScoped<IUserRepository, UserRepository>();
 
         services.AddScoped<IUserProfileRepository, UserProfileRepository>();
+        services.AddScoped<IEventPlannerProfileRepository, EventPlannerProfileRepository>();
+        services.AddScoped<IBalanceAccountRepository, BalanceAccountRepository>();
+        services.AddScoped<IDatingEventRepository, DatingEventRepository>();
+        services.AddScoped<IEventTicketRepository, EventTicketRepository>();
+        services.AddScoped<IEventConversationRepository, EventConversationRepository>();
+        services.AddScoped<IEventSurveyRepository, EventSurveyRepository>();
+        services.AddScoped<IEventTypeRepository, EventTypeRepository>();
+        services.AddScoped<IModerationReportRepository, ModerationReportRepository>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddSingleton<ICodeGenerator, SecureCodeGenerator>();
         services.AddSingleton<ICodeHasher, Sha256CodeHasher>();

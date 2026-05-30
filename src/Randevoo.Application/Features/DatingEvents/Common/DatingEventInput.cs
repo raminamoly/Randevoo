@@ -1,0 +1,26 @@
+namespace Randevoo.Application.Features.DatingEvents.Common;
+
+public record DatingEventInput(
+    string Title,
+    string Country,
+    string City,
+    string? Region,
+    decimal Latitude,
+    decimal Longitude,
+    string Address,
+    DateTime DateTimeStart,
+    DateTime DateTimeEnd,
+    string EventType,
+    int MaleMinAge,
+    int MaleMaxAge,
+    int FemaleMinAge,
+    int FemaleMaxAge,
+    int MaleCapacity,
+    int FemaleCapacity,
+    int NumberOfChatAllowed,
+    decimal TicketPrice,
+    string? EventImage1,
+    string? EventImage2,
+    string? EventImage3,
+    string EventDescriptionHtml,
+    decimal? EventPlannerCommissionPercent = null);

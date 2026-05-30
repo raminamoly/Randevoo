@@ -35,7 +35,12 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("EndUserOnly", policy => policy.RequireRole("EndUser", "Admin"));
+    options.AddPolicy("EventPlannerOnly", policy => policy.RequireRole("EventPlanner", "Admin"));
+    options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"));
+});
 
 var app = builder.Build();
 
@@ -50,6 +55,15 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapAuthEndpoints();
 app.MapDatingProfileEndpoints();
+app.MapEventPlannerProfileEndpoints();
+app.MapBalanceEndpoints();
+app.MapDatingEventEndpoints();
+app.MapUserAdminEndpoints();
+app.MapEventParticipantEndpoints();
+app.MapEventChatEndpoints();
+app.MapEventSurveyEndpoints();
+app.MapEventTypeEndpoints();
+app.MapModerationEndpoints();
 
 app.Run();
 

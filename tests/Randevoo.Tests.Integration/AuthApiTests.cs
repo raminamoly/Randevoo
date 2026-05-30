@@ -117,6 +117,8 @@ public class AuthApiTests
             return Task.CompletedTask;
         }
 
+        public Task SendMessageAsync(string mobileNumber, string message, CancellationToken cancellationToken = default) => Task.CompletedTask;
+
         public Task SendEmailConfirmationAsync(string email, string confirmationLink, CancellationToken cancellationToken = default)
         {
             LastConfirmationLink = confirmationLink;

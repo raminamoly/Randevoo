@@ -234,7 +234,7 @@ public static class GuardAgainst
                 throw new BusinessRuleViolationException(
                     "Duplicate entity",
                     $"{entityName} with identifier '{identifier}' already exists");
-            return entity;
+            return entity!;
         }
     }
 }
