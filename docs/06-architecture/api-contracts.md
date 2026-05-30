@@ -14,11 +14,13 @@ Authorization policies:
 | ID | Method | Route | Request | Response | Auth | Use Case |
 |---|---|---|---|---|---|---|
 | API-001 | POST | `/api/auth/mobile/request-code` | `RequestMobileCodeRequest { mobileNumber }` | `202 Accepted` | Anonymous | UC-001 |
-| API-002 | POST | `/api/auth/mobile/verify-code` | `VerifyMobileCodeRequest { mobileNumber, code }` | `AuthResult { userId, mobileNumber, token }` | Anonymous | UC-002 |
+| API-002 | POST | `/api/auth/mobile/verify-code` | `VerifyMobileCodeRequest { mobileNumber, code }` | `AuthResult { userId, mobileNumber, token, accessTokenExpiresAtUtc, refreshToken, refreshTokenExpiresAtUtc }` | Anonymous | UC-002 |
 | API-003 | POST | `/api/auth/email/request-confirmation` | `{ email }` | `202 Accepted` | Authenticated | UC-003 |
 | API-004 | GET | `/api/auth/email/confirm?userId=&token=` | query | `{ message }` | Anonymous | UC-004 |
+| API-041 | POST | `/api/auth/refresh-token` | `{ refreshToken }` | `AuthResult` | Anonymous | UC-001 |
+| API-042 | POST | `/api/auth/logout` | `{ refreshToken }` | `204` | Anonymous | UC-001 |
 
-Validation/business rules: mobile format 8-20 chars, digits and optional leading plus; login code must match and not expire; email must pass domain email guard; confirmation token must match and not expire.
+Validation/business rules: mobile format 8-20 chars, digits and optional leading plus; login code must match and not expire; login codes are throttled to 3 requests per 15-minute window; 5 wrong attempts locks mobile login for 15 minutes; JWT expires after 15 minutes by default; refresh token expires after 30 days by default, is hashed at rest, rotates on refresh, and can be revoked by logout; email must pass domain email guard; confirmation token must match and not expire.
 
 ## Dating Profiles
 

@@ -10,12 +10,12 @@
 
 ## Unit Test Coverage
 
-- `UserTests`: mobile constructor, invalid mobile, login code lifecycle, email confirmation, profile creation, duplicate profile, deactivate, role change.
+- `UserTests`: mobile constructor, invalid mobile, login code lifecycle, SMS request throttling, failed-code lockout, email confirmation, profile creation, duplicate profile, deactivate, role change.
 - `UserProfileTests`: constructor defaults, display name update, interest add/remove, duplicate/max interests, soft delete, age calculation, null user guard.
 
 ## Integration Test Coverage
 
-- Auth passwordless login and email confirmation.
+- Auth passwordless login, refresh-token rotation, logout revocation, SMS throttling, lockout, and email confirmation.
 - Dating profile create/get/update/delete.
 - Event planner profile creation.
 - Dating event create/open/location/commission.

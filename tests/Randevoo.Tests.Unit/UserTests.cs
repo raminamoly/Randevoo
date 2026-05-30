@@ -42,8 +42,9 @@ public class UserTests
     {
         var user = _userBuilder.Build();
 
-        user.StartMobileLogin("hash", DateTime.UtcNow.AddMinutes(5));
-        user.CompleteMobileLogin("hash", DateTime.UtcNow);
+        var nowUtc = DateTime.UtcNow;
+        user.StartMobileLogin("hash", nowUtc, nowUtc.AddMinutes(5));
+        user.CompleteMobileLogin("hash", nowUtc);
 
         user.MobileLoginCodeHash.Should().BeNull();
         user.MobileLoginCodeExpiresAt.Should().BeNull();
@@ -53,11 +54,46 @@ public class UserTests
     public void MobileLogin_WithWrongCode_ThrowsBusinessRuleViolationException()
     {
         var user = _userBuilder.Build();
-        user.StartMobileLogin("hash", DateTime.UtcNow.AddMinutes(5));
+        var nowUtc = DateTime.UtcNow;
+        user.StartMobileLogin("hash", nowUtc, nowUtc.AddMinutes(5));
 
-        Action act = () => user.CompleteMobileLogin("wrong", DateTime.UtcNow);
+        Action act = () => user.CompleteMobileLogin("wrong", nowUtc);
 
         act.Should().Throw<BusinessRuleViolationException>();
+    }
+
+    [Fact]
+    public void StartMobileLogin_WhenRequestedTooOften_ThrowsBusinessRuleViolationException()
+    {
+        var user = _userBuilder.Build();
+        var nowUtc = DateTime.UtcNow;
+
+        user.StartMobileLogin("hash-1", nowUtc, nowUtc.AddMinutes(5));
+        user.StartMobileLogin("hash-2", nowUtc.AddMinutes(1), nowUtc.AddMinutes(6));
+        user.StartMobileLogin("hash-3", nowUtc.AddMinutes(2), nowUtc.AddMinutes(7));
+
+        Action act = () => user.StartMobileLogin("hash-4", nowUtc.AddMinutes(3), nowUtc.AddMinutes(8));
+
+        act.Should().Throw<BusinessRuleViolationException>();
+    }
+
+    [Fact]
+    public void CompleteMobileLogin_WhenWrongCodeRepeatedly_LocksLogin()
+    {
+        var user = _userBuilder.Build();
+        var nowUtc = DateTime.UtcNow;
+        user.StartMobileLogin("hash", nowUtc, nowUtc.AddMinutes(5));
+
+        for (var i = 0; i < 5; i++)
+        {
+            Action wrongAttempt = () => user.CompleteMobileLogin("wrong", nowUtc.AddMinutes(i));
+            wrongAttempt.Should().Throw<BusinessRuleViolationException>();
+        }
+
+        Action lockedAttempt = () => user.CompleteMobileLogin("hash", nowUtc.AddMinutes(6));
+
+        lockedAttempt.Should().Throw<BusinessRuleViolationException>();
+        user.MobileLoginLockedUntil.Should().NotBeNull();
     }
 
     [Fact]

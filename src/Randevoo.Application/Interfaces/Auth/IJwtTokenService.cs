@@ -4,5 +4,7 @@ namespace Randevoo.Application.Interfaces.Auth;
 
 public interface IJwtTokenService
 {
-    string CreateToken(User user);
+    JwtTokenResult CreateToken(User user);
 }
+
+public record JwtTokenResult(string Token, DateTime ExpiresAtUtc);

@@ -41,6 +41,9 @@ public class AuthApiTests
         var auth = await verifyResponse.Content.ReadFromJsonAsync<AuthResult>();
         Assert.NotNull(auth);
         Assert.False(string.IsNullOrWhiteSpace(auth.Token));
+        Assert.False(string.IsNullOrWhiteSpace(auth.RefreshToken));
+        Assert.True(auth.AccessTokenExpiresAtUtc > DateTime.UtcNow);
+        Assert.True(auth.RefreshTokenExpiresAtUtc > DateTime.UtcNow.AddDays(29));
 
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", auth.Token);
         var emailResponse = await client.PostAsJsonAsync("/api/auth/email/request-confirmation", new
@@ -75,6 +78,117 @@ public class AuthApiTests
         });
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task RefreshToken_RotatesToken_AndOldTokenCannotBeReused()
+    {
+        await using var factory = new RandevooAuthApiFactory();
+        var client = factory.CreateClient();
+        var auth = await LoginAsync(client, "+989121234568");
+
+        var refreshResponse = await client.PostAsJsonAsync("/api/auth/refresh-token", new
+        {
+            auth.RefreshToken
+        });
+
+        Assert.Equal(HttpStatusCode.OK, refreshResponse.StatusCode);
+        var refreshed = await refreshResponse.Content.ReadFromJsonAsync<AuthResult>();
+        Assert.NotNull(refreshed);
+        Assert.False(string.IsNullOrWhiteSpace(refreshed.Token));
+        Assert.False(string.IsNullOrWhiteSpace(refreshed.RefreshToken));
+        Assert.NotEqual(auth.RefreshToken, refreshed.RefreshToken);
+
+        var reuseResponse = await client.PostAsJsonAsync("/api/auth/refresh-token", new
+        {
+            auth.RefreshToken
+        });
+
+        Assert.Equal(HttpStatusCode.BadRequest, reuseResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task Logout_RevokesRefreshToken()
+    {
+        await using var factory = new RandevooAuthApiFactory();
+        var client = factory.CreateClient();
+        var auth = await LoginAsync(client, "+989121234569");
+
+        var logoutResponse = await client.PostAsJsonAsync("/api/auth/logout", new
+        {
+            auth.RefreshToken
+        });
+
+        Assert.Equal(HttpStatusCode.NoContent, logoutResponse.StatusCode);
+
+        var refreshResponse = await client.PostAsJsonAsync("/api/auth/refresh-token", new
+        {
+            auth.RefreshToken
+        });
+
+        Assert.Equal(HttpStatusCode.BadRequest, refreshResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task MobileLoginRequest_WhenRequestedTooOften_ReturnsBadRequest()
+    {
+        await using var factory = new RandevooAuthApiFactory();
+        var client = factory.CreateClient();
+        var body = new { MobileNumber = "+989121234570" };
+
+        Assert.Equal(HttpStatusCode.Accepted, (await client.PostAsJsonAsync("/api/auth/mobile/request-code", body)).StatusCode);
+        Assert.Equal(HttpStatusCode.Accepted, (await client.PostAsJsonAsync("/api/auth/mobile/request-code", body)).StatusCode);
+        Assert.Equal(HttpStatusCode.Accepted, (await client.PostAsJsonAsync("/api/auth/mobile/request-code", body)).StatusCode);
+
+        var limitedResponse = await client.PostAsJsonAsync("/api/auth/mobile/request-code", body);
+
+        Assert.Equal(HttpStatusCode.BadRequest, limitedResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task MobileLoginVerify_WhenWrongCodeRepeatedly_LocksLogin()
+    {
+        await using var factory = new RandevooAuthApiFactory();
+        var client = factory.CreateClient();
+        var mobileNumber = "+989121234571";
+
+        await client.PostAsJsonAsync("/api/auth/mobile/request-code", new { MobileNumber = mobileNumber });
+
+        for (var i = 0; i < 5; i++)
+        {
+            var wrongResponse = await client.PostAsJsonAsync("/api/auth/mobile/verify-code", new
+            {
+                MobileNumber = mobileNumber,
+                Code = "000000"
+            });
+            Assert.Equal(HttpStatusCode.BadRequest, wrongResponse.StatusCode);
+        }
+
+        var lockedResponse = await client.PostAsJsonAsync("/api/auth/mobile/verify-code", new
+        {
+            MobileNumber = mobileNumber,
+            Code = "123456"
+        });
+
+        Assert.Equal(HttpStatusCode.BadRequest, lockedResponse.StatusCode);
+    }
+
+    private static async Task<AuthResult> LoginAsync(HttpClient client, string mobileNumber)
+    {
+        var requestCodeResponse = await client.PostAsJsonAsync("/api/auth/mobile/request-code", new
+        {
+            MobileNumber = mobileNumber
+        });
+        Assert.Equal(HttpStatusCode.Accepted, requestCodeResponse.StatusCode);
+
+        var verifyResponse = await client.PostAsJsonAsync("/api/auth/mobile/verify-code", new
+        {
+            MobileNumber = mobileNumber,
+            Code = "123456"
+        });
+        Assert.Equal(HttpStatusCode.OK, verifyResponse.StatusCode);
+
+        return (await verifyResponse.Content.ReadFromJsonAsync<AuthResult>())!;
     }
 
     private sealed class RandevooAuthApiFactory : WebApplicationFactory<Program>
@@ -128,8 +242,10 @@ public class AuthApiTests
 
     private sealed class FixedCodeGenerator : ICodeGenerator
     {
+        private int _tokenCounter;
+
         public string GenerateNumericCode(int length) => "123456";
 
-        public string GenerateToken() => "email-confirm-token";
+        public string GenerateToken() => $"token-{Interlocked.Increment(ref _tokenCounter)}";
     }
 }

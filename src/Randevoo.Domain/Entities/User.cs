@@ -14,6 +14,10 @@ public class User : BaseEntity, IAggregateRoot
     public string? PendingEmail { get; private set; }
     public string? MobileLoginCodeHash { get; private set; }
     public DateTime? MobileLoginCodeExpiresAt { get; private set; }
+    public DateTime? MobileLoginCodeRequestWindowStartedAt { get; private set; }
+    public int MobileLoginCodeRequestCount { get; private set; }
+    public int MobileLoginFailedAttemptCount { get; private set; }
+    public DateTime? MobileLoginLockedUntil { get; private set; }
     public string? EmailConfirmationTokenHash { get; private set; }
     public DateTime? EmailConfirmationTokenExpiresAt { get; private set; }
     public UserRole Role { get; private set; }
@@ -31,8 +35,21 @@ public class User : BaseEntity, IAggregateRoot
         AddDomainEvent(new EntityCreatedEvent<User>(this));
     }
 
-    public void StartMobileLogin(string codeHash, DateTime expiresAtUtc)
+    public void StartMobileLogin(string codeHash, DateTime nowUtc, DateTime expiresAtUtc)
     {
+        if (MobileLoginLockedUntil > nowUtc)
+            throw new BusinessRuleViolationException("Login temporarily locked", "Too many incorrect login attempts. Try again later");
+
+        if (MobileLoginCodeRequestWindowStartedAt == null || MobileLoginCodeRequestWindowStartedAt <= nowUtc.AddMinutes(-15))
+        {
+            MobileLoginCodeRequestWindowStartedAt = nowUtc;
+            MobileLoginCodeRequestCount = 0;
+        }
+
+        if (MobileLoginCodeRequestCount >= 3)
+            throw new BusinessRuleViolationException("Too many login code requests", "Please wait before requesting another login code");
+
+        MobileLoginCodeRequestCount++;
         MobileLoginCodeHash = GuardAgainst.String.NullOrWhiteSpace(codeHash, nameof(codeHash));
         MobileLoginCodeExpiresAt = expiresAtUtc;
         UpdateTimestamp();
@@ -40,6 +57,9 @@ public class User : BaseEntity, IAggregateRoot
 
     public void CompleteMobileLogin(string codeHash, DateTime nowUtc)
     {
+        if (MobileLoginLockedUntil > nowUtc)
+            throw new BusinessRuleViolationException("Login temporarily locked", "Too many incorrect login attempts. Try again later");
+
         if (MobileLoginCodeHash == null || MobileLoginCodeExpiresAt == null)
             throw new BusinessRuleViolationException("Invalid login code", "No active login code exists for this user");
 
@@ -47,10 +67,18 @@ public class User : BaseEntity, IAggregateRoot
             throw new BusinessRuleViolationException("Expired login code", "The mobile login code has expired");
 
         if (!string.Equals(MobileLoginCodeHash, codeHash, StringComparison.Ordinal))
+        {
+            MobileLoginFailedAttemptCount++;
+            if (MobileLoginFailedAttemptCount >= 5)
+                MobileLoginLockedUntil = nowUtc.AddMinutes(15);
+            UpdateTimestamp();
             throw new BusinessRuleViolationException("Invalid login code", "The mobile login code is incorrect");
+        }
 
         MobileLoginCodeHash = null;
         MobileLoginCodeExpiresAt = null;
+        MobileLoginFailedAttemptCount = 0;
+        MobileLoginLockedUntil = null;
         UpdateTimestamp();
     }
 

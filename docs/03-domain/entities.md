@@ -4,11 +4,23 @@
 
 Purpose: account and authentication root for all roles.
 
-Properties: `MobileNumber`, `Email`, `IsEmailConfirmed`, `PendingEmail`, mobile login code hash/expiry, email token hash/expiry, `Role`, `IsActive`, optional `Profile`.
+Properties: `MobileNumber`, `Email`, `IsEmailConfirmed`, `PendingEmail`, mobile login code hash/expiry, SMS request window/count, failed login attempt count, lockout time, email token hash/expiry, `Role`, `IsActive`, optional `Profile`.
 
-Relationships: one optional `UserProfile`; one optional `EventPlannerProfile`; one optional `BalanceAccount`; owns/participates in events, tickets, chats, reports, surveys by foreign keys.
+Relationships: one optional `UserProfile`; one optional `EventPlannerProfile`; one optional `BalanceAccount`; many `RefreshToken`; owns/participates in events, tickets, chats, reports, surveys by foreign keys.
 
-Lifecycle: created by mobile login request; login code requested/verified; email confirmation requested/confirmed; role can change; can become event planner; can deactivate.
+Lifecycle: created by mobile login request; login code requested/verified with throttling and lockout; email confirmation requested/confirmed; role can change; can become event planner; can deactivate.
+
+Aggregate ownership: aggregate root.
+
+## RefreshToken
+
+Purpose: persistent session token used to renew short-lived JWT access tokens.
+
+Properties: `UserId`, hashed token, expiry time, optional revocation time, optional replacement token hash.
+
+Relationships: belongs to `User`.
+
+Lifecycle: created after successful mobile-code verification; rotated on refresh by revoking the old token and storing the replacement hash; revoked on logout; expires after configured lifetime.
 
 Aggregate ownership: aggregate root.
 

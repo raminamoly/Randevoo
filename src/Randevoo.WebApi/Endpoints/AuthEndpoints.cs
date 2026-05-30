@@ -1,8 +1,10 @@
 using System.Security.Claims;
 using MediatR;
 using Randevoo.Application.Features.Auth.Commands.ConfirmEmail;
+using Randevoo.Application.Features.Auth.Commands.RefreshAccessToken;
 using Randevoo.Application.Features.Auth.Commands.RequestEmailConfirmation;
 using Randevoo.Application.Features.Auth.Commands.RequestMobileLoginCode;
+using Randevoo.Application.Features.Auth.Commands.RevokeRefreshToken;
 using Randevoo.Application.Features.Auth.Commands.VerifyMobileLoginCode;
 using Randevoo.Domain.Exceptions;
 
@@ -20,6 +22,12 @@ public static class AuthEndpoints
 
         group.MapPost("/mobile/verify-code", VerifyMobileCodeAsync)
             .WithName("VerifyMobileLoginCode");
+
+        group.MapPost("/refresh-token", RefreshTokenAsync)
+            .WithName("RefreshAccessToken");
+
+        group.MapPost("/logout", LogoutAsync)
+            .WithName("Logout");
 
         group.MapPost("/email/request-confirmation", RequestEmailConfirmationAsync)
             .RequireAuthorization()
@@ -49,6 +57,31 @@ public static class AuthEndpoints
         try
         {
             return Results.Ok(await sender.Send(new VerifyMobileLoginCodeCommand(request.MobileNumber, request.Code), cancellationToken));
+        }
+        catch (DomainException ex)
+        {
+            return ToProblem(ex);
+        }
+    }
+
+    private static async Task<IResult> RefreshTokenAsync(RefreshTokenRequest request, ISender sender, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return Results.Ok(await sender.Send(new RefreshAccessTokenCommand(request.RefreshToken), cancellationToken));
+        }
+        catch (DomainException ex)
+        {
+            return ToProblem(ex);
+        }
+    }
+
+    private static async Task<IResult> LogoutAsync(RefreshTokenRequest request, ISender sender, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await sender.Send(new RevokeRefreshTokenCommand(request.RefreshToken), cancellationToken);
+            return Results.NoContent();
         }
         catch (DomainException ex)
         {
@@ -112,5 +145,6 @@ public static class AuthEndpoints
 
     public record RequestMobileCodeRequest(string MobileNumber);
     public record VerifyMobileCodeRequest(string MobileNumber, string Code);
+    public record RefreshTokenRequest(string RefreshToken);
     public record RequestEmailConfirmationRequest(string Email);
 }

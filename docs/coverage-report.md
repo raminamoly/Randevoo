@@ -2,9 +2,9 @@
 
 ## APIs Documented
 
-40 API entries documented in [API contracts](06-architecture/api-contracts.md):
+42 API entries documented in [API contracts](06-architecture/api-contracts.md):
 
-- Authentication: 4
+- Authentication: 6
 - Dating profiles: 5
 - Event planner profile: 1
 - Dating events: 9
@@ -18,7 +18,7 @@
 
 ## Entities Documented
 
-15 entities documented in [Domain entities](03-domain/entities.md):
+16 entities documented in [Domain entities](03-domain/entities.md):
 
 - User
 - UserProfile
@@ -35,6 +35,7 @@
 - EventSurveyRating
 - EventType
 - ModerationReport
+- RefreshToken
 
 Value objects documented:
 
@@ -51,7 +52,7 @@ Value objects documented:
 
 - 2 unit test classes documented.
 - 3 integration test classes documented.
-- 7 integration test scenario IDs documented.
+- 11 integration test scenario IDs documented.
 - No implemented E2E tests found.
 
 ## Missing / Unclear Areas

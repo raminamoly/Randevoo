@@ -38,8 +38,9 @@ public class RequestMobileLoginCodeHandler : IRequestHandler<RequestMobileLoginC
             user = new User(request.MobileNumber);
         }
 
+        var nowUtc = DateTime.UtcNow;
         var code = _codeGenerator.GenerateNumericCode(6);
-        user.StartMobileLogin(_codeHasher.Hash(code), DateTime.UtcNow.AddMinutes(5));
+        user.StartMobileLogin(_codeHasher.Hash(code), nowUtc, nowUtc.AddMinutes(5));
         if (isNewUser)
             await _users.AddAsync(user, cancellationToken);
         else

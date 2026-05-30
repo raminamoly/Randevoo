@@ -10,6 +10,11 @@ Coverage:
 
 - Request mobile login code.
 - Verify mobile code and receive JWT.
+- Verify refresh token is returned with JWT.
+- Refresh token rotates and old token cannot be reused.
+- Logout revokes refresh token.
+- Excessive SMS code requests are rejected.
+- Repeated wrong codes temporarily lock login.
 - Request email confirmation with JWT.
 - Confirm email through link.
 - Unauthorized email confirmation request returns 401.

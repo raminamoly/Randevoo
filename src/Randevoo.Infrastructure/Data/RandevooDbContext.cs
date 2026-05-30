@@ -25,6 +25,7 @@ public class RandevooDbContext : DbContext
     public DbSet<EventSurveyRating> EventSurveyRatings => Set<EventSurveyRating>();
     public DbSet<EventType> EventTypes => Set<EventType>();
     public DbSet<ModerationReport> ModerationReports => Set<ModerationReport>();
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -47,6 +48,20 @@ public class RandevooDbContext : DbContext
              .WithOne(p => p.User)
              .HasForeignKey<UserProfile>(p => p.UserId)
              .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<RefreshToken>(b =>
+        {
+            b.HasKey(token => token.Id);
+            b.Property(token => token.TokenHash).IsRequired().HasMaxLength(128);
+            b.Property(token => token.ReplacedByTokenHash).HasMaxLength(128);
+            b.HasIndex(token => token.TokenHash).IsUnique();
+            b.HasIndex(token => token.UserId);
+            b.HasQueryFilter(token => !token.IsDeleted);
+            b.HasOne(token => token.User)
+                .WithMany()
+                .HasForeignKey(token => token.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<EventPlannerProfile>(b =>

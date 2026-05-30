@@ -7,7 +7,8 @@ Randevoo is an event-first dating platform backend built with .NET. The current 
 The implemented system supports:
 
 - Passwordless mobile login with SMS code
-- JWT authentication
+- JWT authentication with rotating refresh tokens
+- SMS request throttling and failed-code lockout
 - Email confirmation flow
 - EndUser dating profiles
 - EventPlanner profiles and quality metrics
@@ -79,6 +80,21 @@ Important docs:
 - FluentAssertions
 - WebApplicationFactory
 
+## Authentication Model
+
+Randevoo is **not an anonymous dating app**. Users authenticate with their mobile number before using protected features. There is no password to store or remember: each login starts with a new SMS code.
+
+Current auth behavior:
+
+- Mobile login code: 6 digits, hashed in the database, valid for 5 minutes
+- SMS request limit: 3 login-code requests per 15-minute window per user
+- Failed code lockout: 5 wrong attempts locks mobile login for 15 minutes
+- Access token: JWT bearer token, valid for 15 minutes by default
+- Refresh token: opaque random token, hashed in the database, valid for 30 days by default
+- Refresh rotation: every refresh revokes the old refresh token and returns a new one
+- Logout: revokes the submitted refresh token
+- Email confirmation: token is hashed and valid for 24 hours
+
 ## Getting Started
 
 Restore and build:
@@ -120,6 +136,8 @@ The WebApi uses these fallback settings when configuration values are missing:
 - JWT issuer: `Randevoo`
 - JWT audience: `Randevoo`
 - JWT secret: development fallback value in `Program.cs`
+- JWT lifetime: `Jwt:ExpiresMinutes`, currently `15`
+- Refresh token lifetime: `Auth:RefreshTokenExpiresDays`, currently `30`
 
 For production, replace the fallback connection string, JWT secret, and console notification senders.
 
@@ -136,9 +154,10 @@ For production, replace the fallback connection string, JWT secret, and console 
 Current test suite:
 
 - 19 unit tests
-- 10 integration tests
+- 21 unit tests
+- 14 integration tests
 
-Covered areas include auth, email confirmation, dating profiles, event planner profile, event management, ticket purchase, balance adjustment, participant visibility, chat, blocking, survey, planner quality metrics, event types, moderation reports, emergency removal, and admin role changes.
+Covered areas include auth, refresh-token rotation, logout revocation, SMS request throttling, login lockout, email confirmation, dating profiles, event planner profile, event management, ticket purchase, balance adjustment, participant visibility, chat, blocking, survey, planner quality metrics, event types, moderation reports, emergency removal, and admin role changes.
 
 ## Known Gaps
 

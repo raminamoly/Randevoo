@@ -7,6 +7,7 @@ Source: `RandevooDbContext` EF Core mappings and migrations.
 | Table | Primary Key | Notes |
 |---|---|---|
 | `Users` | `Id` | unique mobile, nullable unique email, auth fields, role |
+| `RefreshTokens` | `Id` | hashed refresh tokens, expiry, rotation/revocation state |
 | `UserProfiles` | `Id` | one-to-one user profile, owned height/location columns |
 | `Interests` | `Id` | unique name, usage count |
 | `UserProfileInterests` | `UserProfileId`, `InterestId` | many-to-many join |
@@ -28,6 +29,8 @@ Source: `RandevooDbContext` EF Core mappings and migrations.
 
 - `Users.MobileNumber` unique.
 - `Users.Email` unique when not null.
+- `RefreshTokens.TokenHash` unique.
+- `RefreshTokens.UserId` indexed.
 - `UserProfiles.DisplayName` unique.
 - `UserProfiles.UserId` unique.
 - `EventPlannerProfiles.UserId` unique.
@@ -45,6 +48,7 @@ Source: `RandevooDbContext` EF Core mappings and migrations.
 ```mermaid
 erDiagram
     Users ||--o| UserProfiles : has
+    Users ||--o{ RefreshTokens : owns
     Users ||--o| EventPlannerProfiles : has
     Users ||--o| BalanceAccounts : has
     BalanceAccounts ||--o{ BalanceTransactions : records

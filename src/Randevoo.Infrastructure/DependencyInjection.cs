@@ -19,6 +19,7 @@ public static class DependencyInjection
             options.UseSqlServer(connectionString));
 
         services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 
         services.AddScoped<IUserProfileRepository, UserProfileRepository>();
         services.AddScoped<IEventPlannerProfileRepository, EventPlannerProfileRepository>();
@@ -32,6 +33,7 @@ public static class DependencyInjection
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddSingleton<ICodeGenerator, SecureCodeGenerator>();
         services.AddSingleton<ICodeHasher, Sha256CodeHasher>();
+        services.AddSingleton<IAuthTokenPolicy, AuthTokenPolicy>();
         services.AddScoped<IJwtTokenService, JwtTokenService>();
         services.AddSingleton<ISmsSender, ConsoleSmsSender>();
         services.AddSingleton<IEmailSender, ConsoleEmailSender>();

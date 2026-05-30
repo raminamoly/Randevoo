@@ -17,12 +17,12 @@ public class JwtTokenService : IJwtTokenService
         _configuration = configuration;
     }
 
-    public string CreateToken(User user)
+    public JwtTokenResult CreateToken(User user)
     {
         var secret = _configuration["Jwt:Secret"] ?? "development-secret-key-change-me-with-at-least-32-chars";
         var issuer = _configuration["Jwt:Issuer"] ?? "Randevoo";
         var audience = _configuration["Jwt:Audience"] ?? "Randevoo";
-        var expiresMinutes = int.TryParse(_configuration["Jwt:ExpiresMinutes"], out var minutes) ? minutes : 60;
+        var expiresMinutes = int.TryParse(_configuration["Jwt:ExpiresMinutes"], out var minutes) ? minutes : 15;
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
@@ -34,13 +34,14 @@ public class JwtTokenService : IJwtTokenService
             new Claim(ClaimTypes.Role, user.Role.ToString())
         };
 
+        var expiresAtUtc = DateTime.UtcNow.AddMinutes(expiresMinutes);
         var token = new JwtSecurityToken(
             issuer,
             audience,
             claims,
-            expires: DateTime.UtcNow.AddMinutes(expiresMinutes),
+            expires: expiresAtUtc,
             signingCredentials: credentials);
 
-        return new JwtSecurityTokenHandler().WriteToken(token);
+        return new JwtTokenResult(new JwtSecurityTokenHandler().WriteToken(token), expiresAtUtc);
     }
 }
