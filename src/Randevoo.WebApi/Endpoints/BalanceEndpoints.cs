@@ -44,13 +44,13 @@ public static class BalanceEndpoints
         }
     }
 
-    private static async Task<IResult> AdjustAsync(long userId, AdjustBalanceRequest request, ISender sender, CancellationToken cancellationToken)
+    private static async Task<IResult> AdjustAsync(long userId, AdjustBalanceRequest request, ClaimsPrincipal principal, ISender sender, CancellationToken cancellationToken)
     {
         try
         {
-            return Results.Ok(await sender.Send(new AdjustBalanceCommand(userId, request.Amount, request.Description), cancellationToken));
+            return Results.Ok(await sender.Send(new AdjustBalanceCommand(EndpointHelpers.GetUserId(principal), userId, request.Amount, request.Description), cancellationToken));
         }
-        catch (DomainException ex)
+        catch (Exception ex) when (ex is DomainException or UnauthorizedAccessException)
         {
             return EndpointHelpers.ToProblem(ex);
         }

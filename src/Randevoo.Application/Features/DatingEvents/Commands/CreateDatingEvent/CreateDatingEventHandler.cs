@@ -1,4 +1,5 @@
 using MediatR;
+using Microsoft.Extensions.Logging;
 using Randevoo.Application.Features.DatingEvents.Common;
 using Randevoo.Domain.Entities;
 using Randevoo.Domain.Exceptions;
@@ -15,14 +16,16 @@ public class CreateDatingEventHandler : IRequestHandler<CreateDatingEventCommand
     private readonly IEventTypeRepository _eventTypes;
     private readonly IDatingEventRepository _events;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ILogger<CreateDatingEventHandler> _logger;
 
-    public CreateDatingEventHandler(IUserRepository users, IEventPlannerProfileRepository plannerProfiles, IEventTypeRepository eventTypes, IDatingEventRepository events, IUnitOfWork unitOfWork)
+    public CreateDatingEventHandler(IUserRepository users, IEventPlannerProfileRepository plannerProfiles, IEventTypeRepository eventTypes, IDatingEventRepository events, IUnitOfWork unitOfWork, ILogger<CreateDatingEventHandler> logger)
     {
         _users = users;
         _plannerProfiles = plannerProfiles;
         _eventTypes = eventTypes;
         _events = events;
         _unitOfWork = unitOfWork;
+        _logger = logger;
     }
 
     public async Task<DatingEventDto> Handle(CreateDatingEventCommand request, CancellationToken cancellationToken)
@@ -62,6 +65,7 @@ public class CreateDatingEventHandler : IRequestHandler<CreateDatingEventCommand
 
         await _events.AddAsync(datingEvent, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+        _logger.LogInformation("Event planner {EventPlannerUserId} created dating event {EventId}", user.Id, datingEvent.Id);
         return DatingEventDto.FromEntity(datingEvent);
     }
 }

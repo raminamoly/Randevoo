@@ -80,6 +80,7 @@ Important docs:
 - SQL Server
 - JWT Bearer authentication
 - Scalar.AspNetCore
+- Serilog
 - xUnit
 - FluentAssertions
 - WebApplicationFactory
@@ -147,6 +148,26 @@ Development settings live in `src/Randevoo.WebApi/appsettings.Development.json`:
 
 Outside Development/Testing, the API fails fast if `ConnectionStrings:DefaultConnection` or `Jwt:Secret` is missing. For production, provide those values through environment configuration or secret manager and replace console notification senders.
 
+## Logging
+
+This project uses Serilog for structured logs and an `AuditLogs` table for sensitive business actions.
+
+Development logging:
+
+- Console logs
+- Rolling file logs under `src/Randevoo.WebApi/logs`
+- Optional Seq at `http://localhost:5341`
+
+Run Seq locally:
+
+```powershell
+docker run --name seq -d --restart unless-stopped -e ACCEPT_EULA=Y -p 5341:80 datalust/seq
+```
+
+Sensitive values are intentionally excluded from logs: OTP codes, JWTs, refresh tokens, email confirmation links, authorization headers, cookies, secrets, connection strings, and full request/response bodies.
+
+See [docs/observability/logging-strategy.md](docs/observability/logging-strategy.md).
+
 ## Implemented Roles
 
 | Role | Current Capabilities |
@@ -160,7 +181,7 @@ Outside Development/Testing, the API fails fast if `ConnectionStrings:DefaultCon
 Current test suite:
 
 - 21 unit tests
-- 18 integration tests
+- 20 integration tests
 
 Covered areas include auth, refresh-token rotation, logout revocation, SMS request throttling, login lockout, email confirmation, dating profile authorization ownership, event planner profile, event management, ticket purchase, balance adjustment, participant visibility, chat, blocking, survey, planner quality metrics, event types, moderation reports, emergency removal, and admin role changes.
 

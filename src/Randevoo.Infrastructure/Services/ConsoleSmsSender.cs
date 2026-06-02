@@ -14,13 +14,19 @@ public class ConsoleSmsSender : ISmsSender
 
     public Task SendLoginCodeAsync(string mobileNumber, string code, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Login code for {MobileNumber}: {Code}", mobileNumber, code);
+        _logger.LogInformation("Login code SMS queued for mobile ending {MobileLast4}", Last4(mobileNumber));
         return Task.CompletedTask;
     }
 
     public Task SendMessageAsync(string mobileNumber, string message, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("SMS to {MobileNumber}: {Message}", mobileNumber, message);
+        _logger.LogInformation("SMS queued for mobile ending {MobileLast4}", Last4(mobileNumber));
         return Task.CompletedTask;
+    }
+
+    private static string Last4(string value)
+    {
+        var trimmed = value.Trim();
+        return trimmed.Length <= 4 ? trimmed : trimmed[^4..];
     }
 }

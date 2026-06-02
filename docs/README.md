@@ -41,6 +41,10 @@ This folder is the source of truth for the current implementation. Documentation
 - [API contracts](06-architecture/api-contracts.md)
 - [Database design](06-architecture/database-design.md)
 
+## Observability
+
+- [Logging strategy](observability/logging-strategy.md)
+
 ## Testing
 
 - [Test strategy](08-testing/test-strategy.md)
@@ -62,9 +66,6 @@ These older diagram-focused files are still useful:
 
 ## Known TODOs
 
-- Add authorization/ownership to dating-profile endpoints.
-- Decide if `DatingEvent` should reference `EventType.Id`.
 - Add production SMS/email providers.
-- Add domain event dispatching.
 - Add E2E tests when a frontend exists.
 - Expand SQL Server/Testcontainers integration tests beyond the current unique-index smoke test.

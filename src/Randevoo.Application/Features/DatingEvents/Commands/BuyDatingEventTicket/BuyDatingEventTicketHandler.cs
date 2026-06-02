@@ -1,4 +1,5 @@
 using MediatR;
+using Microsoft.Extensions.Logging;
 using Randevoo.Domain.Entities;
 using Randevoo.Domain.Enums;
 using Randevoo.Domain.Exceptions;
@@ -14,14 +15,16 @@ public class BuyDatingEventTicketHandler : IRequestHandler<BuyDatingEventTicketC
     private readonly IBalanceAccountRepository _balances;
     private readonly IDatingEventRepository _events;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ILogger<BuyDatingEventTicketHandler> _logger;
 
-    public BuyDatingEventTicketHandler(IUserRepository users, IUserProfileRepository profiles, IBalanceAccountRepository balances, IDatingEventRepository events, IUnitOfWork unitOfWork)
+    public BuyDatingEventTicketHandler(IUserRepository users, IUserProfileRepository profiles, IBalanceAccountRepository balances, IDatingEventRepository events, IUnitOfWork unitOfWork, ILogger<BuyDatingEventTicketHandler> logger)
     {
         _users = users;
         _profiles = profiles;
         _balances = balances;
         _events = events;
         _unitOfWork = unitOfWork;
+        _logger = logger;
     }
 
     public async Task<long> Handle(BuyDatingEventTicketCommand request, CancellationToken cancellationToken)
@@ -52,6 +55,7 @@ public class BuyDatingEventTicketHandler : IRequestHandler<BuyDatingEventTicketC
         if (!isNewPlannerBalance)
             await _balances.UpdateAsync(plannerBalance, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+        _logger.LogInformation("User {BuyerUserId} bought ticket {TicketId} for event {EventId} at price {TicketPrice}", buyer.Id, ticket.Id, datingEvent.Id, ticket.Price);
         return ticket.Id;
     }
 }

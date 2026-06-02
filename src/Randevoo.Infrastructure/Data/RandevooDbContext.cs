@@ -26,6 +26,7 @@ public class RandevooDbContext : DbContext
     public DbSet<EventType> EventTypes => Set<EventType>();
     public DbSet<ModerationReport> ModerationReports => Set<ModerationReport>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -62,6 +63,22 @@ public class RandevooDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(token => token.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<AuditLog>(b =>
+        {
+            b.HasKey(log => log.Id);
+            b.Property(log => log.Action).IsRequired().HasMaxLength(120);
+            b.Property(log => log.TargetType).IsRequired().HasMaxLength(120);
+            b.Property(log => log.TargetId).IsRequired().HasMaxLength(120);
+            b.Property(log => log.BeforeJson).HasMaxLength(8000);
+            b.Property(log => log.AfterJson).HasMaxLength(8000);
+            b.Property(log => log.Reason).HasMaxLength(1000);
+            b.Property(log => log.IpAddress).HasMaxLength(64);
+            b.Property(log => log.CorrelationId).HasMaxLength(100);
+            b.HasIndex(log => log.ActorUserId);
+            b.HasIndex(log => new { log.TargetType, log.TargetId });
+            b.HasIndex(log => log.CreatedAt);
         });
 
         modelBuilder.Entity<EventPlannerProfile>(b =>

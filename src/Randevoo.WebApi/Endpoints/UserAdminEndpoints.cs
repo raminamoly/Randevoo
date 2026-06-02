@@ -17,14 +17,14 @@ public static class UserAdminEndpoints
         return group;
     }
 
-    private static async Task<IResult> ChangeRoleAsync(long userId, ChangeUserRoleRequest request, ISender sender, CancellationToken cancellationToken)
+    private static async Task<IResult> ChangeRoleAsync(long userId, ChangeUserRoleRequest request, System.Security.Claims.ClaimsPrincipal principal, ISender sender, CancellationToken cancellationToken)
     {
         try
         {
-            await sender.Send(new ChangeUserRoleCommand(userId, request.Role), cancellationToken);
+            await sender.Send(new ChangeUserRoleCommand(EndpointHelpers.GetUserId(principal), userId, request.Role), cancellationToken);
             return Results.NoContent();
         }
-        catch (DomainException ex)
+        catch (Exception ex) when (ex is DomainException or UnauthorizedAccessException)
         {
             return EndpointHelpers.ToProblem(ex);
         }

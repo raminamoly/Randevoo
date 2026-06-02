@@ -1,4 +1,5 @@
 using MediatR;
+using Microsoft.Extensions.Logging;
 using Randevoo.Application.Features.Auth.Common;
 using Randevoo.Application.Interfaces.Auth;
 using Randevoo.Domain.Entities;
@@ -17,6 +18,7 @@ public class VerifyMobileLoginCodeHandler : IRequestHandler<VerifyMobileLoginCod
     private readonly IJwtTokenService _jwtTokenService;
     private readonly IRefreshTokenRepository _refreshTokens;
     private readonly IAuthTokenPolicy _authTokenPolicy;
+    private readonly ILogger<VerifyMobileLoginCodeHandler> _logger;
 
     public VerifyMobileLoginCodeHandler(
         IUserRepository users,
@@ -25,7 +27,8 @@ public class VerifyMobileLoginCodeHandler : IRequestHandler<VerifyMobileLoginCod
         ICodeGenerator codeGenerator,
         IJwtTokenService jwtTokenService,
         IRefreshTokenRepository refreshTokens,
-        IAuthTokenPolicy authTokenPolicy)
+        IAuthTokenPolicy authTokenPolicy,
+        ILogger<VerifyMobileLoginCodeHandler> logger)
     {
         _users = users;
         _unitOfWork = unitOfWork;
@@ -34,6 +37,7 @@ public class VerifyMobileLoginCodeHandler : IRequestHandler<VerifyMobileLoginCod
         _jwtTokenService = jwtTokenService;
         _refreshTokens = refreshTokens;
         _authTokenPolicy = authTokenPolicy;
+        _logger = logger;
     }
 
     public async Task<AuthResult> Handle(VerifyMobileLoginCodeCommand request, CancellationToken cancellationToken)
@@ -50,6 +54,7 @@ public class VerifyMobileLoginCodeHandler : IRequestHandler<VerifyMobileLoginCod
         {
             await _users.UpdateAsync(user, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
+            _logger.LogWarning("Mobile login failed for user {UserId}; failed attempts: {FailedAttemptCount}; locked until: {LockedUntil}", user.Id, user.MobileLoginFailedAttemptCount, user.MobileLoginLockedUntil);
             throw;
         }
 
@@ -61,6 +66,7 @@ public class VerifyMobileLoginCodeHandler : IRequestHandler<VerifyMobileLoginCod
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         var accessToken = _jwtTokenService.CreateToken(user);
+        _logger.LogInformation("Mobile login completed for user {UserId}; access token expires at {AccessTokenExpiresAtUtc}", user.Id, accessToken.ExpiresAtUtc);
         return new AuthResult(user.Id, user.MobileNumber, accessToken.Token, accessToken.ExpiresAtUtc, refreshToken, refreshTokenExpiresAt);
     }
 }
