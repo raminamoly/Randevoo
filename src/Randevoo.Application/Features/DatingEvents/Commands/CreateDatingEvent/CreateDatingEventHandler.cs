@@ -12,13 +12,15 @@ public class CreateDatingEventHandler : IRequestHandler<CreateDatingEventCommand
 {
     private readonly IUserRepository _users;
     private readonly IEventPlannerProfileRepository _plannerProfiles;
+    private readonly IEventTypeRepository _eventTypes;
     private readonly IDatingEventRepository _events;
     private readonly IUnitOfWork _unitOfWork;
 
-    public CreateDatingEventHandler(IUserRepository users, IEventPlannerProfileRepository plannerProfiles, IDatingEventRepository events, IUnitOfWork unitOfWork)
+    public CreateDatingEventHandler(IUserRepository users, IEventPlannerProfileRepository plannerProfiles, IEventTypeRepository eventTypes, IDatingEventRepository events, IUnitOfWork unitOfWork)
     {
         _users = users;
         _plannerProfiles = plannerProfiles;
+        _eventTypes = eventTypes;
         _events = events;
         _unitOfWork = unitOfWork;
     }
@@ -32,6 +34,12 @@ public class CreateDatingEventHandler : IRequestHandler<CreateDatingEventCommand
             throw new BusinessRuleViolationException("Missing event planner profile", "Create event planner profile before creating events");
 
         var input = request.Input;
+        var eventType = await _eventTypes.GetByIdAsync(input.EventTypeId, cancellationToken)
+            ?? throw new NotFoundException("EventType", input.EventTypeId);
+
+        if (!eventType.IsActive)
+            throw new BusinessRuleViolationException("Inactive event type", "Dating event must use an active event type");
+
         var datingEvent = new DatingEvent(
             user,
             input.Title,
@@ -39,7 +47,7 @@ public class CreateDatingEventHandler : IRequestHandler<CreateDatingEventCommand
             input.Address,
             input.DateTimeStart,
             input.DateTimeEnd,
-            input.EventType,
+            eventType,
             new AgeRange(input.MaleMinAge, input.MaleMaxAge),
             new AgeRange(input.FemaleMinAge, input.FemaleMaxAge),
             input.MaleCapacity,

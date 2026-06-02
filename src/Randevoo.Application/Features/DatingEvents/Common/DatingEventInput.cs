@@ -10,7 +10,7 @@ public record DatingEventInput(
     string Address,
     DateTime DateTimeStart,
     DateTime DateTimeEnd,
-    string EventType,
+    long EventTypeId,
     int MaleMinAge,
     int MaleMaxAge,
     int FemaleMinAge,

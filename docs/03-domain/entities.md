@@ -64,9 +64,9 @@ Aggregate ownership: aggregate root.
 
 Purpose: event listing and ticket-sale aggregate.
 
-Properties: title, `Location`, address, start/end, string `EventType`, male/female age ranges, sale/cancel flags, planner user id, commission percent, gender capacities, chat limit, ticket price, images, HTML description.
+Properties: title, `Location`, address, start/end, `EventTypeId`, male/female age ranges, sale/cancel flags, planner user id, commission percent, gender capacities, chat limit, ticket price, images, HTML description.
 
-Relationships: owned by event planner user; has many `EventTicket`; related to conversations, surveys, reports by foreign keys.
+Relationships: owned by event planner user; references `EventType`; has many `EventTicket`; related to conversations, surveys, reports by foreign keys.
 
 Lifecycle: created closed for sale; opened/closed; location can change; commission can change by admin; can be cancelled and tickets refunded; sells tickets with capacity/age/profile checks.
 
@@ -174,7 +174,7 @@ Purpose: lookup table for event type suggestions/admin management.
 
 Properties: `Name`, optional `Description`, `IsActive`.
 
-Relationships: none enforced by `DatingEvent` yet.
+Relationships: referenced by `DatingEvent`.
 
 Lifecycle: seeded by EF migration; admins can create/update/deactivate.
 
@@ -202,4 +202,3 @@ Aggregate ownership: aggregate root.
 ## TODO / Assumption Required
 
 - `Interest` has no API endpoints in current implementation.
-- `EventType` is not yet referenced by `DatingEvent`.

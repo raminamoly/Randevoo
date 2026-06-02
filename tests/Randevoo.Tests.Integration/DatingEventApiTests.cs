@@ -36,6 +36,7 @@ public class DatingEventApiTests
     public async Task EventPlannerCanCreateEvent_AndEndUserCanBuyTicket()
     {
         await using var factory = new RandevooEventApiFactory();
+        await factory.SeedEventTypesAsync();
         var client = factory.CreateClient();
 
         var plannerAuth = await LoginAsync(client, "+989121111111");
@@ -122,6 +123,7 @@ public class DatingEventApiTests
     public async Task EndUserCannotCreateDatingEvent()
     {
         await using var factory = new RandevooEventApiFactory();
+        await factory.SeedEventTypesAsync();
         var client = factory.CreateClient();
         var auth = await LoginAsync(client, "+989123333333");
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", auth.Token);
@@ -135,6 +137,7 @@ public class DatingEventApiTests
     public async Task EventParticipantsCanUseArchiveProfilesChatAndSurvey_AndPlannerCanRemoveWithRefund()
     {
         await using var factory = new RandevooEventApiFactory();
+        await factory.SeedEventTypesAsync();
         var client = factory.CreateClient();
 
         var plannerAuth = await LoginAsync(client, "+989125000000");
@@ -320,7 +323,7 @@ public class DatingEventApiTests
         Address = "Main social club address",
         DateTimeStart = DateTime.UtcNow.AddDays(7),
         DateTimeEnd = DateTime.UtcNow.AddDays(7).AddHours(3),
-        EventType = "Mafia",
+        EventTypeId = 1L,
         MaleMinAge = 18,
         MaleMaxAge = 45,
         FemaleMinAge = 18,
@@ -347,7 +350,7 @@ public class DatingEventApiTests
         Address = "Past event address",
         DateTimeStart = DateTime.UtcNow.AddHours(-4),
         DateTimeEnd = DateTime.UtcNow.AddHours(-1),
-        EventType = "Poem Reading",
+        EventTypeId = 3L,
         MaleMinAge = 18,
         MaleMaxAge = 45,
         FemaleMinAge = 18,

@@ -26,4 +26,4 @@
 - No integration test directly verifies `SendSmsToParticipants` side effects.
 - No integration test covers admin create/update event type.
 - No integration test covers admin balance lookup endpoint.
-- Dating profile endpoints lack authorization/ownership enforcement in code.
+- Expand SQL Server/Testcontainers coverage beyond the current unique-index smoke test.

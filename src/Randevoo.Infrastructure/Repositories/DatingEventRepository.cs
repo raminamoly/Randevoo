@@ -18,6 +18,7 @@ public class DatingEventRepository : IDatingEventRepository
     {
         return _db.DatingEvents
             .Include(e => e.EventPlannerUser)
+            .Include(e => e.EventType)
             .FirstOrDefaultAsync(e => e.Id == id, cancellationToken);
     }
 
@@ -25,17 +26,55 @@ public class DatingEventRepository : IDatingEventRepository
     {
         return _db.DatingEvents
             .Include(e => e.EventPlannerUser)
+            .Include(e => e.EventType)
             .Include(e => e.Tickets)
             .FirstOrDefaultAsync(e => e.Id == id, cancellationToken);
     }
 
-    public async Task<IReadOnlyList<DatingEvent>> ListOpenAsync(int limit = 50, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<DatingEvent>> ListOpenAsync(
+        int limit = 50,
+        long? afterId = null,
+        string? city = null,
+        DateTime? dateFrom = null,
+        DateTime? dateTo = null,
+        long? eventTypeId = null,
+        decimal? priceMin = null,
+        decimal? priceMax = null,
+        string? genderCapacityAvailable = null,
+        CancellationToken cancellationToken = default)
     {
-        return await _db.DatingEvents
+        var query = _db.DatingEvents
+            .Include(e => e.EventType)
+            .Include(e => e.Tickets)
             .Where(e => e.IsOpenForSell && !e.IsCancelled)
-            .OrderBy(e => e.DateTimeStart)
-            .Take(limit)
+            .AsQueryable();
+
+        if (afterId is not null)
+            query = query.Where(e => e.Id > afterId);
+        if (!string.IsNullOrWhiteSpace(city))
+            query = query.Where(e => e.Location.City == city);
+        if (dateFrom is not null)
+            query = query.Where(e => e.DateTimeStart >= dateFrom);
+        if (dateTo is not null)
+            query = query.Where(e => e.DateTimeStart <= dateTo);
+        if (eventTypeId is not null)
+            query = query.Where(e => e.EventTypeId == eventTypeId);
+        if (priceMin is not null)
+            query = query.Where(e => e.TicketPrice >= priceMin);
+        if (priceMax is not null)
+            query = query.Where(e => e.TicketPrice <= priceMax);
+
+        var events = await query
+            .OrderBy(e => e.Id)
+            .Take(Math.Clamp(limit, 1, 100))
             .ToListAsync(cancellationToken);
+
+        return genderCapacityAvailable?.Trim().ToLowerInvariant() switch
+        {
+            "male" => events.Where(e => e.Tickets.Count(t => !t.IsRefunded && t.Gender == Randevoo.Domain.Enums.Gender.Male) < e.MaleCapacity).ToList(),
+            "female" => events.Where(e => e.Tickets.Count(t => !t.IsRefunded && t.Gender == Randevoo.Domain.Enums.Gender.Female) < e.FemaleCapacity).ToList(),
+            _ => events
+        };
     }
 
     public Task<int> CountByPlannerAsync(long plannerUserId, CancellationToken cancellationToken = default)

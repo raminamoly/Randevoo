@@ -67,4 +67,4 @@ These older diagram-focused files are still useful:
 - Add production SMS/email providers.
 - Add domain event dispatching.
 - Add E2E tests when a frontend exists.
-- Add SQL Server-backed integration tests for relational constraints.
+- Expand SQL Server/Testcontainers integration tests beyond the current unique-index smoke test.

@@ -1,10 +1,12 @@
 using System.Security.Claims;
 using MediatR;
+using Microsoft.AspNetCore.SignalR;
 using Randevoo.Application.Features.EventChats.Commands.BlockEventChatUser;
 using Randevoo.Application.Features.EventChats.Commands.SendEventChatMessage;
 using Randevoo.Application.Features.EventChats.Commands.StartEventConversation;
 using Randevoo.Application.Features.EventChats.Queries.ListMyEventConversations;
 using Randevoo.Domain.Exceptions;
+using Randevoo.WebApi.Hubs;
 
 namespace Randevoo.WebApi.Endpoints;
 
@@ -48,11 +50,20 @@ public static class EventChatEndpoints
         }
     }
 
-    private static async Task<IResult> SendMessageAsync(long conversationId, SendMessageRequest request, ClaimsPrincipal principal, ISender sender, CancellationToken cancellationToken)
+    private static async Task<IResult> SendMessageAsync(
+        long conversationId,
+        SendMessageRequest request,
+        ClaimsPrincipal principal,
+        ISender sender,
+        IHubContext<EventChatHub> hubContext,
+        CancellationToken cancellationToken)
     {
         try
         {
-            return Results.Ok(await sender.Send(new SendEventChatMessageCommand(EndpointHelpers.GetUserId(principal), conversationId, request.Body), cancellationToken));
+            var result = await sender.Send(new SendEventChatMessageCommand(EndpointHelpers.GetUserId(principal), conversationId, request.Body), cancellationToken);
+            await hubContext.Clients.Groups(EventChatHub.UserGroup(result.StarterUserId), EventChatHub.UserGroup(result.ParticipantUserId))
+                .SendAsync("eventConversationUpdated", result, cancellationToken);
+            return Results.Ok(result);
         }
         catch (Exception ex) when (ex is DomainException or UnauthorizedAccessException)
         {

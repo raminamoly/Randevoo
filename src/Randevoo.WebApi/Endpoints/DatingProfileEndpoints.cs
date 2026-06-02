@@ -1,4 +1,5 @@
 using MediatR;
+using System.Security.Claims;
 using Randevoo.Application.Features.DatingProfile.Commands.CreateDatingProfile;
 using Randevoo.Application.Features.DatingProfile.Commands.DeleteDatingProfile;
 using Randevoo.Application.Features.DatingProfile.Commands.UpdateDatingProfile;
@@ -13,6 +14,7 @@ public static class DatingProfileEndpoints
     public static RouteGroupBuilder MapDatingProfileEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/dating-profiles")
+            .RequireAuthorization()
             .WithTags("Dating Profiles");
 
         group.MapPost("/", CreateProfileAsync).WithName("CreateDatingProfile");
@@ -24,12 +26,13 @@ public static class DatingProfileEndpoints
         return group;
     }
 
-    private static async Task<IResult> CreateProfileAsync(CreateDatingProfileRequest request, ISender sender, CancellationToken cancellationToken)
+    private static async Task<IResult> CreateProfileAsync(CreateDatingProfileRequest request, ClaimsPrincipal principal, ISender sender, CancellationToken cancellationToken)
     {
         try
         {
+            var userId = EndpointHelpers.GetUserId(principal);
             var profileId = await sender.Send(new CreateDatingProfileCommand(
-                request.UserId,
+                userId,
                 request.DisplayName,
                 request.DateOfBirth,
                 request.Gender,
@@ -42,17 +45,18 @@ public static class DatingProfileEndpoints
             var profile = await sender.Send(new GetDatingProfileByIdQuery(profileId), cancellationToken);
             return Results.Created($"/api/dating-profiles/{profileId}", profile);
         }
-        catch (Exception ex) when (ex is DomainException or InvalidOperationException)
+        catch (Exception ex) when (ex is DomainException or InvalidOperationException or UnauthorizedAccessException)
         {
             return ToProblem(ex);
         }
     }
 
-    private static async Task<IResult> GetProfileByIdAsync(long profileId, ISender sender, CancellationToken cancellationToken)
+    private static async Task<IResult> GetProfileByIdAsync(long profileId, ClaimsPrincipal principal, ISender sender, CancellationToken cancellationToken)
     {
         try
         {
-            return Results.Ok(await sender.Send(new GetDatingProfileByIdQuery(profileId), cancellationToken));
+            var profile = await sender.Send(new GetDatingProfileByIdQuery(profileId), cancellationToken);
+            return CanAccessProfile(principal, profile.UserId) ? Results.Ok(profile) : Results.Forbid();
         }
         catch (DomainException ex)
         {
@@ -60,10 +64,13 @@ public static class DatingProfileEndpoints
         }
     }
 
-    private static async Task<IResult> GetProfileByUserIdAsync(long userId, ISender sender, CancellationToken cancellationToken)
+    private static async Task<IResult> GetProfileByUserIdAsync(long userId, ClaimsPrincipal principal, ISender sender, CancellationToken cancellationToken)
     {
         try
         {
+            if (!CanAccessProfile(principal, userId))
+                return Results.Forbid();
+
             return Results.Ok(await sender.Send(new GetDatingProfileByUserIdQuery(userId), cancellationToken));
         }
         catch (DomainException ex)
@@ -72,10 +79,14 @@ public static class DatingProfileEndpoints
         }
     }
 
-    private static async Task<IResult> UpdateProfileAsync(long profileId, UpdateDatingProfileRequest request, ISender sender, CancellationToken cancellationToken)
+    private static async Task<IResult> UpdateProfileAsync(long profileId, UpdateDatingProfileRequest request, ClaimsPrincipal principal, ISender sender, CancellationToken cancellationToken)
     {
         try
         {
+            var profile = await sender.Send(new GetDatingProfileByIdQuery(profileId), cancellationToken);
+            if (!CanAccessProfile(principal, profile.UserId))
+                return Results.Forbid();
+
             await sender.Send(new UpdateDatingProfileCommand(
                 profileId,
                 request.DisplayName,
@@ -97,10 +108,14 @@ public static class DatingProfileEndpoints
         }
     }
 
-    private static async Task<IResult> DeleteProfileAsync(long profileId, ISender sender, CancellationToken cancellationToken)
+    private static async Task<IResult> DeleteProfileAsync(long profileId, ClaimsPrincipal principal, ISender sender, CancellationToken cancellationToken)
     {
         try
         {
+            var profile = await sender.Send(new GetDatingProfileByIdQuery(profileId), cancellationToken);
+            if (!CanAccessProfile(principal, profile.UserId))
+                return Results.Forbid();
+
             await sender.Send(new DeleteDatingProfileCommand(profileId), cancellationToken);
             return Results.NoContent();
         }
@@ -109,6 +124,9 @@ public static class DatingProfileEndpoints
             return ToProblem(ex);
         }
     }
+
+    private static bool CanAccessProfile(ClaimsPrincipal principal, long ownerUserId) =>
+        EndpointHelpers.IsAdmin(principal) || EndpointHelpers.GetUserId(principal) == ownerUserId;
 
     private static IResult ToProblem(Exception ex)
     {
@@ -122,7 +140,6 @@ public static class DatingProfileEndpoints
     }
 
     public record CreateDatingProfileRequest(
-        long UserId,
         string DisplayName,
         DateOnly DateOfBirth,
         Gender Gender,

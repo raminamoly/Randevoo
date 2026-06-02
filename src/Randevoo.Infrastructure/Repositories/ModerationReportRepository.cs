@@ -25,16 +25,24 @@ public class ModerationReportRepository : IModerationReportRepository
             .FirstOrDefaultAsync(report => report.Id == id, cancellationToken);
     }
 
-    public async Task<IReadOnlyList<ModerationReport>> ListByReporterAsync(long reporterUserId, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<ModerationReport>> ListByReporterAsync(long reporterUserId, int limit = 50, long? afterId = null, DateTime? createdAfter = null, CancellationToken cancellationToken = default)
     {
-        return await _db.ModerationReports
+        var query = _db.ModerationReports
             .Include(report => report.DatingEvent)
-            .Where(report => report.ReporterUserId == reporterUserId)
-            .OrderByDescending(report => report.CreatedAt)
+            .Where(report => report.ReporterUserId == reporterUserId);
+
+        if (afterId is not null)
+            query = query.Where(report => report.Id < afterId);
+        if (createdAfter is not null)
+            query = query.Where(report => report.CreatedAt >= createdAfter);
+
+        return await query
+            .OrderByDescending(report => report.Id)
+            .Take(Math.Clamp(limit, 1, 100))
             .ToListAsync(cancellationToken);
     }
 
-    public async Task<IReadOnlyList<ModerationReport>> ListByStatusAsync(ModerationReportStatus? status, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<ModerationReport>> ListByStatusAsync(ModerationReportStatus? status, int limit = 50, long? afterId = null, DateTime? createdAfter = null, CancellationToken cancellationToken = default)
     {
         var query = _db.ModerationReports
             .Include(report => report.ReporterUser)
@@ -44,8 +52,15 @@ public class ModerationReportRepository : IModerationReportRepository
 
         if (status is not null)
             query = query.Where(report => report.Status == status);
+        if (afterId is not null)
+            query = query.Where(report => report.Id < afterId);
+        if (createdAfter is not null)
+            query = query.Where(report => report.CreatedAt >= createdAfter);
 
-        return await query.OrderByDescending(report => report.CreatedAt).ToListAsync(cancellationToken);
+        return await query
+            .OrderByDescending(report => report.Id)
+            .Take(Math.Clamp(limit, 1, 100))
+            .ToListAsync(cancellationToken);
     }
 
     public async Task AddAsync(ModerationReport report, CancellationToken cancellationToken = default)

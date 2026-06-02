@@ -15,7 +15,17 @@ public class ListOpenDatingEventsHandler : IRequestHandler<ListOpenDatingEventsQ
 
     public async Task<IReadOnlyList<DatingEventDto>> Handle(ListOpenDatingEventsQuery request, CancellationToken cancellationToken)
     {
-        var events = await _events.ListOpenAsync(request.Limit, cancellationToken);
+        var events = await _events.ListOpenAsync(
+            request.Limit,
+            request.AfterId,
+            request.City,
+            request.DateFrom,
+            request.DateTo,
+            request.EventTypeId,
+            request.PriceMin,
+            request.PriceMax,
+            request.GenderCapacityAvailable,
+            cancellationToken);
         return events.Select(DatingEventDto.FromEntity).ToList();
     }
 }

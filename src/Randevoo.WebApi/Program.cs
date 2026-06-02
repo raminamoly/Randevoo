@@ -4,19 +4,37 @@ using Microsoft.IdentityModel.Tokens;
 using Randevoo.Application;
 using Randevoo.Infrastructure;
 using Randevoo.WebApi.Endpoints;
+using Randevoo.WebApi.Hubs;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddOpenApi();
+builder.Services.AddSignalR();
 
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-                       ?? "Server=DESKTOP-5QNHMHJ\\SQL2019;Database=Randevoo;Trusted_Connection=True;TrustServerCertificate=True;";
+var allowDevelopmentFallbacks = builder.Environment.IsDevelopment() || builder.Environment.IsEnvironment("Testing");
+
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+if (string.IsNullOrWhiteSpace(connectionString))
+{
+    if (!allowDevelopmentFallbacks)
+        throw new InvalidOperationException("ConnectionStrings:DefaultConnection is required outside Development/Testing.");
+
+    connectionString = "Server=localhost;Database=Randevoo;Trusted_Connection=True;TrustServerCertificate=True;";
+}
 
 builder.Services.AddRandevooInfrastructure(connectionString);
 builder.Services.AddRandevooApplication();
 
-var jwtSecret = builder.Configuration["Jwt:Secret"] ?? "development-secret-key-change-me-with-at-least-32-chars";
+var jwtSecret = builder.Configuration["Jwt:Secret"];
+if (string.IsNullOrWhiteSpace(jwtSecret))
+{
+    if (!allowDevelopmentFallbacks)
+        throw new InvalidOperationException("Jwt:Secret is required outside Development/Testing.");
+
+    jwtSecret = "development-secret-key-change-me-with-at-least-32-chars";
+}
+
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "Randevoo";
 var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "Randevoo";
 
@@ -44,6 +62,14 @@ builder.Services.AddAuthorization(options =>
 
 var app = builder.Build();
 
+app.Use(async (context, next) =>
+{
+    if (context.Request.Path.StartsWithSegments("/api/v1", out var remaining))
+        context.Request.Path = $"/api{remaining}";
+
+    await next();
+});
+
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
@@ -64,6 +90,8 @@ app.MapEventChatEndpoints();
 app.MapEventSurveyEndpoints();
 app.MapEventTypeEndpoints();
 app.MapModerationEndpoints();
+app.MapPrivacyEndpoints();
+app.MapHub<EventChatHub>("/hubs/event-chat");
 
 app.Run();
 

@@ -10,6 +10,7 @@ The implemented system supports:
 - JWT authentication with rotating refresh tokens
 - SMS request throttling and failed-code lockout
 - Email confirmation flow
+- Authenticated profile APIs with owner/admin access checks
 - EndUser dating profiles
 - EventPlanner profiles and quality metrics
 - Admin, EventPlanner, and EndUser roles
@@ -24,6 +25,9 @@ The implemented system supports:
 - Emergency participant removal with refund
 - Moderation reports and admin review
 - Event type lookup data and admin event-type management
+- Dating events reference event types by foreign key
+- Chat-only SignalR hub for live conversation updates
+- Privacy export and account deletion workflows
 - Scalar/OpenAPI documentation in development
 
 ## Architecture
@@ -95,6 +99,8 @@ Current auth behavior:
 - Logout: revokes the submitted refresh token
 - Email confirmation: token is hashed and valid for 24 hours
 
+Versioned API URLs are available under `/api/v1/...`. Existing `/api/...` routes remain available as compatibility aliases during development.
+
 ## Getting Started
 
 Restore and build:
@@ -130,16 +136,16 @@ http://localhost:5031/scalar/v1
 
 ## Default Development Configuration
 
-The WebApi uses these fallback settings when configuration values are missing:
+Development settings live in `src/Randevoo.WebApi/appsettings.Development.json`:
 
-- SQL Server connection: `Server=DESKTOP-5QNHMHJ\SQL2019;Database=Randevoo;Trusted_Connection=True;TrustServerCertificate=True;`
+- SQL Server connection: `ConnectionStrings:DefaultConnection`
 - JWT issuer: `Randevoo`
 - JWT audience: `Randevoo`
-- JWT secret: development fallback value in `Program.cs`
+- JWT secret: development/testing fallback in code; production must provide `Jwt:Secret`
 - JWT lifetime: `Jwt:ExpiresMinutes`, currently `15`
 - Refresh token lifetime: `Auth:RefreshTokenExpiresDays`, currently `30`
 
-For production, replace the fallback connection string, JWT secret, and console notification senders.
+Outside Development/Testing, the API fails fast if `ConnectionStrings:DefaultConnection` or `Jwt:Secret` is missing. For production, provide those values through environment configuration or secret manager and replace console notification senders.
 
 ## Implemented Roles
 
@@ -153,11 +159,12 @@ For production, replace the fallback connection string, JWT secret, and console 
 
 Current test suite:
 
-- 19 unit tests
 - 21 unit tests
-- 14 integration tests
+- 18 integration tests
 
-Covered areas include auth, refresh-token rotation, logout revocation, SMS request throttling, login lockout, email confirmation, dating profiles, event planner profile, event management, ticket purchase, balance adjustment, participant visibility, chat, blocking, survey, planner quality metrics, event types, moderation reports, emergency removal, and admin role changes.
+Covered areas include auth, refresh-token rotation, logout revocation, SMS request throttling, login lockout, email confirmation, dating profile authorization ownership, event planner profile, event management, ticket purchase, balance adjustment, participant visibility, chat, blocking, survey, planner quality metrics, event types, moderation reports, emergency removal, and admin role changes.
+
+SQL Server/Testcontainers relational coverage is included in `SqlServerRelationalTests`. It runs only when `RUN_SQLSERVER_TESTCONTAINERS=true` is set so normal local test runs do not require Docker.
 
 ## Known Gaps
 
@@ -165,8 +172,7 @@ See [docs/coverage-report.md](docs/coverage-report.md) for the full coverage rep
 
 Notable current gaps:
 
-- Dating profile endpoints do not yet enforce JWT ownership.
-- `EventType` exists as a lookup table, but `DatingEvent` still stores event type as a string.
-- Domain events are collected but not dispatched.
+- Domain events are dispatched through a MediatR notification bridge; no concrete handlers are registered yet.
 - SMS/email senders are console-only.
-- No SignalR, background jobs, scheduled tasks, external API integrations, or E2E tests were found.
+- SignalR currently exists only for event chat.
+- No background jobs, scheduled tasks, external API integrations, or E2E tests were found.

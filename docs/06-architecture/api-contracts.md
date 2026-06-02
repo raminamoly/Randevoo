@@ -2,6 +2,8 @@
 
 Base URL in development: `http://localhost:5031`
 
+Versioned API base URL: `/api/v1`. Current `/api` routes remain available as compatibility aliases.
+
 Authorization policies:
 
 - `RequireAuthorization()`: any authenticated JWT.
@@ -26,15 +28,13 @@ Validation/business rules: mobile format 8-20 chars, digits and optional leading
 
 | ID | Method | Route | Request | Response | Auth | Use Case |
 |---|---|---|---|---|---|---|
-| API-005 | POST | `/api/dating-profiles` | `CreateDatingProfileRequest` | `DatingProfileDto` | Anonymous in endpoint | UC-005 |
-| API-006 | GET | `/api/dating-profiles/{profileId}` | path | `DatingProfileDto` | Anonymous | UC-006 |
-| API-007 | GET | `/api/dating-profiles/by-user/{userId}` | path | `DatingProfileDto` | Anonymous | UC-006 |
-| API-008 | PUT | `/api/dating-profiles/{profileId}` | `UpdateDatingProfileRequest` | `204` | Anonymous in endpoint | UC-007 |
-| API-009 | DELETE | `/api/dating-profiles/{profileId}` | path | `204` | Anonymous in endpoint | UC-008 |
+| API-005 | POST | `/api/dating-profiles` | `CreateDatingProfileRequest` | `DatingProfileDto` | Authenticated owner from JWT | UC-005 |
+| API-006 | GET | `/api/dating-profiles/{profileId}` | path | `DatingProfileDto` | Owner/Admin | UC-006 |
+| API-007 | GET | `/api/dating-profiles/by-user/{userId}` | path | `DatingProfileDto` | Owner/Admin | UC-006 |
+| API-008 | PUT | `/api/dating-profiles/{profileId}` | `UpdateDatingProfileRequest` | `204` | Owner/Admin | UC-007 |
+| API-009 | DELETE | `/api/dating-profiles/{profileId}` | path | `204` | Owner/Admin | UC-008 |
 
-Validation/business rules: user must exist; one profile per user; display name 2-50 chars and unique; minimum age 18; location required; profile soft delete hides future reads.
-
-TODO: dating-profile endpoints currently do not require JWT authorization or ownership checks.
+Validation/business rules: user is taken from JWT on create; one profile per user; display name 2-50 chars and unique; minimum age 18; location required; profile soft delete hides future reads; users cannot read/update/delete another user's profile unless they are Admin.
 
 ## Event Planner Profiles
 
@@ -48,7 +48,7 @@ Rules: creating profile upgrades user to EventPlanner unless Admin; title 2-100 
 
 | ID | Method | Route | Request | Response | Auth | Use Case |
 |---|---|---|---|---|---|---|
-| API-011 | GET | `/api/dating-events/open?limit=` | query | `DatingEventDto[]` | Anonymous | UC-010 |
+| API-011 | GET | `/api/dating-events/open?limit=&afterId=&city=&dateFrom=&dateTo=&eventTypeId=&priceMin=&priceMax=&genderCapacityAvailable=` | query | `DatingEventDto[]` | Anonymous | UC-010 |
 | API-012 | POST | `/api/dating-events` | `DatingEventInput` | `DatingEventDto` | EventPlannerOnly | UC-011 |
 | API-013 | POST | `/api/dating-events/{eventId}/open` | path | `204` | EventPlannerOnly | UC-012 |
 | API-014 | POST | `/api/dating-events/{eventId}/close` | path | `204` | EventPlannerOnly | UC-013 |
@@ -58,7 +58,7 @@ Rules: creating profile upgrades user to EventPlanner unless Admin; title 2-100 
 | API-018 | POST | `/api/dating-events/{eventId}/tickets` | none | `{ ticketId }` | EndUserOnly | UC-017 |
 | API-019 | POST | `/api/dating-events/{eventId}/send-sms` | `{ message }` | `202` | EventPlannerOnly | UC-018 |
 
-Rules: planner must own event unless Admin; creating event requires planner profile unless Admin; event time end > start; ticket purchase requires profile, open event, valid age/capacity, enough balance; cancellation refunds tickets.
+Rules: planner must own event unless Admin; creating event requires planner profile unless Admin; `eventTypeId` must reference an active `EventType`; event time end > start; ticket purchase requires profile, open event, valid age/capacity, enough balance; cancellation refunds tickets.
 
 ## Event Participants
 
@@ -81,6 +81,8 @@ Rules: visible profiles require valid ticket and event start time; removed/refun
 | API-027 | POST | `/api/event-chats/conversations/{conversationId}/blocks` | `{ blockedUserId }` | `204` | EndUserOnly | UC-026 |
 
 Rules: chat starts after event start; both users need valid tickets; starter cannot exceed `NumberOfChatAllowed`; blocked/disabled conversations cannot send.
+
+SignalR: authenticated clients can connect to `/hubs/event-chat`. When a message is sent through the HTTP API, the hub emits `eventConversationUpdated` to both participant user groups.
 
 ## Event Surveys
 
@@ -116,8 +118,8 @@ Rules: balance account created lazily; amount must be positive; debit cannot go 
 | ID | Method | Route | Request | Response | Auth | Use Case |
 |---|---|---|---|---|---|---|
 | API-036 | POST | `/api/moderation-reports` | `{ reportedUserId, datingEventId?, eventConversationId?, reason, description }` | `ModerationReportDto` | Authenticated | UC-034 |
-| API-037 | GET | `/api/moderation-reports` | none | own `ModerationReportDto[]` | Authenticated | UC-035 |
-| API-038 | GET | `/api/moderation-reports/admin?status=` | query | `ModerationReportDto[]` | AdminOnly | UC-036 |
+| API-037 | GET | `/api/moderation-reports?limit=&afterId=&createdAfter=` | query | own `ModerationReportDto[]` | Authenticated | UC-035 |
+| API-038 | GET | `/api/moderation-reports/admin?status=&limit=&afterId=&createdAfter=` | query | `ModerationReportDto[]` | AdminOnly | UC-036 |
 | API-039 | PUT | `/api/moderation-reports/{reportId}/review` | `{ status, note }` | `ModerationReportDto` | AdminOnly | UC-037 |
 
 Rules: reporter cannot report self; event reports require both users in event; conversation reports require reporter in conversation; admin review status cannot be Pending.
@@ -129,3 +131,12 @@ Rules: reporter cannot report self; event reports require both users in event; c
 | API-040 | PUT | `/api/admin/users/{userId}/role` | `{ role }` | `204` | AdminOnly | UC-038 |
 
 Rules: user must exist; role enum must be valid by model binding.
+
+## Privacy
+
+| ID | Method | Route | Request | Response | Auth | Use Case |
+|---|---|---|---|---|---|---|
+| API-043 | GET | `/api/privacy/me/export` | none | `PrivacyExportDto` | Authenticated | UC-039 |
+| API-044 | DELETE | `/api/privacy/me` | none | `204` | Authenticated | UC-040 |
+
+Rules: export returns the authenticated user's account/profile/planner/balance/ticket data; delete anonymizes contact fields, deactivates and soft-deletes the account, and revokes refresh tokens.

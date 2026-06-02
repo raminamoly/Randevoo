@@ -97,3 +97,26 @@ Maps to: UC-038.
 Coverage:
 
 - Admin changes a user role to EventPlanner.
+
+## IT-008 Dating Profile Authorization
+
+File: `tests/Randevoo.Tests.Integration/DatingProfileApiTests.cs`
+
+Maps to: UC-005, UC-006, UC-007, UC-008.
+
+Coverage:
+
+- Anonymous users cannot create dating profiles.
+- Users cannot update another user's dating profile.
+- Admin can read a user dating profile.
+
+## IT-009 SQL Server Relational Constraints
+
+File: `tests/Randevoo.Tests.Integration/SqlServerRelationalTests.cs`
+
+Maps to: database integrity requirements.
+
+Coverage:
+
+- SQL Server enforces unique mobile number.
+- Runs only when `RUN_SQLSERVER_TESTCONTAINERS=true`.

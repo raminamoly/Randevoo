@@ -14,7 +14,7 @@ Source: `RandevooDbContext` EF Core mappings and migrations.
 | `EventPlannerProfiles` | `Id` | unique user id, planner quality metrics |
 | `BalanceAccounts` | `Id` | unique user id, balance |
 | `BalanceTransactions` | `Id` | account ledger entries |
-| `DatingEvents` | `Id` | planner-owned events, owned location and age ranges |
+| `DatingEvents` | `Id` | planner-owned events, owned location and age ranges, FK to event type |
 | `EventTickets` | `Id` | unique event/user ticket |
 | `EventConversations` | `Id` | unique event/starter/participant tuple |
 | `EventChatMessages` | `Id` | messages per conversation |
@@ -41,6 +41,7 @@ Source: `RandevooDbContext` EF Core mappings and migrations.
 - `EventSurveyResponses(DatingEventId, UserId)` unique.
 - `EventSurveyRatings(EventSurveyResponseId, Factor)` unique.
 - `EventTypes.Name` unique.
+- `DatingEvents.EventTypeId` references `EventTypes.Id`.
 - Soft-delete query filters exist on most aggregate tables.
 
 ## ERD
@@ -53,6 +54,7 @@ erDiagram
     Users ||--o| BalanceAccounts : has
     BalanceAccounts ||--o{ BalanceTransactions : records
     Users ||--o{ DatingEvents : plans
+    EventTypes ||--o{ DatingEvents : categorizes
     DatingEvents ||--o{ EventTickets : sells
     Users ||--o{ EventTickets : buys
     UserProfiles }o--o{ Interests : has
@@ -87,5 +89,4 @@ erDiagram
 
 ## TODO
 
-- `DatingEvents.EventType` is a string and does not reference `EventTypes.Id`.
 - Review whether query filters on child tables should include parent soft-delete only or child `IsDeleted` too.

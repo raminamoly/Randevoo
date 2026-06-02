@@ -164,7 +164,7 @@ public class RandevooDbContext : DbContext
             b.HasKey(e => e.Id);
             b.Property(e => e.Title).IsRequired().HasMaxLength(150);
             b.Property(e => e.Address).IsRequired().HasMaxLength(300);
-            b.Property(e => e.EventType).IsRequired().HasMaxLength(100);
+            b.HasIndex(e => e.EventTypeId);
             b.Property(e => e.EventPlannerCommissionPercent).HasPrecision(5, 2).IsRequired();
             b.Property(e => e.TicketPrice).HasPrecision(18, 2).IsRequired();
             b.Property(e => e.EventImage1).HasMaxLength(500);
@@ -176,6 +176,10 @@ public class RandevooDbContext : DbContext
             b.HasOne(e => e.EventPlannerUser)
                 .WithMany()
                 .HasForeignKey(e => e.EventPlannerUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            b.HasOne(e => e.EventType)
+                .WithMany()
+                .HasForeignKey(e => e.EventTypeId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             b.OwnsOne(e => e.AgeRangeForMale, ar =>

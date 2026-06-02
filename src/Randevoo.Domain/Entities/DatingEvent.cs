@@ -15,7 +15,8 @@ public class DatingEvent : BaseEntity, IAggregateRoot
     public string Address { get; private set; } = null!;
     public DateTime DateTimeStart { get; private set; }
     public DateTime DateTimeEnd { get; private set; }
-    public string EventType { get; private set; } = null!;
+    public long EventTypeId { get; private set; }
+    public EventType EventType { get; private set; } = null!;
     public AgeRange AgeRangeForMale { get; private set; } = null!;
     public AgeRange AgeRangeForFemale { get; private set; } = null!;
     public bool IsOpenForSell { get; private set; }
@@ -42,7 +43,7 @@ public class DatingEvent : BaseEntity, IAggregateRoot
         string address,
         DateTime dateTimeStart,
         DateTime dateTimeEnd,
-        string eventType,
+        EventType eventType,
         AgeRange ageRangeForMale,
         AgeRange ageRangeForFemale,
         int maleCapacity,
@@ -136,7 +137,7 @@ public class DatingEvent : BaseEntity, IAggregateRoot
         string address,
         DateTime dateTimeStart,
         DateTime dateTimeEnd,
-        string eventType,
+        EventType eventType,
         AgeRange ageRangeForMale,
         AgeRange ageRangeForFemale,
         int maleCapacity,
@@ -156,7 +157,8 @@ public class DatingEvent : BaseEntity, IAggregateRoot
         Address = GuardAgainst.String.InvalidLength(address, nameof(address), 5, 300);
         DateTimeStart = dateTimeStart;
         DateTimeEnd = dateTimeEnd;
-        EventType = GuardAgainst.String.InvalidLength(eventType, nameof(eventType), 2, 100);
+        EventType = GuardAgainst.Object.Null(eventType, nameof(eventType));
+        EventTypeId = eventType.Id;
         AgeRangeForMale = GuardAgainst.Object.Null(ageRangeForMale, nameof(ageRangeForMale));
         AgeRangeForFemale = GuardAgainst.Object.Null(ageRangeForFemale, nameof(ageRangeForFemale));
         MaleCapacity = GuardAgainst.Number.Positive(maleCapacity, nameof(maleCapacity));

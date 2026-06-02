@@ -42,11 +42,11 @@ public static class ModerationEndpoints
         }
     }
 
-    private static async Task<IResult> ListMineAsync(ClaimsPrincipal principal, ISender sender, CancellationToken cancellationToken)
+    private static async Task<IResult> ListMineAsync(int? limit, long? afterId, DateTime? createdAfter, ClaimsPrincipal principal, ISender sender, CancellationToken cancellationToken)
     {
         try
         {
-            return Results.Ok(await sender.Send(new ListModerationReportsQuery(EndpointHelpers.GetUserId(principal), false, null), cancellationToken));
+            return Results.Ok(await sender.Send(new ListModerationReportsQuery(EndpointHelpers.GetUserId(principal), false, null, limit ?? 50, afterId, createdAfter), cancellationToken));
         }
         catch (Exception ex) when (ex is DomainException or UnauthorizedAccessException)
         {
@@ -54,11 +54,11 @@ public static class ModerationEndpoints
         }
     }
 
-    private static async Task<IResult> ListAdminAsync(ModerationReportStatus? status, ClaimsPrincipal principal, ISender sender, CancellationToken cancellationToken)
+    private static async Task<IResult> ListAdminAsync(ModerationReportStatus? status, int? limit, long? afterId, DateTime? createdAfter, ClaimsPrincipal principal, ISender sender, CancellationToken cancellationToken)
     {
         try
         {
-            return Results.Ok(await sender.Send(new ListModerationReportsQuery(EndpointHelpers.GetUserId(principal), true, status), cancellationToken));
+            return Results.Ok(await sender.Send(new ListModerationReportsQuery(EndpointHelpers.GetUserId(principal), true, status, limit ?? 50, afterId, createdAfter), cancellationToken));
         }
         catch (Exception ex) when (ex is DomainException or UnauthorizedAccessException)
         {

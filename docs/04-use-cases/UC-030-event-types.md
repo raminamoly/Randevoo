@@ -32,4 +32,4 @@ API-030, API-031, API-032.
 
 ## TODO
 
-- `DatingEvent` does not reference `EventType.Id`; it still stores string `EventType`.
+- `DatingEvent` references `EventType.Id`.

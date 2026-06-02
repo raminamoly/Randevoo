@@ -16,8 +16,8 @@ public class ListModerationReportsHandler : IRequestHandler<ListModerationReport
     public async Task<IReadOnlyList<ModerationReportDto>> Handle(ListModerationReportsQuery request, CancellationToken cancellationToken)
     {
         var reports = request.IsAdmin
-            ? await _reports.ListByStatusAsync(request.Status, cancellationToken)
-            : await _reports.ListByReporterAsync(request.ActorUserId, cancellationToken);
+            ? await _reports.ListByStatusAsync(request.Status, request.Limit, request.AfterId, request.CreatedAfter, cancellationToken)
+            : await _reports.ListByReporterAsync(request.ActorUserId, request.Limit, request.AfterId, request.CreatedAfter, cancellationToken);
 
         return reports.Select(ModerationReportDto.FromEntity).ToList();
     }

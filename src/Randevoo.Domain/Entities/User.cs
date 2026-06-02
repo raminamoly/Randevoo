@@ -135,6 +135,24 @@ public class User : BaseEntity, IAggregateRoot
         AddDomainEvent(new EntityUpdatedEvent<User>(this, nameof(IsActive), oldIsActive, IsActive));
     }
 
+    public void AnonymizeForPrivacyDeletion()
+    {
+        MobileNumber = $"del{Id % 100000000000000000}";
+        Email = null;
+        PendingEmail = null;
+        IsEmailConfirmed = false;
+        MobileLoginCodeHash = null;
+        MobileLoginCodeExpiresAt = null;
+        MobileLoginCodeRequestWindowStartedAt = null;
+        MobileLoginCodeRequestCount = 0;
+        MobileLoginFailedAttemptCount = 0;
+        MobileLoginLockedUntil = null;
+        EmailConfirmationTokenHash = null;
+        EmailConfirmationTokenExpiresAt = null;
+        IsActive = false;
+        SoftDelete();
+    }
+
     public void ChangeUserRole(UserRole userRole)
     {
         var oldUserRole = Role;

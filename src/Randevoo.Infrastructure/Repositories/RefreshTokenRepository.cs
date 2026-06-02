@@ -19,6 +19,13 @@ public class RefreshTokenRepository : IRefreshTokenRepository
         return await _db.RefreshTokens.FirstOrDefaultAsync(token => token.TokenHash == tokenHash, cancellationToken);
     }
 
+    public async Task<IReadOnlyList<RefreshToken>> ListByUserIdAsync(long userId, CancellationToken cancellationToken = default)
+    {
+        return await _db.RefreshTokens
+            .Where(token => token.UserId == userId)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task AddAsync(RefreshToken refreshToken, CancellationToken cancellationToken = default)
     {
         await _db.RefreshTokens.AddAsync(refreshToken, cancellationToken);

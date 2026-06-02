@@ -5,6 +5,7 @@ namespace Randevoo.Application.Features.DatingEvents.Common;
 public record DatingEventDto(
     long Id,
     string Title,
+    long EventTypeId,
     string EventType,
     string Country,
     string City,
@@ -25,7 +26,8 @@ public record DatingEventDto(
         new(
             datingEvent.Id,
             datingEvent.Title,
-            datingEvent.EventType,
+            datingEvent.EventTypeId,
+            datingEvent.EventType.Name,
             datingEvent.Location.Country,
             datingEvent.Location.City,
             datingEvent.Address,

@@ -14,6 +14,9 @@ public static class EndpointHelpers
         return userId;
     }
 
+    public static bool IsAdmin(ClaimsPrincipal principal) =>
+        principal.IsInRole("Admin");
+
     public static IResult ToProblem(Exception ex)
     {
         return ex switch

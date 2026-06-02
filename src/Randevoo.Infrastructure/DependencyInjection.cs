@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Randevoo.Application.Interfaces.Auth;
 using Randevoo.Application.Interfaces.Notifications;
+using Randevoo.Application.Interfaces.Privacy;
 using Randevoo.Domain.Interfaces;
 using Randevoo.Domain.Interfaces.Repositories;
 using Randevoo.Infrastructure.Data;
@@ -34,6 +35,7 @@ public static class DependencyInjection
         services.AddSingleton<ICodeGenerator, SecureCodeGenerator>();
         services.AddSingleton<ICodeHasher, Sha256CodeHasher>();
         services.AddSingleton<IAuthTokenPolicy, AuthTokenPolicy>();
+        services.AddScoped<IPrivacyDataReader, PrivacyDataReader>();
         services.AddScoped<IJwtTokenService, JwtTokenService>();
         services.AddSingleton<ISmsSender, ConsoleSmsSender>();
         services.AddSingleton<IEmailSender, ConsoleEmailSender>();

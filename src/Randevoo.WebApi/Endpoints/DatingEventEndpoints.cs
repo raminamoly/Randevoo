@@ -32,8 +32,28 @@ public static class DatingEventEndpoints
         return group;
     }
 
-    private static async Task<IResult> ListOpenAsync(int? limit, ISender sender, CancellationToken cancellationToken) =>
-        Results.Ok(await sender.Send(new ListOpenDatingEventsQuery(limit ?? 50), cancellationToken));
+    private static async Task<IResult> ListOpenAsync(
+        int? limit,
+        long? afterId,
+        string? city,
+        DateTime? dateFrom,
+        DateTime? dateTo,
+        long? eventTypeId,
+        decimal? priceMin,
+        decimal? priceMax,
+        string? genderCapacityAvailable,
+        ISender sender,
+        CancellationToken cancellationToken) =>
+        Results.Ok(await sender.Send(new ListOpenDatingEventsQuery(
+            limit ?? 50,
+            afterId,
+            city,
+            dateFrom,
+            dateTo,
+            eventTypeId,
+            priceMin,
+            priceMax,
+            genderCapacityAvailable), cancellationToken));
 
     private static async Task<IResult> CreateAsync(DatingEventInput request, ClaimsPrincipal principal, ISender sender, CancellationToken cancellationToken)
     {

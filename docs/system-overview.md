@@ -13,7 +13,7 @@ The solution follows a layered Clean Architecture / CQRS style:
 - `Randevoo.Infrastructure`: EF Core DbContext, SQL Server persistence, repositories, unit of work, JWT and console notification implementations.
 - `Randevoo.WebApi`: ASP.NET Core minimal API endpoints, JWT authentication, authorization policies, OpenAPI/Scalar.
 - `Randevoo.Tests.Unit`: domain-level unit tests.
-- `Randevoo.Tests.Integration`: WebApplicationFactory integration tests with EF Core InMemory.
+- `Randevoo.Tests.Integration`: WebApplicationFactory integration tests with EF Core InMemory plus opt-in SQL Server/Testcontainers relational smoke test.
 
 ## Technology Stack
 
@@ -26,7 +26,7 @@ The solution follows a layered Clean Architecture / CQRS style:
 | Database | SQL Server |
 | Auth | JWT Bearer, passwordless mobile code |
 | API Docs | Microsoft.AspNetCore.OpenApi, Scalar.AspNetCore |
-| Tests | xUnit, FluentAssertions, WebApplicationFactory, EF InMemory |
+| Tests | xUnit, FluentAssertions, WebApplicationFactory, EF InMemory, Testcontainers SQL Server |
 | Notifications | Console SMS/email senders |
 
 ## Major Modules
@@ -68,7 +68,7 @@ flowchart TD
 
 ## Not Detected
 
-- No SignalR hubs found.
+- SignalR hub exists for event chat at `/hubs/event-chat`.
 - No background jobs found.
 - No scheduled tasks found.
 - No external third-party HTTP APIs found.
@@ -76,6 +76,6 @@ flowchart TD
 
 ## TODO / Assumption Required
 
-- `DatingEvent.EventType` is still a string even though `EventType` lookup exists. Assumption required: whether future events should reference `EventType.Id`.
+- `DatingEvent` references `EventType.Id`.
 - Notification senders are console implementations. TODO: replace with production SMS/email providers.
 - Domain events are collected on entities but no dispatcher was found.

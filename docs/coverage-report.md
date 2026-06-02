@@ -2,7 +2,7 @@
 
 ## APIs Documented
 
-42 API entries documented in [API contracts](06-architecture/api-contracts.md):
+44 API entries documented in [API contracts](06-architecture/api-contracts.md):
 
 - Authentication: 6
 - Dating profiles: 5
@@ -15,6 +15,7 @@
 - Balances: 3
 - Moderation: 4
 - Admin users: 1
+- Privacy: 2
 
 ## Entities Documented
 
@@ -52,16 +53,15 @@ Value objects documented:
 
 - 2 unit test classes documented.
 - 3 integration test classes documented.
-- 11 integration test scenario IDs documented.
+- 12 integration test scenario IDs documented.
 - No implemented E2E tests found.
 
 ## Missing / Unclear Areas
 
-- Dating profile endpoints are currently anonymous and do not enforce ownership.
-- `EventType` lookup exists but `DatingEvent` still stores a string event type.
-- Domain events are collected but not dispatched.
+- Domain events are dispatched through a MediatR notification bridge, but no concrete handlers are registered.
 - SMS/email implementations are console-only.
-- No background jobs, scheduled tasks, SignalR hubs, message broker, or external APIs were found.
+- SignalR is implemented for chat only.
+- No background jobs, scheduled tasks, message broker, or external APIs were found.
 - No E2E tests exist.
 
 ## Generation Notes
