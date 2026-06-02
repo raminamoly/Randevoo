@@ -1,0 +1,65 @@
+@inject MockAuthState AuthState
+
+<MudThemeProvider Theme="_theme" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<MudLayout Class="control-shell">
+    @if (AuthState.IsAuthenticated)
+    {
+        <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="0" Breakpoint="Breakpoint.Md" Class="control-drawer">
+            <SidebarNav />
+        </MudDrawer>
+        <Topbar OnMenuClicked="ToggleDrawer" />
+    }
+
+    <MudMainContent Class="control-main">
+        <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="control-content">
+            @ChildContent
+        </MudContainer>
+    </MudMainContent>
+</MudLayout>
+
+<div id="blazor-error-ui" data-nosnippet>
+    An unhandled error has occurred.
+    <a href="." class="reload">Reload</a>
+    <span class="dismiss">x</span>
+</div>
+
+@code {
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    private bool _drawerOpen = true;
+
+    private readonly MudTheme _theme = new()
+    {
+        PaletteLight = new PaletteLight
+        {
+            Primary = "#1f4e79",
+            Secondary = "#0f766e",
+            Tertiary = "#6d6a75",
+            Background = "#f6f7f9",
+            Surface = "#ffffff",
+            AppbarBackground = "#ffffff",
+            DrawerBackground = "#111827",
+            DrawerText = "#d1d5db",
+            TextPrimary = "#111827",
+            TextSecondary = "#64748b",
+            Divider = "#e5e7eb"
+        },
+        Typography = new Typography
+        {
+            Default = new DefaultTypography { FontFamily = ["Inter", "Segoe UI", "Arial", "sans-serif"] },
+            H4 = new H4Typography { FontWeight = "700" },
+            H5 = new H5Typography { FontWeight = "700" },
+            H6 = new H6Typography { FontWeight = "700" }
+        }
+    };
+
+    private void ToggleDrawer()
+    {
+        _drawerOpen = !_drawerOpen;
+    }
+}

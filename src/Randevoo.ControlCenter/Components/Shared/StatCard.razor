@@ -1,0 +1,27 @@
+<MudPaper Class="stat-card" Elevation="0">
+    <div class="stat-icon" style="background-color:@AccentBackground;color:@AccentColor">
+        <MudIcon Icon="@Icon" />
+    </div>
+    <MudText Typo="Typo.body2" Color="Color.Secondary">@Label</MudText>
+    <MudText Typo="Typo.h5">@Value</MudText>
+    <MudText Typo="Typo.caption" Color="Color.Secondary">@Detail</MudText>
+</MudPaper>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Label { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired]
+    public string Value { get; set; } = string.Empty;
+
+    [Parameter]
+    public string Detail { get; set; } = string.Empty;
+
+    [Parameter]
+    public string Icon { get; set; } = Icons.Material.Filled.Insights;
+
+    [Parameter]
+    public string AccentColor { get; set; } = "#1f4e79";
+
+    private string AccentBackground => $"{AccentColor}18";
+}

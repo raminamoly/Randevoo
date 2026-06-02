@@ -1,0 +1,19 @@
+@page "/"
+@inject MockAuthState AuthState
+@inject NavigationManager NavigationManager
+
+<LoadingState Message="Opening Control Center" />
+
+@code {
+    protected override void OnInitialized()
+    {
+        var target = AuthState.CurrentUser?.Role switch
+        {
+            ControlCenterRole.Admin => "/dashboard",
+            ControlCenterRole.EventPlanner => "/my/dashboard",
+            _ => "/login"
+        };
+
+        NavigationManager.NavigateTo(target);
+    }
+}

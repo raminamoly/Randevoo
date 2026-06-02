@@ -1,0 +1,28 @@
+@using Randevoo.ControlCenter.Models.Events
+
+<MudTable Items="Events" Hover="true" Dense="true" Elevation="0" Class="data-table">
+    <HeaderContent>
+        <MudTh>Event</MudTh>
+        <MudTh>Planner</MudTh>
+        <MudTh>Starts</MudTh>
+        <MudTh>Status</MudTh>
+        <MudTh>Tickets</MudTh>
+        <MudTh>Sales</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Event">
+            <MudText Typo="Typo.body2" Class="table-primary">@context.Title</MudText>
+            <MudText Typo="Typo.caption" Color="Color.Secondary">@context.City</MudText>
+        </MudTd>
+        <MudTd DataLabel="Planner">@context.PlannerName</MudTd>
+        <MudTd DataLabel="Starts"><DateTimeText Value="@context.StartsAt" /></MudTd>
+        <MudTd DataLabel="Status"><StatusBadge Status="@context.Status" /></MudTd>
+        <MudTd DataLabel="Tickets">@context.TicketsSold / @context.Capacity</MudTd>
+        <MudTd DataLabel="Sales"><MoneyText Amount="@context.GrossSales" /></MudTd>
+    </RowTemplate>
+</MudTable>
+
+@code {
+    [Parameter, EditorRequired]
+    public IReadOnlyList<EventSummary> Events { get; set; } = [];
+}

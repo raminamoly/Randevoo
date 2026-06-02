@@ -1,0 +1,28 @@
+<div class="page-header">
+    <div>
+        <MudText Typo="Typo.overline" Class="page-kicker">@Kicker</MudText>
+        <MudText Typo="Typo.h4">@Title</MudText>
+        @if (!string.IsNullOrWhiteSpace(Description))
+        {
+            <MudText Typo="Typo.body1" Color="Color.Secondary">@Description</MudText>
+        }
+    </div>
+    @if (Actions is not null)
+    {
+        <div class="page-actions">@Actions</div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Title { get; set; } = string.Empty;
+
+    [Parameter]
+    public string Kicker { get; set; } = "Operations";
+
+    [Parameter]
+    public string? Description { get; set; }
+
+    [Parameter]
+    public RenderFragment? Actions { get; set; }
+}

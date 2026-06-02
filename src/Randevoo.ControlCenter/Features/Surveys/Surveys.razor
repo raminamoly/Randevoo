@@ -1,0 +1,5 @@
+@page "/surveys"
+@attribute [ControlCenterAuthorize(ControlCenterRole.Admin, ControlCenterRole.EventPlanner)]
+
+<PageHeader Title="Surveys" Kicker="Quality signals" Description="Aggregate event feedback placeholder for Admin and EventPlanner roles." />
+<EmptyState Icon="@Icons.Material.Filled.QueryStats" Title="Survey signals pending" Message="Future survey data will be fetched through Control Center API clients." />

@@ -1,0 +1,53 @@
+@using Randevoo.ControlCenter.Models.Common
+@inject MockAuthState AuthState
+@inject NavigationManager NavigationManager
+
+@if (_canRender)
+{
+    <RouteView RouteData="RouteData" DefaultLayout="DefaultLayout" />
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public RouteData RouteData { get; set; } = default!;
+
+    [Parameter]
+    public Type? DefaultLayout { get; set; }
+
+    private bool _canRender;
+
+    protected override void OnParametersSet()
+    {
+        var path = NavigationManager.ToBaseRelativePath(NavigationManager.Uri).Trim('/').ToLowerInvariant();
+        var isPublicPage = path is "login" or "forbidden" or "not-found";
+
+        if (isPublicPage)
+        {
+            _canRender = true;
+            return;
+        }
+
+        if (!AuthState.IsAuthenticated)
+        {
+            _canRender = false;
+            NavigationManager.NavigateTo("/login");
+            return;
+        }
+
+        var authorization = RouteData.PageType
+            .GetCustomAttributes(typeof(ControlCenterAuthorizeAttribute), inherit: true)
+            .OfType<ControlCenterAuthorizeAttribute>()
+            .FirstOrDefault();
+
+        if (authorization is { Roles.Count: > 0 } &&
+            AuthState.CurrentUser is { } user &&
+            !authorization.Roles.Contains(user.Role))
+        {
+            _canRender = false;
+            NavigationManager.NavigateTo("/forbidden");
+            return;
+        }
+
+        _canRender = true;
+    }
+}

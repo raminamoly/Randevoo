@@ -1,0 +1,20 @@
+@using Randevoo.ControlCenter.Models.Events
+
+<MudChip T="string" Size="Size.Small" Color="@BadgeColor" Variant="Variant.Filled">@Text</MudChip>
+
+@code {
+    [Parameter, EditorRequired]
+    public EventStatus Status { get; set; }
+
+    private string Text => Status.ToString();
+
+    private Color BadgeColor => Status switch
+    {
+        EventStatus.OnSale => Color.Success,
+        EventStatus.Scheduled => Color.Info,
+        EventStatus.Draft => Color.Warning,
+        EventStatus.Closed => Color.Default,
+        EventStatus.Cancelled => Color.Error,
+        _ => Color.Default
+    };
+}

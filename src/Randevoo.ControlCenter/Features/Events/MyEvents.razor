@@ -1,0 +1,28 @@
+@page "/my/events"
+@attribute [ControlCenterAuthorize(ControlCenterRole.EventPlanner)]
+@using Randevoo.ControlCenter.Services.ApiClients
+@inject IEventsApiClient EventsClient
+
+<PageHeader Title="My events" Kicker="EventPlanner workspace" Description="Events owned by the current mock EventPlanner account." />
+
+@if (_events is null)
+{
+    <LoadingState />
+}
+else if (_events.Count == 0)
+{
+    <EmptyState Title="No planner events" />
+}
+else
+{
+    <EventsTable Events="_events" />
+}
+
+@code {
+    private IReadOnlyList<EventSummary>? _events;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _events = await EventsClient.GetEventsAsync(ControlCenterRole.EventPlanner);
+    }
+}

@@ -1,0 +1,5 @@
+@page "/balances"
+@attribute [ControlCenterAuthorize(ControlCenterRole.Admin, ControlCenterRole.EventPlanner)]
+
+<PageHeader Title="Balances" Kicker="Financial operations" Description="Mock settlement, adjustments, and payout visibility." />
+<EmptyState Icon="@Icons.Material.Filled.AccountBalanceWallet" Title="Balance tools pending" Message="Future reads and actions will call Randevoo.WebApi through typed client services." />

@@ -1,0 +1,28 @@
+@page "/events"
+@attribute [ControlCenterAuthorize(ControlCenterRole.Admin)]
+@using Randevoo.ControlCenter.Services.ApiClients
+@inject IEventsApiClient EventsClient
+
+<PageHeader Title="Events" Kicker="Admin operations" Description="Mock overview of events managed through the WebApi client surface." />
+
+@if (_events is null)
+{
+    <LoadingState />
+}
+else if (_events.Count == 0)
+{
+    <EmptyState Title="No events" />
+}
+else
+{
+    <EventsTable Events="_events" />
+}
+
+@code {
+    private IReadOnlyList<EventSummary>? _events;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _events = await EventsClient.GetEventsAsync(ControlCenterRole.Admin);
+    }
+}

@@ -1,0 +1,45 @@
+@page "/event-planners"
+@attribute [ControlCenterAuthorize(ControlCenterRole.Admin)]
+@using Randevoo.ControlCenter.Services.ApiClients
+@inject IEventsApiClient EventsClient
+
+<PageHeader Title="Event planners" Kicker="Admin operations" Description="Mock planner verification and settlement overview." />
+
+@if (_planners is null)
+{
+    <LoadingState />
+}
+else
+{
+    <MudTable Items="_planners" Dense="true" Hover="true" Elevation="0" Class="data-table">
+        <HeaderContent>
+            <MudTh>Name</MudTh>
+            <MudTh>Company</MudTh>
+            <MudTh>City</MudTh>
+            <MudTh>Upcoming</MudTh>
+            <MudTh>Balance</MudTh>
+            <MudTh>Verification</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Name">@context.DisplayName</MudTd>
+            <MudTd DataLabel="Company">@context.CompanyName</MudTd>
+            <MudTd DataLabel="City">@context.City</MudTd>
+            <MudTd DataLabel="Upcoming">@context.UpcomingEvents</MudTd>
+            <MudTd DataLabel="Balance"><MoneyText Amount="@context.Balance" /></MudTd>
+            <MudTd DataLabel="Verification">
+                <MudChip T="string" Size="Size.Small" Color="@(context.IsVerified ? Color.Success : Color.Warning)">
+                    @(context.IsVerified ? "Verified" : "Pending")
+                </MudChip>
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+
+@code {
+    private IReadOnlyList<EventPlannerSummary>? _planners;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _planners = await EventsClient.GetEventPlannersAsync();
+    }
+}

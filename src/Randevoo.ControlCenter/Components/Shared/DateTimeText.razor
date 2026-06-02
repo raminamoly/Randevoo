@@ -1,0 +1,6 @@
+<span title="@Value.ToString("u")">@Value.ToLocalTime().ToString("MMM d, yyyy h:mm tt")</span>
+
+@code {
+    [Parameter]
+    public DateTimeOffset Value { get; set; }
+}
