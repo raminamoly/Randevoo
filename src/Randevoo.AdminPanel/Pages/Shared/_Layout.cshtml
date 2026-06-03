@@ -1,33 +1,33 @@
 @inject Randevoo.AdminPanel.Services.State.CurrentSessionState CurrentSession
 @{
     var useShell = (ViewData["UseShell"] as bool?) ?? true;
-    var isRtl = CurrentSession.IsRtl;
-    var pageTitle = ViewData["Title"]?.ToString() ?? "Randevoo Admin Panel";
+    var pageTitle = ViewData["Title"]?.ToString() ?? "پنل مدیریت رندوو";
 }
 <!DOCTYPE html>
-<html lang="@(isRtl ? "fa" : "en")" dir="@(isRtl ? "rtl" : "ltr")">
+<html lang="fa" dir="rtl">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@pageTitle - Randevoo Admin Panel</title>
+    <title>@pageTitle - پنل مدیریت رندوو</title>
     <link rel="icon" type="image/png" href="~/images/logo.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.rtl.min.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/css/persian-datepicker.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    @await RenderSectionAsync("Head", required: false)
 </head>
-<body class="@(isRtl ? "rtl" : "ltr")">
+<body class="rtl">
     @if (useShell)
     {
-        <div class="admin-shell @(isRtl ? "rtl-shell" : "ltr-shell")">
+        <div class="admin-shell rtl-shell">
             <aside class="admin-sidebar">
                 <div class="brand-block">
-                    <img src="~/images/logo.png" alt="Randevoo" class="brand-logo" />
+                    <img src="~/images/logo.png" alt="رندوو" class="brand-logo" />
                     <div>
-                        <div class="brand-name">Randevoo</div>
-                        <div class="brand-subtitle">Admin Panel</div>
+                        <div class="brand-name">رندوو</div>
+                        <div class="brand-subtitle">پنل مدیریت</div>
                     </div>
                 </div>
                 <div id="sidebarCollapse" class="collapse d-lg-block">

@@ -30,7 +30,7 @@ public class IndexModel : PageModel
 
     public async Task OnGetAsync()
     {
-        var current = _session.CurrentUser ?? throw new InvalidOperationException("Current user was not resolved.");
+        var current = _session.CurrentUser ?? throw new InvalidOperationException("کاربر جاری شناسایی نشد.");
         Stats = await _dashboardApi.GetStatsAsync(current);
         Events = (await _eventsApi.GetEventsAsync(current)).Take(6).ToList();
     }

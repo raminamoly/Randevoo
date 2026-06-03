@@ -4,6 +4,36 @@ namespace Randevoo.AdminPanel.Services.State;
 
 public static class PersianDateFormatter
 {
+    public static string FormatDate(DateTimeOffset? utcDateTime, bool useShamsi)
+    {
+        if (utcDateTime is null)
+        {
+            return string.Empty;
+        }
+
+        var local = utcDateTime.Value.ToLocalTime();
+        if (!useShamsi)
+        {
+            return DisplayFormatter.ToPersianDigits(local.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
+        }
+
+        var calendar = new PersianCalendar();
+        var year = calendar.GetYear(local.DateTime);
+        var month = calendar.GetMonth(local.DateTime);
+        var day = calendar.GetDayOfMonth(local.DateTime);
+        return DisplayFormatter.ToPersianDigits($"{year:0000}/{month:00}/{day:00}");
+    }
+
+    public static string FormatTime(DateTimeOffset? utcDateTime)
+    {
+        if (utcDateTime is null)
+        {
+            return string.Empty;
+        }
+
+        return DisplayFormatter.ToPersianDigits(utcDateTime.Value.ToLocalTime().ToString("HH:mm", CultureInfo.InvariantCulture));
+    }
+
     public static string Format(DateTimeOffset? utcDateTime, bool useShamsi)
     {
         if (utcDateTime is null)
@@ -14,14 +44,14 @@ public static class PersianDateFormatter
         var local = utcDateTime.Value.ToLocalTime();
         if (!useShamsi)
         {
-            return local.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture);
+            return DisplayFormatter.ToPersianDigits(local.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture));
         }
 
         var calendar = new PersianCalendar();
         var year = calendar.GetYear(local.DateTime);
         var month = calendar.GetMonth(local.DateTime);
         var day = calendar.GetDayOfMonth(local.DateTime);
-        return $"{year:0000}/{month:00}/{day:00} {local:HH:mm}";
+        return DisplayFormatter.ToPersianDigits($"{year:0000}/{month:00}/{day:00} {local:HH:mm}");
     }
 
     public static DateTimeOffset Parse(string? text)
@@ -31,12 +61,14 @@ public static class PersianDateFormatter
             return DateTimeOffset.UtcNow;
         }
 
-        if (DateTimeOffset.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out var parsed))
+        var normalizedText = NormalizeDigits(text);
+
+        if (DateTimeOffset.TryParse(normalizedText, CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out var parsed))
         {
             return parsed.ToUniversalTime();
         }
 
-        var parts = text.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var parts = normalizedText.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         if (parts.Length == 0)
         {
             return DateTimeOffset.UtcNow;
@@ -62,5 +94,16 @@ public static class PersianDateFormatter
         var gregorian = calendar.ToDateTime(localDateTime.Year, localDateTime.Month, localDateTime.Day, localDateTime.Hour, localDateTime.Minute, 0, 0);
         return new DateTimeOffset(gregorian, TimeSpan.FromHours(3.5));
     }
-}
 
+    private static string NormalizeDigits(string value) => value
+        .Replace('۰', '0')
+        .Replace('۱', '1')
+        .Replace('۲', '2')
+        .Replace('۳', '3')
+        .Replace('۴', '4')
+        .Replace('۵', '5')
+        .Replace('۶', '6')
+        .Replace('۷', '7')
+        .Replace('۸', '8')
+        .Replace('۹', '9');
+}

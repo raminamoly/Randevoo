@@ -1,0 +1,34 @@
+@page "{id:guid}"
+@model Randevoo.AdminPanel.Pages.Planner.DetailsModel
+@{
+    ViewData["Title"] = "پروفایل برگزارکننده";
+    ViewData["UseShell"] = false;
+}
+
+<section class="auth-card glass-panel auth-card-premium">
+    <div class="auth-orb auth-orb-pink"></div>
+    <div class="auth-orb auth-orb-blue"></div>
+
+    <div class="planner-public-header">
+        <img src="@Model.Profile.PictureUrl" alt="@Model.Profile.FullName" class="planner-avatar planner-avatar-lg" />
+        <div>
+            <div class="auth-kicker">پروفایل برگزارکننده</div>
+            <h1>@Model.Profile.FullName</h1>
+            <p>@Model.Profile.Title</p>
+        </div>
+    </div>
+
+    <div class="planner-metrics mt-4">
+        <div class="detail-block"><span>شهر فعالیت</span><strong>@Model.Profile.City</strong></div>
+        <div class="detail-block"><span>میانگین امتیاز</span><strong>@DisplayFormatter.ToPersianDigits(Model.Profile.AverageRating.ToString("0.0"))</strong></div>
+        <div class="detail-block"><span>نظرسنجی ثبت شده</span><strong>@DisplayFormatter.Count(Model.Profile.TotalSurveyCount)</strong></div>
+        <div class="detail-block"><span>رویداد برگزارشده</span><strong>@DisplayFormatter.Count(Model.Profile.HostedEventCount)</strong></div>
+        <div class="detail-block"><span>رویداد تکمیل شده</span><strong>@DisplayFormatter.Count(Model.Profile.CompletedEventCount)</strong></div>
+        <div class="detail-block"><span>رویداد لغوشده</span><strong>@DisplayFormatter.Count(Model.Profile.CancelledEventCount)</strong></div>
+    </div>
+
+    <div class="glass-panel p-4 mt-4">
+        <h2 class="section-title">معرفی برگزارکننده</h2>
+        <p class="mb-0">@Model.Profile.Resume</p>
+    </div>
+</section>

@@ -1,49 +1,49 @@
 @page
 @model Randevoo.AdminPanel.Pages.Dashboard.MyModel
 @{
-    ViewData["Title"] = "My Dashboard";
+    ViewData["Title"] = "داشبورد برگزارکننده";
 }
 
 <section class="page-header">
     <div>
-        <h1>My Dashboard</h1>
-        <p>Track your events and wait for admin approvals before they go live.</p>
+        <h1>داشبورد برگزارکننده</h1>
+        <p>رویدادهای خود را مدیریت کنید و پیش از نمایش عمومی منتظر تایید مدیر بمانید.</p>
     </div>
 </section>
 
 <section class="stats-grid">
     <div class="stat-card glass-panel">
-        <div class="stat-label">My events</div>
-        <div class="stat-value">@Model.Stats.MyEventsCount</div>
+        <div class="stat-label">رویدادهای من</div>
+        <div class="stat-value">@DisplayFormatter.Count(Model.Stats.MyEventsCount)</div>
     </div>
     <div class="stat-card glass-panel">
-        <div class="stat-label">Pending review</div>
-        <div class="stat-value">@Model.Stats.PendingEventsCount</div>
+        <div class="stat-label">در انتظار بررسی</div>
+        <div class="stat-value">@DisplayFormatter.Count(Model.Stats.PendingEventsCount)</div>
     </div>
     <div class="stat-card glass-panel">
-        <div class="stat-label">Live events</div>
-        <div class="stat-value">@Model.Stats.LiveEventsCount</div>
+        <div class="stat-label">رویدادهای فعال</div>
+        <div class="stat-value">@DisplayFormatter.Count(Model.Stats.LiveEventsCount)</div>
     </div>
     <div class="stat-card glass-panel">
-        <div class="stat-label">Revenue lock</div>
+        <div class="stat-label">درآمد معطل تایید</div>
         <div class="stat-value">@DisplayFormatter.Money(Model.Stats.PendingRevenue, Model.IsRtl)</div>
     </div>
 </section>
 
 <div class="glass-panel p-4 mt-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2 class="section-title mb-0">Your events</h2>
-        <a asp-page="/Events/Edit" class="btn btn-primary btn-sm">Create event</a>
+        <h2 class="section-title mb-0">فهرست رویدادهای شما</h2>
+        <a asp-page="/Events/Edit" class="btn btn-primary btn-sm">ساخت رویداد</a>
     </div>
 
     <div class="table-responsive">
         <table class="table align-middle">
             <thead>
                 <tr>
-                    <th>Event</th>
-                    <th>Start</th>
-                    <th>Status</th>
-                    <th>Notes</th>
+                    <th>رویداد</th>
+                    <th>زمان شروع</th>
+                    <th>وضعیت</th>
+                    <th>یادداشت مدیر</th>
                     <th></th>
                 </tr>
             </thead>
@@ -56,10 +56,10 @@
                             <div class="text-muted small">@item.ActiveDraft.City</div>
                         </td>
                         <td>@PersianDateFormatter.Format(item.ActiveDraft.StartAtUtc, Model.IsRtl)</td>
-                        <td><span class="status-badge @Model.GetStatusClass(item.Status)">@item.Status</span></td>
+                        <td><span class="status-badge @Model.GetStatusClass(item.Status)">@DisplayFormatter.Status(item.Status)</span></td>
                         <td class="text-muted">@item.AdminReviewNote</td>
                         <td class="text-end">
-                            <a asp-page="/Events/Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-secondary">Edit</a>
+                            <a asp-page="/Events/Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-secondary">ویرایش</a>
                         </td>
                     </tr>
                 }

@@ -22,22 +22,22 @@ public sealed class MockAuthService
         var user = _store.FindUserByMobile(mobile);
         if (user is null)
         {
-            return Task.FromResult(MockAuthResult.Fail("This mobile number is not registered yet."));
+            return Task.FromResult(MockAuthResult.Fail("این شماره موبایل هنوز ثبت نشده است."));
         }
 
         if (user.Role != requestedRole)
         {
-            return Task.FromResult(MockAuthResult.Fail("The selected role does not match this account."));
+            return Task.FromResult(MockAuthResult.Fail("نقش انتخاب شده با این حساب هماهنگ نیست."));
         }
 
         if (!user.IsActive)
         {
-            return Task.FromResult(MockAuthResult.Fail("This account is disabled."));
+            return Task.FromResult(MockAuthResult.Fail("این حساب غیرفعال شده است."));
         }
 
         if (string.IsNullOrWhiteSpace(verificationCode))
         {
-            return Task.FromResult(MockAuthResult.Fail("Please enter the verification code."));
+            return Task.FromResult(MockAuthResult.Fail("کد تایید را وارد کنید."));
         }
 
         return Task.FromResult(MockAuthResult.Ok(user));
@@ -45,7 +45,7 @@ public sealed class MockAuthService
 
     public async Task SignInAsync(MockUser user)
     {
-        var context = _httpContextAccessor.HttpContext ?? throw new InvalidOperationException("No active HTTP context.");
+        var context = _httpContextAccessor.HttpContext ?? throw new InvalidOperationException("درخواست فعال HTTP پیدا نشد.");
 
         var claims = new List<Claim>
         {
@@ -70,8 +70,7 @@ public sealed class MockAuthService
 
     public async Task SignOutAsync()
     {
-        var context = _httpContextAccessor.HttpContext ?? throw new InvalidOperationException("No active HTTP context.");
+        var context = _httpContextAccessor.HttpContext ?? throw new InvalidOperationException("درخواست فعال HTTP پیدا نشد.");
         await context.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
     }
 }
-

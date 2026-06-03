@@ -1,33 +1,28 @@
 @inject Randevoo.AdminPanel.Services.State.CurrentSessionState CurrentSession
 @{
-    var isRtl = CurrentSession.IsRtl;
     var user = CurrentSession.CurrentUser;
-    var role = user?.Role.ToString() ?? "Guest";
-    var currentUrl = Context.Request.Path + Context.Request.QueryString;
+    var role = user is null ? "میهمان" : DisplayFormatter.Role(user.Role);
 }
 
 <header class="admin-topbar">
     <div class="d-flex align-items-center gap-3">
-        <button class="btn btn-link d-lg-none p-0 sidebar-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarCollapse" aria-label="Toggle navigation">
+        <button class="btn btn-link d-lg-none p-0 sidebar-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarCollapse" aria-label="باز کردن منو">
             <i class="bi bi-list"></i>
         </button>
         <div>
-            <div class="topbar-eyebrow">Operations cockpit</div>
+            <div class="topbar-eyebrow">مرکز عملیات و تایید رویداد</div>
             <div class="topbar-title">@ViewData["Title"]</div>
         </div>
     </div>
 
     <div class="topbar-actions">
-        <a class="lang-pill @(isRtl ? string.Empty : "active")" asp-page="/Settings/Index" asp-route-lang="en" asp-route-returnUrl="@currentUrl">EN</a>
-        <a class="lang-pill @(isRtl ? "active" : string.Empty)" asp-page="/Settings/Index" asp-route-lang="fa" asp-route-returnUrl="@currentUrl">FA</a>
         <span class="user-chip">
             <i class="bi bi-person-circle"></i>
-            <span>@(user?.FullName ?? "Guest")</span>
+            <span>@(user?.FullName ?? "میهمان")</span>
             <small>@role</small>
         </span>
         <a class="btn btn-outline-dark btn-sm" asp-page="/Account/Logout">
-            <i class="bi bi-box-arrow-right me-1"></i>Logout
+            <i class="bi bi-box-arrow-right ms-1"></i>خروج
         </a>
     </div>
 </header>
-

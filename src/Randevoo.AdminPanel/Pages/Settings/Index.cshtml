@@ -1,33 +1,28 @@
 @page
 @model Randevoo.AdminPanel.Pages.Settings.IndexModel
 @{
-    ViewData["Title"] = "Settings";
+    ViewData["Title"] = "تنظیمات";
 }
 
 <section class="page-header">
     <div>
-        <h1>Settings</h1>
-        <p>Choose language and keep the panel aligned with the brand.</p>
+        <h1>تنظیمات</h1>
+        <p>مرور سریع هویت بصری پنل و چارچوب تجربه کاربری فارسی.</p>
     </div>
 </section>
 
 <div class="row g-4">
     <div class="col-lg-8">
         <div class="glass-panel p-4">
-            <h2 class="section-title">Language</h2>
-            <p class="text-muted">English keeps the panel left-to-right. Farsi switches the shell to RTL and enables Shamsi date input.</p>
-            <div class="d-flex gap-2 flex-wrap">
-                <a class="btn btn-outline-primary" asp-page="/Settings/Index" asp-route-lang="en" asp-route-returnUrl="@Model.ReturnUrl">English</a>
-                <a class="btn btn-outline-primary" asp-page="/Settings/Index" asp-route-lang="fa" asp-route-returnUrl="@Model.ReturnUrl">فارسی</a>
-            </div>
+            <h2 class="section-title">جهت طراحی</h2>
+            <p class="text-muted">این نسخه فقط برای فارسی و راست به چپ طراحی شده است. تاریخ ها در ورودی ها و نمایش ها شمسی هستند و ظاهر پنل بر پایه رنگ های لوگو و زمینه سفید نگه داشته شده است.</p>
         </div>
     </div>
 
     <div class="col-lg-4">
         <div class="glass-panel p-4">
-            <img src="~/images/logo.png" class="settings-logo" alt="Randevoo" />
-            <p class="mb-0 text-muted">White background, logo-driven palette, glass surfaces, and a clean operations feel.</p>
+            <img src="~/images/logo.png" class="settings-logo" alt="رندوو" />
+            <p class="mb-0 text-muted">سطوح شیشه ای روشن، رنگ های برگرفته از لوگو و تمرکز روی حس حرفه ای پنل مدیریتی.</p>
         </div>
     </div>
 </div>
-

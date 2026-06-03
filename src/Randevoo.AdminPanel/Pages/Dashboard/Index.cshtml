@@ -1,32 +1,32 @@
 @page
 @model Randevoo.AdminPanel.Pages.Dashboard.IndexModel
 @{
-    ViewData["Title"] = "Dashboard";
+    ViewData["Title"] = "داشبورد مدیریت";
 }
 
 <section class="page-header">
     <div>
-        <h1>Dashboard</h1>
-        <p>Overview of approval workload, live events, and user activity.</p>
+        <h1>داشبورد مدیریت</h1>
+        <p>نمای کلی تاییدها، وضعیت رویدادهای فعال و جریان کاری تیم.</p>
     </div>
 </section>
 
 <section class="stats-grid">
     <div class="stat-card glass-panel">
-        <div class="stat-label">Users</div>
-        <div class="stat-value">@Model.Stats.UsersCount</div>
+        <div class="stat-label">کل کاربران</div>
+        <div class="stat-value">@DisplayFormatter.Count(Model.Stats.UsersCount)</div>
     </div>
     <div class="stat-card glass-panel">
-        <div class="stat-label">Planners</div>
-        <div class="stat-value">@Model.Stats.PlannerCount</div>
+        <div class="stat-label">برگزارکننده ها</div>
+        <div class="stat-value">@DisplayFormatter.Count(Model.Stats.PlannerCount)</div>
     </div>
     <div class="stat-card glass-panel">
-        <div class="stat-label">Pending approvals</div>
-        <div class="stat-value">@Model.Stats.PendingEventsCount</div>
+        <div class="stat-label">در انتظار تایید</div>
+        <div class="stat-value">@DisplayFormatter.Count(Model.Stats.PendingEventsCount)</div>
     </div>
     <div class="stat-card glass-panel">
-        <div class="stat-label">Live events</div>
-        <div class="stat-value">@Model.Stats.LiveEventsCount</div>
+        <div class="stat-label">رویدادهای فعال</div>
+        <div class="stat-value">@DisplayFormatter.Count(Model.Stats.LiveEventsCount)</div>
     </div>
 </section>
 
@@ -34,18 +34,18 @@
     <div class="col-lg-8">
         <div class="glass-panel p-4">
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <h2 class="section-title mb-0">Latest events</h2>
-                <a asp-page="/Events/Index" class="btn btn-sm btn-outline-primary">Open events</a>
+                <h2 class="section-title mb-0">آخرین رویدادها</h2>
+                <a asp-page="/Events/Index" class="btn btn-sm btn-outline-primary">مشاهده همه</a>
             </div>
 
             <div class="table-responsive">
                 <table class="table align-middle">
                     <thead>
                         <tr>
-                            <th>Event</th>
-                            <th>Planner</th>
-                            <th>Status</th>
-                            <th>Price</th>
+                            <th>رویداد</th>
+                            <th>برگزارکننده</th>
+                            <th>وضعیت</th>
+                            <th>قیمت</th>
                             <th></th>
                         </tr>
                     </thead>
@@ -55,13 +55,13 @@
                             <tr>
                                 <td>
                                     <div class="fw-semibold">@item.DisplayTitle</div>
-                                    <div class="text-muted small">@item.ActiveDraft.City, @item.ActiveDraft.Country</div>
+                                    <div class="text-muted small">@item.ActiveDraft.City، @item.ActiveDraft.Country</div>
                                 </td>
                                 <td>@item.PlannerName</td>
-                                <td><span class="status-badge @Model.GetStatusClass(item.Status)">@item.Status</span></td>
+                                <td><span class="status-badge @Model.GetStatusClass(item.Status)">@DisplayFormatter.Status(item.Status)</span></td>
                                 <td>@DisplayFormatter.Money(item.ActiveDraft.TicketPrice, Model.IsRtl)</td>
                                 <td class="text-end">
-                                    <a asp-page="/Events/Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-secondary">Review</a>
+                                    <a asp-page="/Events/Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-secondary">بررسی</a>
                                 </td>
                             </tr>
                         }
@@ -73,16 +73,15 @@
 
     <div class="col-lg-4">
         <div class="glass-panel p-4 mb-4">
-            <h2 class="section-title">Revenue snapshot</h2>
+            <h2 class="section-title">برآورد فروش</h2>
             <div class="display-6 fw-bold">@DisplayFormatter.Money(Model.Stats.TotalTicketSales, Model.IsRtl)</div>
-            <p class="text-muted mb-0">Estimated value based on current live event capacity.</p>
+            <p class="text-muted mb-0">تخمین ارزش فروش بر پایه ظرفیت رویدادهای فعال.</p>
         </div>
 
         <div class="glass-panel p-4">
-            <h2 class="section-title">Pending revenue</h2>
+            <h2 class="section-title">درآمد معطل تایید</h2>
             <div class="display-6 fw-bold">@DisplayFormatter.Money(Model.Stats.PendingRevenue, Model.IsRtl)</div>
-            <p class="text-muted mb-0">Locked until admin approval.</p>
+            <p class="text-muted mb-0">تا زمان تصمیم نهایی مدیر آزاد نمی شود.</p>
         </div>
     </div>
 </div>
-

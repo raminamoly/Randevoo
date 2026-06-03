@@ -1,17 +1,17 @@
 @page "{id?}"
 @model Randevoo.AdminPanel.Pages.Events.EditModel
 @{
-    ViewData["Title"] = Model.IsNew ? "Create event" : "Edit event";
+    ViewData["Title"] = Model.IsNew ? "ساخت رویداد" : "ویرایش رویداد";
 }
 
 <section class="page-header">
     <div>
-        <h1>@(Model.IsNew ? "Create event" : "Edit event")</h1>
-        <p>@(Model.IsPlanner ? "Your changes will return to admin review before they appear publicly." : "Admin edits can go live immediately.")</p>
+        <h1>@(Model.IsNew ? "ساخت رویداد" : "ویرایش رویداد")</h1>
+        <p>@(Model.IsPlanner ? "هر تغییر شما دوباره برای تایید مدیر ارسال می شود و پس از تایید به کاربران نمایش داده می شود." : "مدیر می تواند مستقیما وضعیت انتشار و تایید نهایی رویداد را مدیریت کند.")</p>
     </div>
     @if (!Model.IsNew)
     {
-        <a asp-page="/Events/Details" asp-route-id="@Model.ExistingEventId" class="btn btn-outline-secondary">Open profile</a>
+        <a asp-page="/Events/Details" asp-route-id="@Model.ExistingEventId" class="btn btn-outline-secondary">پروفایل رویداد</a>
     }
 </section>
 
@@ -20,112 +20,161 @@
     <input type="hidden" asp-for="Input.Image1" />
     <input type="hidden" asp-for="Input.Image2" />
     <input type="hidden" asp-for="Input.Image3" />
+    <input type="hidden" asp-for="Input.Latitude" />
+    <input type="hidden" asp-for="Input.Longitude" />
 
     <div class="row g-4">
         <div class="col-lg-8">
             <div class="row g-3">
-                <div class="col-md-6">
-                    <label asp-for="Input.Title" class="form-label">Title</label>
-                    <input asp-for="Input.Title" class="form-control" />
+                <div class="col-12">
+                    <div class="form-section-head">
+                        <div>
+                            <h2 class="section-title mb-1">مشخصات اصلی رویداد</h2>
+                            <p class="text-muted mb-0">اطلاعات پایه ای رویداد را وارد کنید تا هویت صفحه رویداد شکل بگیرد.</p>
+                        </div>
+                    </div>
                 </div>
                 <div class="col-md-6">
-                    <label asp-for="Input.VenueName" class="form-label">Venue name</label>
-                    <input asp-for="Input.VenueName" class="form-control" />
+                    <label asp-for="Input.Title" class="form-label">عنوان رویداد</label>
+                    <input asp-for="Input.Title" class="form-control" placeholder="مثلاً شب اجتماعی تهران" />
                 </div>
                 <div class="col-md-6">
-                    <label asp-for="Input.Country" class="form-label">Country</label>
+                    <label asp-for="Input.VenueName" class="form-label">نام محل برگزاری</label>
+                    <input asp-for="Input.VenueName" class="form-control" placeholder="مثلاً سالن شمال" />
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="Input.Country" class="form-label">کشور</label>
                     <select asp-for="Input.Country" class="form-select" asp-items="Model.CountryOptions"></select>
                 </div>
                 <div class="col-md-6">
-                    <label asp-for="Input.City" class="form-label">City</label>
+                    <label asp-for="Input.City" class="form-label">شهر</label>
                     <select asp-for="Input.City" class="form-select" asp-items="Model.CityOptions"></select>
                 </div>
                 <div class="col-md-6">
-                    <label asp-for="Input.Region" class="form-label">Region</label>
+                    <label asp-for="Input.Region" class="form-label">منطقه</label>
                     <input asp-for="Input.Region" class="form-control" />
                 </div>
                 <div class="col-md-6">
-                    <label asp-for="Input.Address" class="form-label">Address</label>
-                    <input asp-for="Input.Address" class="form-control" />
+                    <label asp-for="Input.Address" class="form-label">آدرس</label>
+                    <input asp-for="Input.Address" class="form-control" placeholder="آدرس کامل برای نمایش در پروفایل رویداد" />
+                </div>
+                <div class="col-12 mt-2">
+                    <div class="form-section-head">
+                        <div>
+                            <h2 class="section-title mb-1">نوع و مخاطب رویداد</h2>
+                            <p class="text-muted mb-0">نوع رویداد، بازه سنی و ظرفیت را بر اساس تجربه ای که می خواهید بسازید تنظیم کنید.</p>
+                        </div>
+                    </div>
                 </div>
                 <div class="col-md-4">
-                    <label asp-for="Input.AgeRangeForMale" class="form-label">Age range for male</label>
+                    <label asp-for="Input.AgeRangeForMale" class="form-label">بازه سنی آقایان</label>
                     <select asp-for="Input.AgeRangeForMale" class="form-select" asp-items="Model.AgeRangeOptions"></select>
                 </div>
                 <div class="col-md-4">
-                    <label asp-for="Input.AgeRangeForFemale" class="form-label">Age range for female</label>
+                    <label asp-for="Input.AgeRangeForFemale" class="form-label">بازه سنی بانوان</label>
                     <select asp-for="Input.AgeRangeForFemale" class="form-select" asp-items="Model.AgeRangeOptions"></select>
                 </div>
                 <div class="col-md-4">
-                    <label asp-for="Input.EventType" class="form-label">Event type</label>
+                    <label asp-for="Input.EventType" class="form-label">نوع رویداد</label>
                     <select asp-for="Input.EventType" class="form-select" asp-items="Model.EventTypeOptions"></select>
                 </div>
+                <div class="col-12">
+                    <label class="form-label">تگ های رویداد</label>
+                    <input asp-for="TagsText"
+                           class="form-control"
+                           placeholder="مثلاً اجتماعی، منتخب، حضوری، تهران"
+                           data-tag-input="true"
+                           data-tag-preview-target="#eventTagPreview" />
+                    <div class="form-text">تگ ها را با ویرگول یا Enter از هم جدا کنید. این تگ ها در صفحه عمومی رویداد نمایش داده می شوند.</div>
+                    <div id="eventTagPreview" class="tag-preview-list mt-3"></div>
+                </div>
+                <div class="col-12 mt-2">
+                    <div class="form-section-head">
+                        <div>
+                            <h2 class="section-title mb-1">زمان بندی</h2>
+                            <p class="text-muted mb-0">تاریخ و ساعت شروع و پایان را جداگانه انتخاب کنید تا برنامه رویداد دقیق ثبت شود.</p>
+                        </div>
+                    </div>
+                </div>
                 <div class="col-md-6">
-                    <label class="form-label">Start date and time</label>
+                    <label class="form-label">تاریخ شروع</label>
                     @if (Model.IsRtl)
                     {
-                        <input asp-for="StartAtText" class="form-control jalali-picker" />
+                        <input asp-for="StartDateText" class="form-control jalali-date-picker" />
                     }
                     else
                     {
-                        <input asp-for="StartAtText" class="form-control" type="datetime-local" />
+                        <input asp-for="StartDateText" class="form-control" type="date" />
                     }
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label">End date and time</label>
+                    <label class="form-label">ساعت شروع</label>
+                    <input asp-for="StartTimeText" class="form-control" type="time" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">تاریخ پایان</label>
                     @if (Model.IsRtl)
                     {
-                        <input asp-for="EndAtText" class="form-control jalali-picker" />
+                        <input asp-for="EndDateText" class="form-control jalali-date-picker" />
                     }
                     else
                     {
-                        <input asp-for="EndAtText" class="form-control" type="datetime-local" />
+                        <input asp-for="EndDateText" class="form-control" type="date" />
                     }
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">ساعت پایان</label>
+                    <input asp-for="EndTimeText" class="form-control" type="time" />
                 </div>
                 <div class="col-md-4">
-                    <label asp-for="Input.TicketPrice" class="form-label">Ticket price</label>
+                    <label asp-for="Input.TicketPrice" class="form-label">قیمت بلیت</label>
                     <input asp-for="Input.TicketPrice" class="form-control" type="number" step="1000" />
                 </div>
                 <div class="col-md-4">
-                    <label asp-for="Input.CapacityMale" class="form-label">Male capacity</label>
+                    <label asp-for="Input.CapacityMale" class="form-label">ظرفیت آقایان</label>
                     <input asp-for="Input.CapacityMale" class="form-control" type="number" />
                 </div>
                 <div class="col-md-4">
-                    <label asp-for="Input.CapacityFemale" class="form-label">Female capacity</label>
+                    <label asp-for="Input.CapacityFemale" class="form-label">ظرفیت بانوان</label>
                     <input asp-for="Input.CapacityFemale" class="form-control" type="number" />
                 </div>
                 <div class="col-md-4">
-                    <label asp-for="Input.ChatLimit" class="form-label">Chat limit</label>
+                    <label asp-for="Input.ChatLimit" class="form-label">تعداد مجاز گفتگو</label>
                     <input asp-for="Input.ChatLimit" class="form-control" type="number" />
                 </div>
-                <div class="col-md-4">
-                    <label asp-for="Input.Latitude" class="form-label">Latitude</label>
-                    <input asp-for="Input.Latitude" class="form-control" step="0.0001" />
-                </div>
-                <div class="col-md-4">
-                    <label asp-for="Input.Longitude" class="form-label">Longitude</label>
-                    <input asp-for="Input.Longitude" class="form-control" step="0.0001" />
+                <div class="col-12 mt-2">
+                    <div class="form-section-head">
+                        <div>
+                            <h2 class="section-title mb-1">محل دقیق رویداد</h2>
+                            <p class="text-muted mb-0">فقط با پین روی نقشه محل دقیق را مشخص کنید. مختصات در پشت صحنه ذخیره می شوند و به کاربر نمایش داده نمی شوند.</p>
+                        </div>
+                    </div>
                 </div>
                 <div class="col-12">
-                    <label class="form-label">Description</label>
-                    <div class="editor-toolbar mb-2">
-                        <button type="button" class="btn btn-outline-secondary btn-sm" data-editor-command="bold"><i class="bi bi-type-bold"></i></button>
-                        <button type="button" class="btn btn-outline-secondary btn-sm" data-editor-command="italic"><i class="bi bi-type-italic"></i></button>
-                        <button type="button" class="btn btn-outline-secondary btn-sm" data-editor-command="underline"><i class="bi bi-type-underline"></i></button>
+                    <label class="form-label">محل دقیق روی نقشه</label>
+                    <div id="eventMap" class="event-map"></div>
+                    <div class="map-hint">شهر را انتخاب کنید، سپس نشانگر را روی محل دقیق رویداد قرار دهید. با جابه جایی پین، محل نهایی ثبت می شود.</div>
+                </div>
+                <div class="col-12">
+                    <div class="map-selection-banner">
+                        <i class="bi bi-geo-alt-fill"></i>
+                        <span>محل دقیق رویداد از روی پین نقشه ثبت می شود.</span>
                     </div>
-                    <textarea asp-for="Input.DescriptionHtml" class="form-control rich-text" rows="10"></textarea>
                 </div>
-                <div class="col-md-4">
-                    <label class="form-label">Image 1</label>
-                    <input type="file" class="form-control image-input" asp-for="Image1File" accept="image/*" data-target="#preview1" />
+                <div class="col-12 mt-2">
+                    <div class="form-section-head">
+                        <div>
+                            <h2 class="section-title mb-1">توضیحات و تصاویر</h2>
+                            <p class="text-muted mb-0">روایت رویداد و سه تصویر اصلی صفحه رویداد را کامل کنید.</p>
+                        </div>
+                    </div>
                 </div>
-                <div class="col-md-4">
-                    <label class="form-label">Image 2</label>
-                    <input type="file" class="form-control image-input" asp-for="Image2File" accept="image/*" data-target="#preview2" />
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label">Image 3</label>
-                    <input type="file" class="form-control image-input" asp-for="Image3File" accept="image/*" data-target="#preview3" />
+                <div class="col-12">
+                    <label class="form-label">توضیحات</label>
+                    <div class="quill-shell">
+                        <input type="hidden" asp-for="Input.DescriptionHtml" class="quill-value" />
+                        <div id="eventDescriptionEditor" class="quill-editor" data-input="#Input_DescriptionHtml" data-placeholder="جزئیات رویداد، حال و هوا، قوانین حضور و ویژگی مهمان ها را بنویسید."></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -133,17 +182,73 @@
         <div class="col-lg-4">
             <div class="sticky-panel">
                 <div class="glass-panel p-3 mb-3">
-                    <div class="fw-semibold mb-2">Preview images</div>
-                    <div class="event-image-grid">
-                        <img id="preview1" src="@Model.Input.Image1" alt="Image 1" />
-                        <img id="preview2" src="@Model.Input.Image2" alt="Image 2" />
-                        <img id="preview3" src="@Model.Input.Image3" alt="Image 3" />
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <div class="fw-semibold">مدیریت تصاویر رویداد</div>
+                            <div class="text-muted small">سه جایگاه ثابت برای کاور، لوکیشن و حال و هوای رویداد</div>
+                        </div>
+                        <span class="image-manager-counter">3 / 3</span>
+                    </div>
+                    <div class="image-manager-grid">
+                        <div class="image-manager-card">
+                            <div class="image-slot-head">
+                                <div>
+                                    <div class="fw-semibold">تصویر اول</div>
+                                    <div class="text-muted small">هدر اصلی صفحه رویداد</div>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-light image-clear-button" data-target="#preview1" data-hidden-target="#Input_Image1" data-file-target="#Image1File">حذف</button>
+                            </div>
+                            <div class="image-manager-preview-shell @(string.IsNullOrWhiteSpace(Model.Input.Image1) ? "is-empty" : string.Empty)">
+                                <img id="preview1" src="@Model.Input.Image1" alt="تصویر اول" class="image-manager-preview @(string.IsNullOrWhiteSpace(Model.Input.Image1) ? "d-none" : string.Empty)" />
+                                <div class="image-manager-placeholder">
+                                    <i class="bi bi-image"></i>
+                                    <span>کاور اصلی رویداد را انتخاب کنید</span>
+                                </div>
+                            </div>
+                            <input type="file" class="form-control image-input" asp-for="Image1File" accept="image/*" data-target="#preview1" />
+                        </div>
+
+                        <div class="image-manager-card">
+                            <div class="image-slot-head">
+                                <div>
+                                    <div class="fw-semibold">تصویر دوم</div>
+                                    <div class="text-muted small">نمای فضا یا لوکیشن</div>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-light image-clear-button" data-target="#preview2" data-hidden-target="#Input_Image2" data-file-target="#Image2File">حذف</button>
+                            </div>
+                            <div class="image-manager-preview-shell @(string.IsNullOrWhiteSpace(Model.Input.Image2) ? "is-empty" : string.Empty)">
+                                <img id="preview2" src="@Model.Input.Image2" alt="تصویر دوم" class="image-manager-preview @(string.IsNullOrWhiteSpace(Model.Input.Image2) ? "d-none" : string.Empty)" />
+                                <div class="image-manager-placeholder">
+                                    <i class="bi bi-geo-alt"></i>
+                                    <span>یک تصویر از فضا یا لوکیشن اضافه کنید</span>
+                                </div>
+                            </div>
+                            <input type="file" class="form-control image-input" asp-for="Image2File" accept="image/*" data-target="#preview2" />
+                        </div>
+
+                        <div class="image-manager-card">
+                            <div class="image-slot-head">
+                                <div>
+                                    <div class="fw-semibold">تصویر سوم</div>
+                                    <div class="text-muted small">حال و هوای تجربه</div>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-light image-clear-button" data-target="#preview3" data-hidden-target="#Input_Image3" data-file-target="#Image3File">حذف</button>
+                            </div>
+                            <div class="image-manager-preview-shell @(string.IsNullOrWhiteSpace(Model.Input.Image3) ? "is-empty" : string.Empty)">
+                                <img id="preview3" src="@Model.Input.Image3" alt="تصویر سوم" class="image-manager-preview @(string.IsNullOrWhiteSpace(Model.Input.Image3) ? "d-none" : string.Empty)" />
+                                <div class="image-manager-placeholder">
+                                    <i class="bi bi-stars"></i>
+                                    <span>حال و هوای تجربه را نشان دهید</span>
+                                </div>
+                            </div>
+                            <input type="file" class="form-control image-input" asp-for="Image3File" accept="image/*" data-target="#preview3" />
+                        </div>
                     </div>
                 </div>
 
                 <div class="glass-panel p-3 mb-3">
-                    <div class="fw-semibold mb-2">Approval state</div>
-                    <p class="text-muted small mb-2">Current status: <span class="status-badge @Model.StatusClass">@Model.StatusText</span></p>
+                    <div class="fw-semibold mb-2">وضعیت بررسی</div>
+                    <p class="text-muted small mb-2">وضعیت فعلی: <span class="status-badge @Model.StatusClass">@DisplayFormatter.Status(Model.StatusValue)</span></p>
                     @if (!string.IsNullOrWhiteSpace(Model.ReviewNote))
                     {
                         <div class="alert alert-warning border-0 mb-0">@Model.ReviewNote</div>
@@ -153,13 +258,13 @@
                 @if (Model.IsPlanner)
                 {
                     <div class="alert alert-info border-0">
-                        Planner changes create a new approval request for admin review.
+                        هر ذخیره جدید از سمت برگزارکننده یک درخواست تازه برای بررسی مدیر می سازد.
                     </div>
                 }
 
                 <div class="d-grid gap-2">
-                    <button type="submit" class="btn btn-primary btn-lg">Save event</button>
-                    <a asp-page="/Events/My" class="btn btn-outline-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-primary btn-lg">ذخیره رویداد</button>
+                    <a asp-page="/Events/My" class="btn btn-outline-secondary">انصراف</a>
                 </div>
 
             </div>
@@ -167,8 +272,20 @@
     </div>
 </form>
 
+@section Head {
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css" rel="stylesheet" />
+}
+
 @section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        window.randevooEventEdit = { isRtl: @(Model.IsRtl.ToString().ToLowerInvariant()) };
+        window.randevooEventEdit = {
+            isRtl: @(Model.IsRtl.ToString().ToLowerInvariant()),
+            citySelector: '#Input_City',
+            latitudeSelector: '#Input_Latitude',
+            longitudeSelector: '#Input_Longitude'
+        };
     </script>
 }

@@ -26,10 +26,19 @@ public class EditModel : PageModel
     public EventDraftInput Input { get; set; } = new();
 
     [BindProperty]
-    public string StartAtText { get; set; } = string.Empty;
+    public string StartDateText { get; set; } = string.Empty;
 
     [BindProperty]
-    public string EndAtText { get; set; } = string.Empty;
+    public string StartTimeText { get; set; } = string.Empty;
+
+    [BindProperty]
+    public string EndDateText { get; set; } = string.Empty;
+
+    [BindProperty]
+    public string EndTimeText { get; set; } = string.Empty;
+
+    [BindProperty]
+    public string TagsText { get; set; } = string.Empty;
 
     [BindProperty]
     public IFormFile? Image1File { get; set; }
@@ -55,15 +64,17 @@ public class EditModel : PageModel
 
     public string StatusText { get; set; } = EventApprovalState.Draft.ToString();
 
+    public EventApprovalState StatusValue { get; set; } = EventApprovalState.Draft;
+
     public string StatusClass { get; set; } = "status-draft";
 
-    public SelectList CountryOptions => new(new[] { "Iran", "United Arab Emirates", "Turkey" });
+    public SelectList CountryOptions => new(new[] { "ایران", "امارات متحده عربی", "ترکیه" });
 
-    public SelectList CityOptions => new(new[] { "Tehran", "Mashhad", "Shiraz", "Isfahan", "Tabriz" });
+    public SelectList CityOptions => new(new[] { "تهران", "مشهد", "شیراز", "اصفهان", "تبریز" });
 
     public SelectList AgeRangeOptions => new(new[] { "20-30", "25-35", "30-40", "35-45" });
 
-    public SelectList EventTypeOptions => new(Enum.GetValues<EventType>().Select(item => new { Value = item, Text = item.ToString() }), "Value", "Text");
+    public SelectList EventTypeOptions => new(Enum.GetValues<EventType>().Select(item => new { Value = item, Text = DisplayFormatter.EventTypeLabel(item) }), "Value", "Text");
 
     public async Task<IActionResult> OnGetAsync()
     {
@@ -78,6 +89,7 @@ public class EditModel : PageModel
             Input = @event.ActiveDraft;
             ReviewNote = @event.AdminReviewNote ?? @event.Pending?.ReviewNote;
             StatusText = @event.Status.ToString();
+            StatusValue = @event.Status;
             StatusClass = GetStatusClass(@event.Status);
         }
         else
@@ -89,26 +101,26 @@ public class EditModel : PageModel
 
             Input = new EventDraftInput();
             StatusText = EventApprovalState.Draft.ToString();
+            StatusValue = EventApprovalState.Draft;
             StatusClass = GetStatusClass(EventApprovalState.Draft);
         }
 
-        StartAtText = _session.IsRtl
-            ? PersianDateFormatter.Format(Input.StartAtUtc, useShamsi: true)
-            : Input.StartAtUtc.ToLocalTime().ToString("yyyy-MM-ddTHH:mm");
-
-        EndAtText = _session.IsRtl
-            ? PersianDateFormatter.Format(Input.EndAtUtc, useShamsi: true)
-            : Input.EndAtUtc.ToLocalTime().ToString("yyyy-MM-ddTHH:mm");
+        StartDateText = PersianDateFormatter.FormatDate(Input.StartAtUtc, _session.IsRtl);
+        StartTimeText = PersianDateFormatter.FormatTime(Input.StartAtUtc);
+        EndDateText = PersianDateFormatter.FormatDate(Input.EndAtUtc, _session.IsRtl);
+        EndTimeText = PersianDateFormatter.FormatTime(Input.EndAtUtc);
+        TagsText = string.Join("، ", Input.Tags);
 
         return Page();
     }
 
     public async Task<IActionResult> OnPostAsync()
     {
-        var current = _session.CurrentUser ?? throw new InvalidOperationException("Current user was not resolved.");
+        var current = _session.CurrentUser ?? throw new InvalidOperationException("کاربر جاری شناسایی نشد.");
 
-        Input.StartAtUtc = _session.IsRtl ? PersianDateFormatter.Parse(StartAtText) : DateTimeOffset.Parse(StartAtText).ToUniversalTime();
-        Input.EndAtUtc = _session.IsRtl ? PersianDateFormatter.Parse(EndAtText) : DateTimeOffset.Parse(EndAtText).ToUniversalTime();
+        Input.StartAtUtc = CombineDateAndTime(StartDateText, StartTimeText, _session.IsRtl);
+        Input.EndAtUtc = CombineDateAndTime(EndDateText, EndTimeText, _session.IsRtl);
+        Input.Tags = ParseTags(TagsText);
 
         if (Image1File is not null)
         {
@@ -155,5 +167,63 @@ public class EditModel : PageModel
         var base64 = Convert.ToBase64String(memory.ToArray());
         return $"data:{file.ContentType};base64,{base64}";
     }
-}
 
+    private static DateTimeOffset CombineDateAndTime(string dateText, string timeText, bool useShamsi)
+    {
+        var normalizedDate = NormalizeNumericText(dateText);
+        var normalizedTime = NormalizeNumericText(timeText);
+
+        var parts = normalizedTime.Split(':', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+        var hour = parts.Length > 0 ? int.Parse(parts[0]) : 0;
+        var minute = parts.Length > 1 ? int.Parse(parts[1]) : 0;
+
+        if (useShamsi)
+        {
+            var datePart = PersianDateFormatter.Parse($"{normalizedDate} 00:00");
+            return new DateTimeOffset(
+                datePart.Year,
+                datePart.Month,
+                datePart.Day,
+                hour,
+                minute,
+                0,
+                datePart.Offset).ToUniversalTime();
+        }
+
+        var gregorian = DateTimeOffset.Parse($"{normalizedDate} {normalizedTime}").ToUniversalTime();
+        return gregorian;
+    }
+
+    private static string NormalizeNumericText(string value) => (value ?? string.Empty)
+        .Trim()
+        .Replace('۰', '0')
+        .Replace('۱', '1')
+        .Replace('۲', '2')
+        .Replace('۳', '3')
+        .Replace('۴', '4')
+        .Replace('۵', '5')
+        .Replace('۶', '6')
+        .Replace('۷', '7')
+        .Replace('۸', '8')
+        .Replace('۹', '9')
+        .Replace('٠', '0')
+        .Replace('١', '1')
+        .Replace('٢', '2')
+        .Replace('٣', '3')
+        .Replace('٤', '4')
+        .Replace('٥', '5')
+        .Replace('٦', '6')
+        .Replace('٧', '7')
+        .Replace('٨', '8')
+        .Replace('٩', '9');
+
+    private static List<string> ParseTags(string rawTags)
+    {
+        return (rawTags ?? string.Empty)
+            .Split([',', '،', '\n', '\r'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Where(tag => !string.IsNullOrWhiteSpace(tag))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Take(10)
+            .ToList();
+    }
+}

@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Randevoo.Infrastructure.Data;
 
@@ -11,9 +12,11 @@ using Randevoo.Infrastructure.Data;
 namespace Randevoo.Infrastructure.Data.Migrations
 {
     [DbContext(typeof(RandevooDbContext))]
-    partial class RandevooDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260603091205_AddDatingEventTags")]
+    partial class AddDatingEventTags
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

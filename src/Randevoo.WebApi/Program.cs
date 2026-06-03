@@ -5,6 +5,7 @@ using Microsoft.IdentityModel.Tokens;
 using Randevoo.Application;
 using Randevoo.Application.Interfaces.Auditing;
 using Randevoo.Infrastructure;
+using Randevoo.Infrastructure.Data;
 using Randevoo.WebApi.Endpoints;
 using Randevoo.WebApi.Hubs;
 using Randevoo.WebApi.Middleware;
@@ -54,6 +55,7 @@ if (string.IsNullOrWhiteSpace(jwtSecret))
 
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "Randevoo";
 var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "Randevoo";
+var enableSampleData = builder.Configuration.GetValue<bool>("SampleData:Enabled");
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -78,6 +80,11 @@ builder.Services.AddAuthorization(options =>
 });
 
 var app = builder.Build();
+
+if (enableSampleData)
+{
+    await app.Services.MigrateAndSeedSampleDataAsync();
+}
 
 app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseMiddleware<GlobalExceptionMiddleware>();

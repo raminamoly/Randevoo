@@ -1,13 +1,13 @@
 @page "{id?}"
 @model Randevoo.AdminPanel.Pages.Users.IndexModel
 @{
-    ViewData["Title"] = "Users";
+    ViewData["Title"] = "کاربران";
 }
 
 <section class="page-header">
     <div>
-        <h1>Users</h1>
-        <p>Create planners and support users, then control their role from one screen.</p>
+        <h1>کاربران</h1>
+        <p>ایجاد و ویرایش برگزارکننده ها و اعضای تیم پشتیبانی از یک نقطه کنترل.</p>
     </div>
 </section>
 
@@ -15,25 +15,25 @@
     <div class="col-lg-4">
         <form method="post" class="glass-panel p-4 sticky-panel">
             <input type="hidden" asp-for="UserId" />
-            <h2 class="section-title">@((Model.UserId is null) ? "Create user" : "Edit user")</h2>
+            <h2 class="section-title">@((Model.UserId is null) ? "ایجاد کاربر" : "ویرایش کاربر")</h2>
 
             <div class="mb-3">
-                <label asp-for="Input.FullName" class="form-label">Full name</label>
+                <label asp-for="Input.FullName" class="form-label">نام کامل</label>
                 <input asp-for="Input.FullName" class="form-control" />
             </div>
             <div class="mb-3">
-                <label asp-for="Input.Mobile" class="form-label">Mobile</label>
+                <label asp-for="Input.Mobile" class="form-label">موبایل</label>
                 <input asp-for="Input.Mobile" class="form-control" />
             </div>
             <div class="mb-3">
-                <label asp-for="Input.Role" class="form-label">Role</label>
+                <label asp-for="Input.Role" class="form-label">نقش</label>
                 <select asp-for="Input.Role" class="form-select" asp-items="Model.RoleOptions"></select>
             </div>
             <div class="form-check form-switch mb-3">
                 <input asp-for="Input.IsActive" class="form-check-input" />
-                <label asp-for="Input.IsActive" class="form-check-label">Active</label>
+                <label asp-for="Input.IsActive" class="form-check-label">فعال</label>
             </div>
-            <button type="submit" class="btn btn-primary w-100">Save user</button>
+            <button type="submit" class="btn btn-primary w-100">ذخیره کاربر</button>
         </form>
     </div>
 
@@ -43,10 +43,10 @@
                 <table class="table align-middle">
                     <thead>
                         <tr>
-                            <th>Name</th>
-                            <th>Mobile</th>
-                            <th>Role</th>
-                            <th>Status</th>
+                            <th>نام</th>
+                            <th>موبایل</th>
+                            <th>نقش</th>
+                            <th>وضعیت</th>
                             <th></th>
                         </tr>
                     </thead>
@@ -56,10 +56,10 @@
                             <tr>
                                 <td>@user.FullName</td>
                                 <td>@user.Mobile</td>
-                                <td>@user.Role</td>
-                                <td><span class="status-badge @(user.IsActive ? "status-approved" : "status-rejected")">@(user.IsActive ? "Active" : "Disabled")</span></td>
+                                <td>@DisplayFormatter.Role(user.Role)</td>
+                                <td><span class="status-badge @(user.IsActive ? "status-approved" : "status-rejected")">@(user.IsActive ? "فعال" : "غیرفعال")</span></td>
                                 <td class="text-end">
-                                    <a asp-page="/Users/Index" asp-route-id="@user.Id" class="btn btn-sm btn-outline-primary">Edit</a>
+                                    <a asp-page="/Users/Index" asp-route-id="@user.Id" class="btn btn-sm btn-outline-primary">ویرایش</a>
                                 </td>
                             </tr>
                         }
@@ -69,4 +69,3 @@
         </div>
     </div>
 </div>
-

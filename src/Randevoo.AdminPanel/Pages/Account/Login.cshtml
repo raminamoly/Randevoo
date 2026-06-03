@@ -1,22 +1,20 @@
 @page
 @model Randevoo.AdminPanel.Pages.Account.LoginModel
 @{
-    ViewData["Title"] = "Login";
+    ViewData["Title"] = "ورود";
     ViewData["UseShell"] = false;
 }
 
-<section class="auth-card glass-panel">
+<section class="auth-card glass-panel auth-card-premium">
+    <div class="auth-orb auth-orb-pink"></div>
+    <div class="auth-orb auth-orb-blue"></div>
     <div class="auth-brand">
-        <img src="~/images/logo.png" alt="Randevoo" class="auth-logo" />
+        <img src="~/images/logo.png" alt="رندوو" class="auth-logo" />
         <div>
-            <h1>Randevoo Admin Panel</h1>
-            <p>Sign in with your mock mobile account and manage events with approval flow.</p>
+            <div class="auth-kicker">پنل مدیریت رندوو</div>
+            <h1>ورود به مرکز کنترل</h1>
+            <p>مدیریت رویدادها، بررسی تغییرات برگزارکننده و تصمیم گیری نهایی برای نمایش به کاربران.</p>
         </div>
-    </div>
-
-    <div class="auth-language-switch">
-        <a asp-page="/Settings/Index" asp-route-lang="en" asp-route-returnUrl="/Account/Login" class="lang-pill @(Model.IsRtl ? string.Empty : "active")">EN</a>
-        <a asp-page="/Settings/Index" asp-route-lang="fa" asp-route-returnUrl="/Account/Login" class="lang-pill @(Model.IsRtl ? "active" : string.Empty)">FA</a>
     </div>
 
     @if (!string.IsNullOrWhiteSpace(Model.Message))
@@ -35,39 +33,38 @@
         @if (Model.Step == 1)
         {
             <div class="mb-3">
-                <label asp-for="Input.Mobile" class="form-label">Mobile number</label>
+                <label asp-for="Input.Mobile" class="form-label">شماره موبایل</label>
                 <input asp-for="Input.Mobile" class="form-control form-control-lg" placeholder="09125177721" />
             </div>
             <div class="mb-3">
-                <label asp-for="Input.Role" class="form-label">Login as</label>
+                <label asp-for="Input.Role" class="form-label">نقش ورود</label>
                 <select asp-for="Input.Role" class="form-select form-select-lg" asp-items="Model.RoleOptions"></select>
             </div>
             <button type="submit" asp-page-handler="RequestCode" class="btn btn-primary btn-lg w-100">
-                Continue
+                دریافت کد تایید
             </button>
-            <p class="auth-note">The first account is seeded for the admin mobile only. Mock code is accepted after the role matches.</p>
+            <p class="auth-note">در این مرحله فقط مدیر با شماره اولیه وارد می شود و بعد از آن می تواند کاربران و نقش ها را بسازد.</p>
         }
         else
         {
             <div class="mb-3">
-                <label class="form-label">Mobile number</label>
+                <label class="form-label">شماره موبایل</label>
                 <input asp-for="Input.Mobile" class="form-control form-control-lg" readonly />
             </div>
             <div class="mb-3">
-                <label asp-for="Input.VerificationCode" class="form-label">SMS code</label>
+                <label asp-for="Input.VerificationCode" class="form-label">کد پیامک</label>
                 <input asp-for="Input.VerificationCode" class="form-control form-control-lg" placeholder="123456" />
             </div>
             <div class="mb-3">
-                <label class="form-label">Role</label>
-                <input class="form-control form-control-lg" value="@Model.Input.Role" readonly />
+                <label class="form-label">نقش</label>
+                <input class="form-control form-control-lg" value="@DisplayFormatter.Role(Model.Input.Role)" readonly />
             </div>
             <input type="hidden" asp-for="Input.Role" />
             <button type="submit" asp-page-handler="Login" class="btn btn-primary btn-lg w-100">
-                Sign in
+                ورود به پنل
             </button>
-            <button type="submit" asp-page-handler="Back" class="btn btn-link w-100 mt-2">Change mobile / role</button>
-            <p class="auth-note">Admin starts with `09125177721`. Event planners are created from the Users page.</p>
+            <button type="submit" asp-page-handler="Back" class="btn btn-link w-100 mt-2">بازگشت و ویرایش اطلاعات</button>
+            <p class="auth-note">شماره اولیه مدیر `09125177721` است و برگزارکننده ها از بخش کاربران ساخته می شوند.</p>
         }
     </form>
 </section>
-

@@ -6,6 +6,7 @@ using Randevoo.AdminPanel.Models.Auth;
 using Randevoo.AdminPanel.Models.Common;
 using Randevoo.AdminPanel.Models.Users;
 using Randevoo.AdminPanel.Services.ApiClients;
+using Randevoo.AdminPanel.Services.State;
 
 namespace Randevoo.AdminPanel.Pages.Users;
 
@@ -33,7 +34,7 @@ public class IndexModel : PageModel
         set => Id = value;
     }
 
-    public SelectList RoleOptions => new(Enum.GetValues<AdminRole>().Select(role => new { Value = role, Text = role.ToString() }), "Value", "Text");
+    public SelectList RoleOptions => new(Enum.GetValues<AdminRole>().Select(role => new { Value = role, Text = DisplayFormatter.Role(role) }), "Value", "Text");
 
     public async Task<IActionResult> OnGetAsync()
     {
@@ -65,4 +66,3 @@ public class IndexModel : PageModel
         return RedirectToPage("/Users/Index");
     }
 }
-

@@ -1,0 +1,91 @@
+@page "{id:guid}"
+@model Randevoo.AdminPanel.Pages.Public.EventModel
+@{
+    ViewData["Title"] = Model.Event.DisplayTitle;
+    ViewData["UseShell"] = false;
+}
+
+<section class="auth-card glass-panel auth-card-premium public-event-page">
+    <div class="auth-orb auth-orb-pink"></div>
+    <div class="auth-orb auth-orb-blue"></div>
+
+    <div class="page-header mb-4">
+        <div>
+            <div class="auth-kicker">پروفایل رویداد</div>
+            <h1>@Model.Event.DisplayTitle</h1>
+            <p>@Model.Event.Live.City، @Model.Event.Live.Country</p>
+            @if (Model.Event.Live.Tags.Count > 0)
+            {
+                <div class="event-chip-list mt-3">
+                    @foreach (var tag in Model.Event.Live.Tags)
+                    {
+                        <span class="event-chip">@tag</span>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="mb-4">
+        <partial name="_EventImageSlider" model="Model.EventImageCarousel" />
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="glass-panel p-4 h-100">
+                <h2 class="section-title">جزئیات رویداد</h2>
+                <div class="row g-3">
+                    <div class="col-md-6"><div class="detail-block"><span>محل برگزاری</span><strong>@Model.Event.Live.VenueName</strong></div></div>
+                    <div class="col-md-6"><div class="detail-block"><span>آدرس</span><strong>@Model.Event.Live.Address</strong></div></div>
+                    <div class="col-md-4"><div class="detail-block"><span>نوع رویداد</span><strong>@DisplayFormatter.EventTypeLabel(Model.Event.Live.EventType)</strong></div></div>
+                    <div class="col-md-8">
+                        <div class="detail-block">
+                            <span>تگ های رویداد</span>
+                            <div class="event-chip-list">
+                                @foreach (var tag in Model.Event.Live.Tags)
+                                {
+                                    <span class="event-chip">@tag</span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4"><div class="detail-block"><span>تاریخ شروع</span><strong>@PersianDateFormatter.Format(Model.Event.Live.StartAtUtc, true)</strong></div></div>
+                    <div class="col-md-4"><div class="detail-block"><span>تاریخ پایان</span><strong>@PersianDateFormatter.Format(Model.Event.Live.EndAtUtc, true)</strong></div></div>
+                    <div class="col-md-4"><div class="detail-block"><span>بلیت</span><strong>@DisplayFormatter.Money(Model.Event.Live.TicketPrice, true)</strong></div></div>
+                    <div class="col-md-4"><div class="detail-block"><span>ظرفیت آقایان</span><strong>@DisplayFormatter.Count(Model.Event.Live.CapacityMale)</strong></div></div>
+                    <div class="col-md-4"><div class="detail-block"><span>ظرفیت بانوان</span><strong>@DisplayFormatter.Count(Model.Event.Live.CapacityFemale)</strong></div></div>
+                    <div class="col-md-12">
+                        <div class="detail-block">
+                            <span>توضیحات</span>
+                            <div class="rich-text-preview">@Html.Raw(Model.Event.Live.DescriptionHtml)</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            @if (Model.PlannerProfile is not null)
+            {
+                <div class="glass-panel p-4 planner-card">
+                    <div class="d-flex align-items-center gap-3">
+                        <img src="@Model.PlannerProfile.PictureUrl" alt="@Model.PlannerProfile.FullName" class="planner-avatar" />
+                        <div>
+                            <h2 class="section-title mb-1">@Model.PlannerProfile.FullName</h2>
+                            <div class="planner-title">@Model.PlannerProfile.Title</div>
+                        </div>
+                    </div>
+
+                    <p class="text-muted mt-3">@Model.PlannerProfile.Resume</p>
+
+                    <div class="planner-metrics">
+                        <div class="detail-block"><span>میانگین امتیاز</span><strong>@DisplayFormatter.ToPersianDigits(Model.PlannerProfile.AverageRating.ToString("0.0"))</strong></div>
+                        <div class="detail-block"><span>رویداد برگزارشده</span><strong>@DisplayFormatter.Count(Model.PlannerProfile.HostedEventCount)</strong></div>
+                    </div>
+
+                    <a asp-page="/Planner/Details" asp-route-id="@Model.PlannerProfile.UserId" class="btn btn-outline-primary w-100 mt-3">مشاهده پروفایل کامل برگزارکننده</a>
+                </div>
+            }
+        </div>
+    </div>
+</section>

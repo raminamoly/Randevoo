@@ -184,6 +184,7 @@ public class RandevooDbContext : DbContext
             b.HasIndex(e => e.EventTypeId);
             b.Property(e => e.EventPlannerCommissionPercent).HasPrecision(5, 2).IsRequired();
             b.Property(e => e.TicketPrice).HasPrecision(18, 2).IsRequired();
+            b.Property(e => e.EventTagsSerialized).HasMaxLength(1000).IsRequired();
             b.Property(e => e.EventImage1).HasMaxLength(500);
             b.Property(e => e.EventImage2).HasMaxLength(500);
             b.Property(e => e.EventImage3).HasMaxLength(500);

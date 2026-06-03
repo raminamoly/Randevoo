@@ -12,19 +12,6 @@ public class IndexModel : PageModel
     public IActionResult OnGet(string? lang, string? returnUrl = null)
     {
         ReturnUrl = string.IsNullOrWhiteSpace(returnUrl) ? "/Dashboard/Index" : returnUrl;
-
-        if (!string.IsNullOrWhiteSpace(lang))
-        {
-            Response.Cookies.Append("randevoo.admin.lang", lang, new CookieOptions
-            {
-                Expires = DateTimeOffset.UtcNow.AddYears(1),
-                IsEssential = true
-            });
-
-            return LocalRedirect(ReturnUrl);
-        }
-
         return Page();
     }
 }
-

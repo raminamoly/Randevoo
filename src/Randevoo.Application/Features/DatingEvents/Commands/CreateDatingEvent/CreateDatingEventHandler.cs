@@ -57,6 +57,7 @@ public class CreateDatingEventHandler : IRequestHandler<CreateDatingEventCommand
             input.FemaleCapacity,
             input.NumberOfChatAllowed,
             input.TicketPrice,
+            input.Tags,
             input.EventImage1,
             input.EventImage2,
             input.EventImage3,

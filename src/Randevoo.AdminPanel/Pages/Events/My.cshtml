@@ -1,27 +1,32 @@
 @page
 @model Randevoo.AdminPanel.Pages.Events.MyModel
 @{
-    ViewData["Title"] = "My Events";
+    ViewData["Title"] = "رویدادهای من";
 }
 
 <section class="page-header">
     <div>
-        <h1>My Events</h1>
-        <p>Draft and published events wait for admin approval whenever you change them.</p>
+        <h1>رویدادهای من</h1>
+        <p>هر تغییر پس از ثبت دوباره برای تایید مدیر ارسال می شود و بعد از تایید نمایش داده خواهد شد.</p>
     </div>
-    <a asp-page="/Events/Edit" class="btn btn-primary">Create event</a>
+    <a asp-page="/Events/Edit" class="btn btn-primary">ساخت رویداد</a>
 </section>
+
+@if (!string.IsNullOrWhiteSpace(Model.StatusMessage))
+{
+    <div class="alert alert-success border-0 mb-4">@Model.StatusMessage</div>
+}
 
 <div class="glass-panel p-4">
     <div class="table-responsive">
         <table class="table align-middle">
             <thead>
                 <tr>
-                    <th>Event</th>
-                    <th>Start</th>
-                    <th>Status</th>
-                    <th>Review note</th>
-                    <th></th>
+                    <th>رویداد</th>
+                    <th>زمان شروع</th>
+                    <th>وضعیت</th>
+                    <th>نظر مدیر</th>
+                    <th>اقدام ها</th>
                 </tr>
             </thead>
             <tbody>
@@ -31,13 +36,40 @@
                         <td>
                             <div class="fw-semibold">@item.DisplayTitle</div>
                             <div class="text-muted small">@item.ActiveDraft.City</div>
+                            @if (item.ActiveDraft.Tags.Count > 0)
+                            {
+                                <div class="event-chip-list mt-2">
+                                    @foreach (var tag in item.ActiveDraft.Tags.Take(3))
+                                    {
+                                        <span class="event-chip">@tag</span>
+                                    }
+                                </div>
+                            }
                         </td>
                         <td>@PersianDateFormatter.Format(item.ActiveDraft.StartAtUtc, Model.IsRtl)</td>
-                        <td><span class="status-badge @Model.GetStatusClass(item.Status)">@item.Status</span></td>
+                        <td><span class="status-badge @Model.GetStatusClass(item.Status)">@DisplayFormatter.Status(item.Status)</span></td>
                         <td class="text-muted">@item.AdminReviewNote</td>
                         <td class="text-end">
-                            <a asp-page="/Events/Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-secondary">Open</a>
-                            <a asp-page="/Events/Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary">Edit</a>
+                            <div class="d-inline-flex flex-wrap justify-content-end gap-2">
+                                <a asp-page="/Events/Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-secondary">پروفایل</a>
+                                <a asp-page="/Events/Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary">ویرایش</a>
+                                <a asp-page="/Public/Event" asp-route-id="@item.Id" class="btn btn-sm btn-outline-dark">نمایش عمومی</a>
+
+                                <form method="post" asp-page-handler="OpenSale" class="d-inline">
+                                    <input type="hidden" name="id" value="@item.Id" />
+                                    <button type="submit" class="btn btn-sm btn-outline-primary">درخواست فروش</button>
+                                </form>
+
+                                <form method="post" asp-page-handler="CloseSale" class="d-inline">
+                                    <input type="hidden" name="id" value="@item.Id" />
+                                    <button type="submit" class="btn btn-sm btn-outline-secondary">درخواست بستن فروش</button>
+                                </form>
+
+                                <form method="post" asp-page-handler="Cancel" class="d-inline">
+                                    <input type="hidden" name="id" value="@item.Id" />
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">درخواست لغو</button>
+                                </form>
+                            </div>
                         </td>
                     </tr>
                 }
@@ -45,4 +77,3 @@
         </table>
     </div>
 </div>
-

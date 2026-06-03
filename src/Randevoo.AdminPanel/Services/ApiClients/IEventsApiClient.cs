@@ -20,5 +20,6 @@ public interface IEventsApiClient
     Task<DatingEvent> ToggleSaleAsync(Guid eventId, MockUser admin, bool isOpen, CancellationToken cancellationToken = default);
 
     Task<DatingEvent> CancelAsync(Guid eventId, MockUser admin, CancellationToken cancellationToken = default);
-}
 
+    Task SendSmsAsync(Guid eventId, MockUser actor, string message, CancellationToken cancellationToken = default);
+}

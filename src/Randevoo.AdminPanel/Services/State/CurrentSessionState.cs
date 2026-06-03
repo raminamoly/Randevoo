@@ -8,20 +8,13 @@ public sealed class CurrentSessionState
 {
     public MockUser? CurrentUser { get; private set; }
 
-    public AppLanguage Language { get; private set; } = AppLanguage.English;
+    public AppLanguage Language { get; private set; } = AppLanguage.Farsi;
 
     public bool IsRtl => Language == AppLanguage.Farsi;
 
     public void Refresh(ClaimsPrincipal principal, string? languageCookie)
     {
-        if (string.Equals(languageCookie, "fa", StringComparison.OrdinalIgnoreCase))
-        {
-            Language = AppLanguage.Farsi;
-        }
-        else
-        {
-            Language = AppLanguage.English;
-        }
+        Language = AppLanguage.Farsi;
 
         if (principal.Identity?.IsAuthenticated == true)
         {
@@ -31,7 +24,7 @@ public sealed class CurrentSessionState
             CurrentUser = new MockUser
             {
                 Id = Guid.TryParse(principal.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : Guid.Empty,
-                FullName = principal.Identity?.Name ?? "User",
+                FullName = principal.Identity?.Name ?? "کاربر",
                 Mobile = principal.FindFirstValue("mobile") ?? string.Empty,
                 Role = role,
                 IsActive = true
@@ -43,4 +36,3 @@ public sealed class CurrentSessionState
         }
     }
 }
-

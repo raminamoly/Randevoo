@@ -1,4 +1,3 @@
-using System.Globalization;
 using Randevoo.AdminPanel.Models.Auth;
 using Randevoo.AdminPanel.Models.Common;
 using Randevoo.AdminPanel.Models.Events;
@@ -11,6 +10,7 @@ public sealed class AdminPanelStore
     private readonly object _gate = new();
     private readonly List<MockUser> _users = new();
     private readonly List<DatingEvent> _events = new();
+    private readonly Dictionary<Guid, PlannerProfileViewModel> _plannerProfiles = new();
 
     public AdminPanelStore()
     {
@@ -41,6 +41,54 @@ public sealed class AdminPanelStore
         lock (_gate)
         {
             return _users.FirstOrDefault(user => user.Id == id);
+        }
+    }
+
+    public PlannerProfileViewModel? FindPlannerProfile(Guid userId)
+    {
+        lock (_gate)
+        {
+            return _plannerProfiles.TryGetValue(userId, out var profile)
+                ? ClonePlannerProfile(profile)
+                : null;
+        }
+    }
+
+    public PlannerProfileViewModel UpsertPlannerProfile(MockUser currentUser, PlannerProfileInput input)
+    {
+        lock (_gate)
+        {
+            var normalizedFullName = string.IsNullOrWhiteSpace(input.FullName) ? currentUser.FullName : input.FullName.Trim();
+            var normalizedCity = string.IsNullOrWhiteSpace(input.City) ? "تهران" : input.City.Trim();
+            if (!_plannerProfiles.TryGetValue(currentUser.Id, out var profile))
+            {
+                profile = new PlannerProfileViewModel
+                {
+                    UserId = currentUser.Id,
+                    FullName = normalizedFullName,
+                    City = normalizedCity
+                };
+                _plannerProfiles[currentUser.Id] = profile;
+            }
+
+            profile.FullName = normalizedFullName;
+            profile.City = normalizedCity;
+            profile.Title = input.Title.Trim();
+            profile.PictureUrl = string.IsNullOrWhiteSpace(input.PictureUrl) ? "/images/logo.png" : input.PictureUrl.Trim();
+            profile.Resume = input.Resume.Trim();
+
+            var storedUser = _users.FirstOrDefault(item => item.Id == currentUser.Id);
+            if (storedUser is not null)
+            {
+                storedUser.FullName = normalizedFullName;
+            }
+
+            foreach (var @event in _events.Where(item => item.PlannerId == currentUser.Id.ToString()))
+            {
+                @event.PlannerName = normalizedFullName;
+            }
+
+            return ClonePlannerProfile(profile);
         }
     }
 
@@ -125,7 +173,7 @@ public sealed class AdminPanelStore
                     Draft = newDraft,
                     SubmittedByName = actor.FullName,
                     SubmittedAtUtc = DateTimeOffset.UtcNow,
-                    ReviewNote = "Waiting for admin approval."
+                    ReviewNote = "در انتظار تایید مدیر"
                 };
                 @event.Status = EventApprovalState.PendingAdminReview;
                 @event.IsVisibleToEndUsers = false;
@@ -154,8 +202,21 @@ public sealed class AdminPanelStore
             var @event = RequireEvent(eventId);
             if (@event.Pending is not null)
             {
+                var requestedAction = @event.Pending.RequestedAction;
                 @event.Live = CloneDraft(@event.Pending.Draft);
                 @event.Pending = null;
+
+                if (string.Equals(requestedAction, "لغو رویداد", StringComparison.Ordinal))
+                {
+                    @event.Live.IsOpenForSell = false;
+                    @event.Status = EventApprovalState.Cancelled;
+                    @event.IsVisibleToEndUsers = false;
+                    @event.ReviewedByName = admin.FullName;
+                    @event.ReviewedAtUtc = DateTimeOffset.UtcNow;
+                    @event.AdminReviewNote = string.IsNullOrWhiteSpace(note) ? "درخواست لغو رویداد تایید شد." : note.Trim();
+                    @event.UpdatedAtUtc = DateTimeOffset.UtcNow;
+                    return CloneEvent(@event);
+                }
             }
 
             if (commissionPercent is not null)
@@ -213,6 +274,25 @@ public sealed class AdminPanelStore
         lock (_gate)
         {
             var @event = RequireEvent(eventId);
+            if (admin.Role == AdminRole.EventPlanner)
+            {
+                var pendingDraft = @event.Pending is null ? CloneDraft(@event.Live) : CloneDraft(@event.Pending.Draft);
+                pendingDraft.IsOpenForSell = isOpen;
+                @event.Pending = new EventDraftState
+                {
+                    Draft = pendingDraft,
+                    SubmittedByName = admin.FullName,
+                    SubmittedAtUtc = DateTimeOffset.UtcNow,
+                    ReviewNote = isOpen ? "درخواست باز شدن فروش برای تایید مدیر ثبت شد." : "درخواست بسته شدن فروش برای تایید مدیر ثبت شد.",
+                    RequestedAction = isOpen ? "باز کردن فروش" : "بستن فروش"
+                };
+                @event.Status = EventApprovalState.PendingAdminReview;
+                @event.IsVisibleToEndUsers = false;
+                @event.AdminReviewNote = null;
+                @event.UpdatedAtUtc = DateTimeOffset.UtcNow;
+                return CloneEvent(@event);
+            }
+
             @event.Live.IsOpenForSell = isOpen;
             @event.IsVisibleToEndUsers = isOpen && @event.Pending is null && @event.Status != EventApprovalState.Rejected;
             @event.Status = isOpen ? EventApprovalState.Approved : EventApprovalState.Closed;
@@ -228,6 +308,25 @@ public sealed class AdminPanelStore
         lock (_gate)
         {
             var @event = RequireEvent(eventId);
+            if (admin.Role == AdminRole.EventPlanner)
+            {
+                var pendingDraft = @event.Pending is null ? CloneDraft(@event.Live) : CloneDraft(@event.Pending.Draft);
+                pendingDraft.IsOpenForSell = false;
+                @event.Pending = new EventDraftState
+                {
+                    Draft = pendingDraft,
+                    SubmittedByName = admin.FullName,
+                    SubmittedAtUtc = DateTimeOffset.UtcNow,
+                    ReviewNote = "درخواست لغو رویداد برای تایید مدیر ثبت شد.",
+                    RequestedAction = "لغو رویداد"
+                };
+                @event.Status = EventApprovalState.PendingAdminReview;
+                @event.IsVisibleToEndUsers = false;
+                @event.AdminReviewNote = null;
+                @event.UpdatedAtUtc = DateTimeOffset.UtcNow;
+                return CloneEvent(@event);
+            }
+
             @event.Status = EventApprovalState.Cancelled;
             @event.Live.IsOpenForSell = false;
             @event.IsVisibleToEndUsers = false;
@@ -266,7 +365,7 @@ public sealed class AdminPanelStore
         var @event = _events.FirstOrDefault(item => item.Id == eventId);
         if (@event is null)
         {
-            throw new InvalidOperationException($"Event '{eventId}' was not found.");
+            throw new InvalidOperationException($"رویداد با شناسه '{eventId}' پیدا نشد.");
         }
 
         return @event;
@@ -300,6 +399,7 @@ public sealed class AdminPanelStore
         CapacityMale = draft.CapacityMale,
         CapacityFemale = draft.CapacityFemale,
         ChatLimit = draft.ChatLimit,
+        Tags = draft.Tags.ToList(),
         DescriptionHtml = draft.DescriptionHtml,
         Image1 = draft.Image1,
         Image2 = draft.Image2,
@@ -319,7 +419,8 @@ public sealed class AdminPanelStore
             Draft = CloneDraft(source.Pending.Draft),
             SubmittedByName = source.Pending.SubmittedByName,
             SubmittedAtUtc = source.Pending.SubmittedAtUtc,
-            ReviewNote = source.Pending.ReviewNote
+            ReviewNote = source.Pending.ReviewNote,
+            RequestedAction = source.Pending.RequestedAction
         },
         Status = source.Status,
         AdminReviewNote = source.AdminReviewNote,
@@ -330,6 +431,21 @@ public sealed class AdminPanelStore
         IsVisibleToEndUsers = source.IsVisibleToEndUsers
     };
 
+    private static PlannerProfileViewModel ClonePlannerProfile(PlannerProfileViewModel source) => new()
+    {
+        UserId = source.UserId,
+        FullName = source.FullName,
+        Title = source.Title,
+        PictureUrl = source.PictureUrl,
+        Resume = source.Resume,
+        City = source.City,
+        AverageRating = source.AverageRating,
+        TotalSurveyCount = source.TotalSurveyCount,
+        HostedEventCount = source.HostedEventCount,
+        CancelledEventCount = source.CancelledEventCount,
+        CompletedEventCount = source.CompletedEventCount
+    };
+
     private void Seed()
     {
         _users.AddRange(new[]
@@ -337,7 +453,7 @@ public sealed class AdminPanelStore
             new MockUser
             {
                 Id = Guid.Parse("11111111-1111-1111-1111-111111111111"),
-                FullName = "System Admin",
+                FullName = "مدیر سامانه",
                 Mobile = "09125177721",
                 Role = AdminRole.Admin,
                 IsActive = true
@@ -345,7 +461,7 @@ public sealed class AdminPanelStore
             new MockUser
             {
                 Id = Guid.Parse("22222222-2222-2222-2222-222222222222"),
-                FullName = "Tehran Planner",
+                FullName = "پویا فرهی",
                 Mobile = "09125550000",
                 Role = AdminRole.EventPlanner,
                 IsActive = true
@@ -353,7 +469,7 @@ public sealed class AdminPanelStore
             new MockUser
             {
                 Id = Guid.Parse("33333333-3333-3333-3333-333333333333"),
-                FullName = "Support Team",
+                FullName = "تیم پشتیبانی",
                 Mobile = "09126660000",
                 Role = AdminRole.SupportTeam,
                 IsActive = true
@@ -364,30 +480,31 @@ public sealed class AdminPanelStore
         {
             Id = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"),
             PlannerId = "22222222-2222-2222-2222-222222222222",
-            PlannerName = "Tehran Planner",
+            PlannerName = "پویا فرهی",
             Live = new EventDraftInput
             {
-                Title = "Tehran Social Evening",
-                Country = "Iran",
-                City = "Tehran",
-                Region = "Valiasr",
-                VenueName = "North Hall",
-                Address = "Valiasr St, Tehran",
+                Title = "شب اجتماعی تهران",
+                Country = "ایران",
+                City = "تهران",
+                Region = "ولیعصر",
+                VenueName = "سالن شمال",
+                Address = "تهران، خیابان ولیعصر",
                 Latitude = 35.7219m,
                 Longitude = 51.3347m,
                 EventType = EventType.SocialEvening,
                 AgeRangeForMale = "25-35",
                 AgeRangeForFemale = "25-35",
                 IsOpenForSell = true,
-                TicketPrice = 1800000m,
+                TicketPrice = 950000m,
                 OrganizerCommissionPercent = 12m,
                 CapacityMale = 40,
                 CapacityFemale = 40,
-                ChatLimit = 180,
-                DescriptionHtml = "<p>A curated evening for selected participants with admin-reviewed access.</p>",
-                Image1 = BuildPlaceholderSvg("Tehran Evening", "#1d4ed8", "#ff4d7d"),
-                Image2 = BuildPlaceholderSvg("North Hall", "#0f172a", "#1d4ed8"),
-                Image3 = BuildPlaceholderSvg("Curated Guest List", "#ff4d7d", "#f59e0b"),
+                ChatLimit = 80,
+                Tags = new List<string> { "اجتماعی", "حضوری", "منتخب", "تهران" },
+                DescriptionHtml = "<p>یک شب اجتماعی منتخب برای شرکت کنندگان تایید شده که تمام جزئیات آن بعد از بررسی مدیر نمایش داده می شود.</p>",
+                Image1 = BuildPlaceholderSvg("شب اجتماعی تهران", "#1d4ed8", "#ff4d7d"),
+                Image2 = BuildPlaceholderSvg("سالن شمال", "#0f172a", "#1d4ed8"),
+                Image3 = BuildPlaceholderSvg("فهرست مهمانان منتخب", "#ff4d7d", "#f59e0b"),
                 StartAtUtc = DateTimeOffset.UtcNow.AddDays(8),
                 EndAtUtc = DateTimeOffset.UtcNow.AddDays(8).AddHours(3)
             },
@@ -401,30 +518,31 @@ public sealed class AdminPanelStore
         {
             Id = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"),
             PlannerId = "22222222-2222-2222-2222-222222222222",
-            PlannerName = "Tehran Planner",
+            PlannerName = "پویا فرهی",
             Live = new EventDraftInput
             {
-                Title = "Rooftop Dinner Preview",
-                Country = "Iran",
-                City = "Tehran",
-                Region = "Pardis",
-                VenueName = "Blue Roof",
-                Address = "Pardis, Tehran",
+                Title = "پیش نمایش شام روف تاپ",
+                Country = "ایران",
+                City = "تهران",
+                Region = "پردیس",
+                VenueName = "بام آبی",
+                Address = "تهران، پردیس",
                 Latitude = 35.72m,
                 Longitude = 51.33m,
                 EventType = EventType.Dinner,
                 AgeRangeForMale = "20-30",
                 AgeRangeForFemale = "20-30",
                 IsOpenForSell = false,
-                TicketPrice = 2400000m,
+                TicketPrice = 880000m,
                 OrganizerCommissionPercent = 15m,
                 CapacityMale = 30,
                 CapacityFemale = 30,
-                ChatLimit = 120,
-                DescriptionHtml = "<p>Waiting for admin review. This event will open after approval.</p>",
-                Image1 = BuildPlaceholderSvg("Rooftop", "#0f172a", "#ff4d7d"),
-                Image2 = BuildPlaceholderSvg("Dinner", "#1d4ed8", "#f59e0b"),
-                Image3 = BuildPlaceholderSvg("Preview", "#ff4d7d", "#0f172a"),
+                ChatLimit = 60,
+                Tags = new List<string> { "شام", "روف تاپ", "ویژه", "تهران" },
+                DescriptionHtml = "<p>این رویداد در انتظار بررسی مدیر است و پس از تایید برای فروش و نمایش فعال می شود.</p>",
+                Image1 = BuildPlaceholderSvg("روف تاپ", "#0f172a", "#ff4d7d"),
+                Image2 = BuildPlaceholderSvg("شام", "#1d4ed8", "#f59e0b"),
+                Image3 = BuildPlaceholderSvg("پیش نمایش", "#ff4d7d", "#0f172a"),
                 StartAtUtc = DateTimeOffset.UtcNow.AddDays(16),
                 EndAtUtc = DateTimeOffset.UtcNow.AddDays(16).AddHours(4)
             },
@@ -432,39 +550,55 @@ public sealed class AdminPanelStore
             {
                 Draft = new EventDraftInput
                 {
-                    Title = "Rooftop Dinner Preview",
-                    Country = "Iran",
-                    City = "Tehran",
-                    Region = "Pardis",
-                    VenueName = "Blue Roof",
-                    Address = "Pardis, Tehran",
+                    Title = "پیش نمایش شام روف تاپ",
+                    Country = "ایران",
+                    City = "تهران",
+                    Region = "پردیس",
+                    VenueName = "بام آبی",
+                    Address = "تهران، پردیس",
                     Latitude = 35.72m,
                     Longitude = 51.33m,
                     EventType = EventType.Dinner,
                     AgeRangeForMale = "20-30",
                     AgeRangeForFemale = "20-30",
                     IsOpenForSell = false,
-                    TicketPrice = 2400000m,
+                    TicketPrice = 880000m,
                     OrganizerCommissionPercent = 15m,
                     CapacityMale = 30,
                     CapacityFemale = 30,
-                    ChatLimit = 120,
-                    DescriptionHtml = "<p>Waiting for admin review. This event will open after approval.</p>",
-                    Image1 = BuildPlaceholderSvg("Rooftop", "#0f172a", "#ff4d7d"),
-                    Image2 = BuildPlaceholderSvg("Dinner", "#1d4ed8", "#f59e0b"),
-                    Image3 = BuildPlaceholderSvg("Preview", "#ff4d7d", "#0f172a"),
+                    ChatLimit = 60,
+                    Tags = new List<string> { "شام", "روف تاپ", "ویژه", "تهران" },
+                    DescriptionHtml = "<p>این رویداد در انتظار بررسی مدیر است و پس از تایید برای فروش و نمایش فعال می شود.</p>",
+                    Image1 = BuildPlaceholderSvg("روف تاپ", "#0f172a", "#ff4d7d"),
+                    Image2 = BuildPlaceholderSvg("شام", "#1d4ed8", "#f59e0b"),
+                    Image3 = BuildPlaceholderSvg("پیش نمایش", "#ff4d7d", "#0f172a"),
                     StartAtUtc = DateTimeOffset.UtcNow.AddDays(16),
                     EndAtUtc = DateTimeOffset.UtcNow.AddDays(16).AddHours(4)
                 },
-                SubmittedByName = "Tehran Planner",
+                SubmittedByName = "پویا فرهی",
                 SubmittedAtUtc = DateTimeOffset.UtcNow.AddHours(-2),
-                ReviewNote = "Waiting for admin approval."
+                ReviewNote = "در انتظار تایید مدیر"
             },
             Status = EventApprovalState.PendingAdminReview,
             IsVisibleToEndUsers = false,
             CreatedAtUtc = DateTimeOffset.UtcNow.AddDays(-2),
             UpdatedAtUtc = DateTimeOffset.UtcNow.AddHours(-2)
         });
+
+        _plannerProfiles[Guid.Parse("22222222-2222-2222-2222-222222222222")] = new PlannerProfileViewModel
+        {
+            UserId = Guid.Parse("22222222-2222-2222-2222-222222222222"),
+            FullName = "پویا فرهی",
+            Title = "برگزارکننده رویدادهای اجتماعی و شام های منتخب",
+            PictureUrl = "/images/logo.png",
+            Resume = "من بیش از هفت سال در طراحی و اجرای رویدادهای اجتماعی خصوصی، شب های آشنایی و تجربه های گفتگو محور فعالیت داشته ام. تمرکزم روی انتخاب مهمان های مناسب، زمان بندی دقیق، مدیریت فضای رویداد و ساختن تجربه ای محترمانه و باکیفیت برای شرکت کنندگان است.",
+            City = "تهران",
+            AverageRating = 4.8m,
+            TotalSurveyCount = 126,
+            HostedEventCount = 34,
+            CancelledEventCount = 1,
+            CompletedEventCount = 29
+        };
     }
 
     private static string BuildPlaceholderSvg(string label, string accentA, string accentB)
@@ -483,7 +617,7 @@ public sealed class AdminPanelStore
           <circle cx="750" cy="150" r="58" fill="{accentB}" opacity="0.9"/>
           <rect x="210" y="220" width="480" height="110" rx="55" fill="{accentA}" opacity="0.9"/>
           <rect x="250" y="340" width="400" height="100" rx="50" fill="{accentB}" opacity="0.9"/>
-          <text x="450" y="520" text-anchor="middle" font-family="Arial, sans-serif" font-size="42" font-weight="700" fill="#0f172a">{label}</text>
+          <text x="450" y="520" text-anchor="middle" font-family="Tahoma, Arial, sans-serif" font-size="42" font-weight="700" fill="#0f172a">{label}</text>
         </svg>
         """;
 

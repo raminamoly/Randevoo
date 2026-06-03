@@ -1,0 +1,88 @@
+@page
+@model Randevoo.AdminPanel.Pages.Planner.ProfileModel
+@{
+    ViewData["Title"] = "پروفایل برگزارکننده";
+}
+
+<section class="page-header">
+    <div>
+        <h1>پروفایل برگزارکننده</h1>
+        <p>این اطلاعات در کارت برگزارکننده و صفحه عمومی رویداد نمایش داده می شود.</p>
+    </div>
+</section>
+
+@if (TempData["PlannerProfileSaved"] is string savedMessage)
+{
+    <div class="alert alert-success border-0 mb-4">@savedMessage</div>
+}
+
+<div class="row g-4">
+    <div class="col-lg-7">
+        <form method="post" enctype="multipart/form-data" class="glass-panel p-4">
+            <div class="form-section-head">
+                <div>
+                    <h2 class="section-title mb-1">هویت برگزارکننده</h2>
+                    <p class="text-muted mb-0">نام، تصویر و معرفی شما در صفحه عمومی رویداد نمایش داده می شود.</p>
+                </div>
+            </div>
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label asp-for="Input.FullName" class="form-label">نام و نام خانوادگی</label>
+                    <input asp-for="Input.FullName" class="form-control" placeholder="مثلاً پویا فرهی" />
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="Input.City" class="form-label">شهر فعالیت</label>
+                    <input asp-for="Input.City" class="form-control" placeholder="مثلاً تهران" />
+                </div>
+                <div class="col-12">
+                    <label asp-for="Input.Title" class="form-label">عنوان حرفه ای</label>
+                    <input asp-for="Input.Title" class="form-control" placeholder="مثلاً برگزارکننده رویدادهای اجتماعی و شام های منتخب" />
+                </div>
+                <div class="col-12">
+                    <label class="form-label">تصویر برگزارکننده</label>
+                    <div class="profile-image-upload">
+                        <img id="plannerPreview" src="@(Model.Input.PictureUrl ?? Model.Profile?.PictureUrl ?? "/images/logo.png")" alt="پیش نمایش تصویر برگزارکننده" class="planner-avatar-lg planner-profile-photo" />
+                        <div class="flex-grow-1">
+                            <input type="file" class="form-control image-input" asp-for="ProfileImageFile" accept="image/*" data-target="#plannerPreview" />
+                            <div class="form-text">یک تصویر پرتره روشن و حرفه ای انتخاب کنید. فقط یک تصویر نمایش داده می شود.</div>
+                        </div>
+                    </div>
+                    <input type="hidden" asp-for="Input.PictureUrl" />
+                </div>
+                <div class="col-12">
+                    <label asp-for="Input.Resume" class="form-label">معرفی و تجربه حرفه ای</label>
+                    <textarea asp-for="Input.Resume" class="form-control" rows="8" placeholder="تجربه شما در برگزاری رویداد، سبک کاری، نوع مهمان ها و ویژگی اجرای رویدادها را توضیح دهید."></textarea>
+                </div>
+            </div>
+
+            <div class="mt-4 d-flex flex-wrap gap-2">
+                <button type="submit" class="btn btn-primary">ذخیره پروفایل</button>
+                <a asp-page="/Planner/Details" asp-route-id="@Model.Profile?.UserId" class="btn btn-outline-secondary">مشاهده صفحه عمومی</a>
+            </div>
+        </form>
+    </div>
+
+    <div class="col-lg-5">
+        @if (Model.Profile is not null)
+        {
+            <div class="glass-panel p-4 planner-card">
+                <div class="planner-public-header">
+                    <img src="@Model.Profile.PictureUrl" alt="@Model.Profile.FullName" class="planner-avatar-lg planner-profile-photo" />
+                    <div>
+                        <h2 class="section-title mb-1">@Model.Profile.FullName</h2>
+                        <div class="planner-title">@Model.Profile.Title</div>
+                        <div class="text-muted small mt-2">@Model.Profile.City</div>
+                    </div>
+                </div>
+                <p class="text-muted mt-3">@Model.Profile.Resume</p>
+                <div class="planner-metrics">
+                    <div class="detail-block"><span>شهر فعالیت</span><strong>@Model.Profile.City</strong></div>
+                    <div class="detail-block"><span>میانگین امتیاز</span><strong>@DisplayFormatter.ToPersianDigits(Model.Profile.AverageRating.ToString("0.0"))</strong></div>
+                    <div class="detail-block"><span>رویداد برگزارشده</span><strong>@DisplayFormatter.Count(Model.Profile.HostedEventCount)</strong></div>
+                    <div class="detail-block"><span>رویداد تکمیل شده</span><strong>@DisplayFormatter.Count(Model.Profile.CompletedEventCount)</strong></div>
+                </div>
+            </div>
+        }
+    </div>
+</div>

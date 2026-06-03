@@ -26,7 +26,7 @@ public sealed class EventDraftInput
 
     public bool IsOpenForSell { get; set; } = false;
 
-    public decimal TicketPrice { get; set; } = 1800000m;
+    public decimal TicketPrice { get; set; } = 950000m;
 
     public decimal OrganizerCommissionPercent { get; set; } = 12m;
 
@@ -34,7 +34,9 @@ public sealed class EventDraftInput
 
     public int CapacityFemale { get; set; } = 40;
 
-    public int ChatLimit { get; set; } = 180;
+    public int ChatLimit { get; set; } = 80;
+
+    public List<string> Tags { get; set; } = new();
 
     public string DescriptionHtml { get; set; } = string.Empty;
 
@@ -48,4 +50,3 @@ public sealed class EventDraftInput
 
     public DateTimeOffset EndAtUtc { get; set; } = DateTimeOffset.UtcNow.AddDays(14).AddHours(3);
 }
-

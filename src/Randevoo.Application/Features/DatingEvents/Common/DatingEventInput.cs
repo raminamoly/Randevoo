@@ -19,6 +19,7 @@ public record DatingEventInput(
     int FemaleCapacity,
     int NumberOfChatAllowed,
     decimal TicketPrice,
+    IReadOnlyList<string>? Tags,
     string? EventImage1,
     string? EventImage2,
     string? EventImage3,

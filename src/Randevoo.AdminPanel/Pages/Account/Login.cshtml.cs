@@ -36,7 +36,7 @@ public class LoginModel : PageModel
     public bool IsRtl => _session.IsRtl;
 
     public SelectList RoleOptions => new(Enum.GetValues<AdminRole>()
-        .Select(role => new { Value = role, Text = role.ToString() }), "Value", "Text");
+        .Select(role => new { Value = role, Text = DisplayFormatter.Role(role) }), "Value", "Text");
 
     public IActionResult OnGet()
     {
@@ -52,16 +52,26 @@ public class LoginModel : PageModel
 
     public IActionResult OnPostBack()
     {
+        Input ??= new LoginRequest();
         Step = 1;
         return Page();
     }
 
     public IActionResult OnPostRequestCode()
     {
-        var user = _store.FindUserByMobile(Input.Mobile.Trim());
+        Input ??= new LoginRequest();
+        var mobile = (Input.Mobile ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(mobile))
+        {
+            ErrorMessage = "شماره موبایل را وارد کنید.";
+            Step = 1;
+            return Page();
+        }
+
+        var user = _store.FindUserByMobile(mobile);
         if (user is null)
         {
-            ErrorMessage = "This mobile number is not registered yet.";
+            ErrorMessage = "این شماره موبایل هنوز ثبت نشده است.";
             Step = 1;
             Input.Role = AdminRole.Admin;
             return Page();
@@ -69,22 +79,27 @@ public class LoginModel : PageModel
 
         if (user.Role != Input.Role)
         {
-            ErrorMessage = "The selected role does not match this account.";
+            ErrorMessage = "نقش انتخاب شده با این حساب هماهنگ نیست.";
             Step = 1;
             return Page();
         }
 
         Step = 2;
-        Message = "Mock SMS code: 123456";
+        Message = "کد تایید آزمایشی: 123456";
         return Page();
     }
 
     public async Task<IActionResult> OnPostLoginAsync()
     {
-        var result = await _authService.VerifyLoginAsync(Input.Mobile.Trim(), Input.VerificationCode.Trim(), Input.Role);
+        Input ??= new LoginRequest();
+        var result = await _authService.VerifyLoginAsync(
+            (Input.Mobile ?? string.Empty).Trim(),
+            (Input.VerificationCode ?? string.Empty).Trim(),
+            Input.Role);
+
         if (!result.Success || result.User is null)
         {
-            ErrorMessage = result.ErrorMessage ?? "Unable to sign in.";
+            ErrorMessage = result.ErrorMessage ?? "ورود انجام نشد.";
             Step = 2;
             return Page();
         }

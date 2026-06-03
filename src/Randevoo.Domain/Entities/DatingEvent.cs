@@ -28,10 +28,14 @@ public class DatingEvent : BaseEntity, IAggregateRoot
     public int FemaleCapacity { get; private set; }
     public int NumberOfChatAllowed { get; private set; }
     public decimal TicketPrice { get; private set; }
+    public string EventTagsSerialized { get; private set; } = string.Empty;
     public string? EventImage1 { get; private set; }
     public string? EventImage2 { get; private set; }
     public string? EventImage3 { get; private set; }
     public string EventDescriptionHtml { get; private set; } = null!;
+    public IReadOnlyList<string> Tags => string.IsNullOrWhiteSpace(EventTagsSerialized)
+        ? Array.Empty<string>()
+        : EventTagsSerialized.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
     public IReadOnlyList<EventTicket> Tickets => _tickets.AsReadOnly();
 
     private DatingEvent() { }
@@ -50,6 +54,7 @@ public class DatingEvent : BaseEntity, IAggregateRoot
         int femaleCapacity,
         int numberOfChatAllowed,
         decimal ticketPrice,
+        IReadOnlyCollection<string>? tags,
         string? eventImage1,
         string? eventImage2,
         string? eventImage3,
@@ -60,7 +65,7 @@ public class DatingEvent : BaseEntity, IAggregateRoot
         if (eventPlannerUser.Role != UserRole.EventPlanner && eventPlannerUser.Role != UserRole.Admin)
             throw new BusinessRuleViolationException("Invalid event planner", "Only event planners can own dating events");
 
-        SetCoreDetails(title, location, address, dateTimeStart, dateTimeEnd, eventType, ageRangeForMale, ageRangeForFemale, maleCapacity, femaleCapacity, numberOfChatAllowed, ticketPrice, eventImage1, eventImage2, eventImage3, eventDescriptionHtml);
+        SetCoreDetails(title, location, address, dateTimeStart, dateTimeEnd, eventType, ageRangeForMale, ageRangeForFemale, maleCapacity, femaleCapacity, numberOfChatAllowed, ticketPrice, tags, eventImage1, eventImage2, eventImage3, eventDescriptionHtml);
         SetCommissionPercent(eventPlannerCommissionPercent);
         IsOpenForSell = false;
         IsCancelled = false;
@@ -144,6 +149,7 @@ public class DatingEvent : BaseEntity, IAggregateRoot
         int femaleCapacity,
         int numberOfChatAllowed,
         decimal ticketPrice,
+        IReadOnlyCollection<string>? tags,
         string? eventImage1,
         string? eventImage2,
         string? eventImage3,
@@ -165,10 +171,34 @@ public class DatingEvent : BaseEntity, IAggregateRoot
         FemaleCapacity = GuardAgainst.Number.Positive(femaleCapacity, nameof(femaleCapacity));
         NumberOfChatAllowed = GuardAgainst.Number.OutOfRange(numberOfChatAllowed, nameof(numberOfChatAllowed), 0, 100);
         TicketPrice = GuardAgainst.Number.OutOfRange(ticketPrice, nameof(ticketPrice), 0.01m, 1_000_000m);
+        EventTagsSerialized = NormalizeTags(tags);
         EventImage1 = NormalizeImage(eventImage1, nameof(eventImage1));
         EventImage2 = NormalizeImage(eventImage2, nameof(eventImage2));
         EventImage3 = NormalizeImage(eventImage3, nameof(eventImage3));
         EventDescriptionHtml = GuardAgainst.String.InvalidLength(eventDescriptionHtml, nameof(eventDescriptionHtml), 10, 10000);
+    }
+
+    private static string NormalizeTags(IReadOnlyCollection<string>? tags)
+    {
+        if (tags is null || tags.Count == 0)
+            return string.Empty;
+
+        var normalized = tags
+            .Where(tag => !string.IsNullOrWhiteSpace(tag))
+            .Select(tag => tag.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (normalized.Count > 10)
+            throw new BusinessRuleViolationException("Too many event tags", "Each event can have at most 10 tags");
+
+        foreach (var tag in normalized)
+        {
+            if (tag.Length is < 2 or > 30)
+                throw new BusinessRuleViolationException("Invalid event tag", "Each event tag must be between 2 and 30 characters");
+        }
+
+        return string.Join('|', normalized);
     }
 
     private static string? NormalizeImage(string? image, string parameterName)

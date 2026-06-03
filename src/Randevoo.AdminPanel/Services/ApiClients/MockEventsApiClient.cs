@@ -44,5 +44,10 @@ public sealed class MockEventsApiClient : IEventsApiClient
 
     public Task<DatingEvent> CancelAsync(Guid eventId, MockUser admin, CancellationToken cancellationToken = default)
         => Task.FromResult(_store.Cancel(eventId, admin));
-}
 
+    public Task SendSmsAsync(Guid eventId, MockUser actor, string message, CancellationToken cancellationToken = default)
+    {
+        _ = _store.FindEvent(eventId) ?? throw new InvalidOperationException("رویداد پیدا نشد.");
+        return Task.CompletedTask;
+    }
+}

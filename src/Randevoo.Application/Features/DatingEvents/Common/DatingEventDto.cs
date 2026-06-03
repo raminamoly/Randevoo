@@ -20,6 +20,7 @@ public record DatingEventDto(
     int FemaleCapacity,
     int NumberOfChatAllowed,
     decimal TicketPrice,
+    IReadOnlyList<string> Tags,
     string EventDescriptionHtml)
 {
     public static DatingEventDto FromEntity(DatingEvent datingEvent) =>
@@ -41,5 +42,6 @@ public record DatingEventDto(
             datingEvent.FemaleCapacity,
             datingEvent.NumberOfChatAllowed,
             datingEvent.TicketPrice,
+            datingEvent.Tags,
             datingEvent.EventDescriptionHtml);
 }

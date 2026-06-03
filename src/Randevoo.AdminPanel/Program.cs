@@ -26,6 +26,7 @@ builder.Services.AddScoped<MockAuthService>();
 builder.Services.AddScoped<IEventsApiClient, MockEventsApiClient>();
 builder.Services.AddScoped<IUsersApiClient, MockUsersApiClient>();
 builder.Services.AddScoped<IDashboardApiClient, MockDashboardApiClient>();
+builder.Services.AddScoped<IPlannerProfilesApiClient, MockPlannerProfilesApiClient>();
 
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>

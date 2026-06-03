@@ -1,0 +1,43 @@
+@model Randevoo.AdminPanel.Models.Events.EventImageCarouselModel
+
+@if (Model.Images.Count > 0)
+{
+    <div id="@Model.CarouselId" class="carousel slide event-carousel" data-bs-ride="carousel">
+        @if (Model.Images.Count > 1)
+        {
+            <div class="carousel-indicators">
+                @for (var index = 0; index < Model.Images.Count; index++)
+                {
+                    <button type="button"
+                            data-bs-target="#@Model.CarouselId"
+                            data-bs-slide-to="@index"
+                            class="@(index == 0 ? "active" : null)"
+                            aria-current="@(index == 0 ? "true" : "false")"
+                            aria-label="اسلاید @(index + 1)"></button>
+                }
+            </div>
+        }
+
+        <div class="carousel-inner">
+            @for (var index = 0; index < Model.Images.Count; index++)
+            {
+                <div class="carousel-item @(index == 0 ? "active" : null)">
+                    <div class="event-carousel-badge">تصویر @DisplayFormatter.ToPersianDigits((index + 1).ToString()) از @DisplayFormatter.ToPersianDigits(Model.Images.Count.ToString())</div>
+                    <img src="@Model.Images[index]" class="d-block w-100" alt="تصویر رویداد @(index + 1)" />
+                </div>
+            }
+        </div>
+
+        @if (Model.Images.Count > 1)
+        {
+            <button class="carousel-control-prev" type="button" data-bs-target="#@Model.CarouselId" data-bs-slide="prev">
+                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                <span class="visually-hidden">قبلی</span>
+            </button>
+            <button class="carousel-control-next" type="button" data-bs-target="#@Model.CarouselId" data-bs-slide="next">
+                <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                <span class="visually-hidden">بعدی</span>
+            </button>
+        }
+    </div>
+}

@@ -1,68 +1,204 @@
 @page "{id:guid}"
 @model Randevoo.AdminPanel.Pages.Events.DetailsModel
 @{
-    ViewData["Title"] = "Event profile";
+    ViewData["Title"] = "پروفایل رویداد";
 }
 
 <section class="page-header">
     <div>
         <h1>@Model.Event.DisplayTitle</h1>
-        <p>@Model.Event.ActiveDraft.City, @Model.Event.ActiveDraft.Country</p>
+        <p>@Model.Event.ActiveDraft.City، @Model.Event.ActiveDraft.Country</p>
+        @if (Model.Event.ActiveDraft.Tags.Count > 0)
+        {
+            <div class="event-chip-list mt-3">
+                @foreach (var tag in Model.Event.ActiveDraft.Tags)
+                {
+                    <span class="event-chip">@tag</span>
+                }
+            </div>
+        }
     </div>
     <div class="d-flex gap-2">
-        <a asp-page="/Events/Edit" asp-route-id="@Model.Event.Id" class="btn btn-outline-primary">Edit</a>
-        <a asp-page="/Events/My" class="btn btn-outline-secondary">Back</a>
+        <a asp-page="/Public/Event" asp-route-id="@Model.Event.Id" class="btn btn-outline-dark">نمایش عمومی</a>
+        <a asp-page="/Events/Edit" asp-route-id="@Model.Event.Id" class="btn btn-outline-primary">ویرایش</a>
+        <a asp-page="/Events/My" class="btn btn-outline-secondary">بازگشت</a>
     </div>
 </section>
+
+@if (!string.IsNullOrWhiteSpace(Model.StatusMessage))
+{
+    <div class="alert alert-success border-0 mb-4">@Model.StatusMessage</div>
+}
 
 <div class="row g-4">
     <div class="col-lg-8">
         <div class="glass-panel p-4 mb-4">
-            <div class="event-gallery">
-                <img src="@Model.Event.ActiveDraft.Image1" alt="Image 1" />
-                <img src="@Model.Event.ActiveDraft.Image2" alt="Image 2" />
-                <img src="@Model.Event.ActiveDraft.Image3" alt="Image 3" />
-            </div>
+            <partial name="_EventImageSlider" model="Model.EventImageCarousel" />
         </div>
 
         <div class="glass-panel p-4 mb-4">
-            <h2 class="section-title">Event profile</h2>
+            <h2 class="section-title">مشخصات رویداد</h2>
             <div class="row g-3">
-                <div class="col-md-6"><div class="detail-block"><span>Venue</span><strong>@Model.Event.ActiveDraft.VenueName</strong></div></div>
-                <div class="col-md-6"><div class="detail-block"><span>Address</span><strong>@Model.Event.ActiveDraft.Address</strong></div></div>
-                <div class="col-md-4"><div class="detail-block"><span>Country</span><strong>@Model.Event.ActiveDraft.Country</strong></div></div>
-                <div class="col-md-4"><div class="detail-block"><span>City</span><strong>@Model.Event.ActiveDraft.City</strong></div></div>
-                <div class="col-md-4"><div class="detail-block"><span>Region</span><strong>@Model.Event.ActiveDraft.Region</strong></div></div>
-                <div class="col-md-4"><div class="detail-block"><span>Event type</span><strong>@Model.Event.ActiveDraft.EventType</strong></div></div>
-                <div class="col-md-4"><div class="detail-block"><span>Male age</span><strong>@Model.Event.ActiveDraft.AgeRangeForMale</strong></div></div>
-                <div class="col-md-4"><div class="detail-block"><span>Female age</span><strong>@Model.Event.ActiveDraft.AgeRangeForFemale</strong></div></div>
-                <div class="col-md-4"><div class="detail-block"><span>Start</span><strong>@PersianDateFormatter.Format(Model.Event.ActiveDraft.StartAtUtc, Model.IsRtl)</strong></div></div>
-                <div class="col-md-4"><div class="detail-block"><span>End</span><strong>@PersianDateFormatter.Format(Model.Event.ActiveDraft.EndAtUtc, Model.IsRtl)</strong></div></div>
-                <div class="col-md-4"><div class="detail-block"><span>Ticket price</span><strong>@DisplayFormatter.Money(Model.Event.ActiveDraft.TicketPrice, Model.IsRtl)</strong></div></div>
-                <div class="col-md-4"><div class="detail-block"><span>Commission</span><strong>@Model.Event.ActiveDraft.OrganizerCommissionPercent%</strong></div></div>
-                <div class="col-md-4"><div class="detail-block"><span>Male capacity</span><strong>@Model.Event.ActiveDraft.CapacityMale</strong></div></div>
-                <div class="col-md-4"><div class="detail-block"><span>Female capacity</span><strong>@Model.Event.ActiveDraft.CapacityFemale</strong></div></div>
-                <div class="col-md-4"><div class="detail-block"><span>Chat limit</span><strong>@Model.Event.ActiveDraft.ChatLimit</strong></div></div>
+                <div class="col-md-6"><div class="detail-block"><span>محل برگزاری</span><strong>@Model.Event.ActiveDraft.VenueName</strong></div></div>
+                <div class="col-md-6"><div class="detail-block"><span>آدرس</span><strong>@Model.Event.ActiveDraft.Address</strong></div></div>
+                <div class="col-md-4"><div class="detail-block"><span>کشور</span><strong>@Model.Event.ActiveDraft.Country</strong></div></div>
+                <div class="col-md-4"><div class="detail-block"><span>شهر</span><strong>@Model.Event.ActiveDraft.City</strong></div></div>
+                <div class="col-md-4"><div class="detail-block"><span>منطقه</span><strong>@Model.Event.ActiveDraft.Region</strong></div></div>
+                <div class="col-md-4"><div class="detail-block"><span>نوع رویداد</span><strong>@DisplayFormatter.EventTypeLabel(Model.Event.ActiveDraft.EventType)</strong></div></div>
+                <div class="col-md-8">
+                    <div class="detail-block">
+                        <span>تگ های رویداد</span>
+                        <div class="event-chip-list">
+                            @foreach (var tag in Model.Event.ActiveDraft.Tags)
+                            {
+                                <span class="event-chip">@tag</span>
+                            }
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4"><div class="detail-block"><span>بازه سنی آقایان</span><strong>@Model.Event.ActiveDraft.AgeRangeForMale</strong></div></div>
+                <div class="col-md-4"><div class="detail-block"><span>بازه سنی بانوان</span><strong>@Model.Event.ActiveDraft.AgeRangeForFemale</strong></div></div>
+                <div class="col-md-4"><div class="detail-block"><span>شروع</span><strong>@PersianDateFormatter.Format(Model.Event.ActiveDraft.StartAtUtc, Model.IsRtl)</strong></div></div>
+                <div class="col-md-4"><div class="detail-block"><span>پایان</span><strong>@PersianDateFormatter.Format(Model.Event.ActiveDraft.EndAtUtc, Model.IsRtl)</strong></div></div>
+                <div class="col-md-4"><div class="detail-block"><span>قیمت بلیت</span><strong>@DisplayFormatter.Money(Model.Event.ActiveDraft.TicketPrice, Model.IsRtl)</strong></div></div>
+                <div class="col-md-4"><div class="detail-block"><span>کمیسیون برگزارکننده</span><strong>@DisplayFormatter.Percent(Model.Event.ActiveDraft.OrganizerCommissionPercent)</strong></div></div>
+                <div class="col-md-4"><div class="detail-block"><span>ظرفیت آقایان</span><strong>@DisplayFormatter.Count(Model.Event.ActiveDraft.CapacityMale)</strong></div></div>
+                <div class="col-md-4"><div class="detail-block"><span>ظرفیت بانوان</span><strong>@DisplayFormatter.Count(Model.Event.ActiveDraft.CapacityFemale)</strong></div></div>
+                <div class="col-md-4"><div class="detail-block"><span>سقف گفتگو</span><strong>@DisplayFormatter.Count(Model.Event.ActiveDraft.ChatLimit)</strong></div></div>
                 <div class="col-md-12">
                     <div class="detail-block">
-                        <span>Description</span>
+                        <span>توضیحات</span>
                         <div class="rich-text-preview">@Html.Raw(Model.Event.ActiveDraft.DescriptionHtml)</div>
                     </div>
                 </div>
             </div>
         </div>
 
+        @if (Model.PlannerProfile is not null)
+        {
+            <div class="glass-panel p-4 mb-4 planner-card">
+                <div class="d-flex align-items-center gap-3">
+                    <img src="@Model.PlannerProfile.PictureUrl" alt="@Model.PlannerProfile.FullName" class="planner-avatar" />
+                    <div>
+                        <h2 class="section-title mb-1">@Model.PlannerProfile.FullName</h2>
+                        <div class="planner-title">@Model.PlannerProfile.Title</div>
+                    </div>
+                </div>
+                <p class="text-muted mt-3">@Model.PlannerProfile.Resume</p>
+                <div class="planner-metrics">
+                    <div class="detail-block"><span>شهر فعالیت</span><strong>@Model.PlannerProfile.City</strong></div>
+                    <div class="detail-block"><span>میانگین امتیاز</span><strong>@DisplayFormatter.ToPersianDigits(Model.PlannerProfile.AverageRating.ToString("0.0"))</strong></div>
+                    <div class="detail-block"><span>رویداد برگزارشده</span><strong>@DisplayFormatter.Count(Model.PlannerProfile.HostedEventCount)</strong></div>
+                    <div class="detail-block"><span>رویداد تکمیل شده</span><strong>@DisplayFormatter.Count(Model.PlannerProfile.CompletedEventCount)</strong></div>
+                </div>
+                <a asp-page="/Planner/Details" asp-route-id="@Model.PlannerProfile.UserId" class="btn btn-outline-primary mt-3">مشاهده پروفایل کامل برگزارکننده</a>
+            </div>
+        }
+
         @if (Model.Event.Pending is not null)
         {
             <div class="glass-panel p-4">
-                <h2 class="section-title">Pending changes</h2>
+                <h2 class="section-title">تغییرات در انتظار تایید</h2>
                 <div class="alert alert-warning border-0">
-                    Submitted by @Model.Event.Pending.SubmittedByName on @PersianDateFormatter.Format(Model.Event.Pending.SubmittedAtUtc, Model.IsRtl)
+                    ارسال شده توسط @Model.Event.Pending.SubmittedByName در @PersianDateFormatter.Format(Model.Event.Pending.SubmittedAtUtc, Model.IsRtl)
                 </div>
-                <div class="change-list">
+                @if (!string.IsNullOrWhiteSpace(Model.Event.Pending.RequestedAction))
+                {
+                    <div class="alert alert-info border-0 mb-3">اقدام درخواستی برگزارکننده: @Model.Event.Pending.RequestedAction</div>
+                }
+                <div class="review-compare-list">
                     @foreach (var change in Model.PendingChanges)
                     {
-                        <div class="change-item">@change</div>
+                        <article class="review-change-card">
+                            <div class="review-change-head">
+                                <div class="review-change-title">@change.Label</div>
+                                <div class="review-change-icon">
+                                    <i class="bi bi-arrow-left-right"></i>
+                                </div>
+                            </div>
+                            <div class="review-change-body">
+                                <div class="review-state review-state-before">
+                                    <div class="review-state-label">قبل از تغییر</div>
+                                    @if (change.IsImage)
+                                    {
+                                        <div class="review-image-box">
+                                            @if (!string.IsNullOrWhiteSpace(change.BeforeImageUrl))
+                                            {
+                                                <img src="@change.BeforeImageUrl" alt="قبل از تغییر" />
+                                            }
+                                            else
+                                            {
+                                                <div class="p-4 review-empty">تصویری ثبت نشده بود.</div>
+                                            }
+                                        </div>
+                                    }
+                                    else if (change.IsHtml)
+                                    {
+                                        <div class="review-state-html rich-text-preview">@Html.Raw(change.BeforeHtml)</div>
+                                    }
+                                    else if (change.IsTagList)
+                                    {
+                                        <div class="event-chip-list">
+                                            @if (change.BeforeTags.Count == 0)
+                                            {
+                                                <span class="review-empty">بدون تگ</span>
+                                            }
+                                            else
+                                            {
+                                                @foreach (var tag in change.BeforeTags)
+                                                {
+                                                    <span class="event-chip">@tag</span>
+                                                }
+                                            }
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="review-state-text">@change.BeforeText</div>
+                                    }
+                                </div>
+                                <div class="review-state review-state-after">
+                                    <div class="review-state-label">بعد از تغییر</div>
+                                    @if (change.IsImage)
+                                    {
+                                        <div class="review-image-box">
+                                            @if (!string.IsNullOrWhiteSpace(change.AfterImageUrl))
+                                            {
+                                                <img src="@change.AfterImageUrl" alt="بعد از تغییر" />
+                                            }
+                                            else
+                                            {
+                                                <div class="p-4 review-empty">تصویری ثبت نشده است.</div>
+                                            }
+                                        </div>
+                                    }
+                                    else if (change.IsHtml)
+                                    {
+                                        <div class="review-state-html rich-text-preview">@Html.Raw(change.AfterHtml)</div>
+                                    }
+                                    else if (change.IsTagList)
+                                    {
+                                        <div class="event-chip-list">
+                                            @if (change.AfterTags.Count == 0)
+                                            {
+                                                <span class="review-empty">بدون تگ</span>
+                                            }
+                                            else
+                                            {
+                                                @foreach (var tag in change.AfterTags)
+                                                {
+                                                    <span class="event-chip">@tag</span>
+                                                }
+                                            }
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="review-state-text">@change.AfterText</div>
+                                    }
+                                </div>
+                            </div>
+                        </article>
                     }
                 </div>
                 @if (!string.IsNullOrWhiteSpace(Model.Event.Pending.ReviewNote))
@@ -75,12 +211,12 @@
 
     <div class="col-lg-4">
         <div class="glass-panel p-4 sticky-panel">
-            <h2 class="section-title">Status</h2>
+            <h2 class="section-title">وضعیت رویداد</h2>
             <div class="mb-3">
-                <span class="status-badge @Model.StatusClass">@Model.Event.Status</span>
+                <span class="status-badge @Model.StatusClass">@DisplayFormatter.Status(Model.Event.Status)</span>
             </div>
-            <p class="text-muted">Planner: @Model.Event.PlannerName</p>
-            <p class="text-muted">Updated: @PersianDateFormatter.Format(Model.Event.UpdatedAtUtc, Model.IsRtl)</p>
+            <p class="text-muted">برگزارکننده: @Model.Event.PlannerName</p>
+            <p class="text-muted">آخرین به روزرسانی: @PersianDateFormatter.Format(Model.Event.UpdatedAtUtc, Model.IsRtl)</p>
             @if (!string.IsNullOrWhiteSpace(Model.Event.AdminReviewNote))
             {
                 <div class="alert alert-info border-0">@Model.Event.AdminReviewNote</div>
@@ -91,45 +227,68 @@
                 <form method="post" asp-page-handler="Approve" class="mb-2">
                     <input type="hidden" name="id" value="@Model.Event.Id" />
                     <div class="mb-2">
-                        <label class="form-label">Commission percent</label>
+                        <label class="form-label">درصد کمیسیون</label>
                         <input name="commissionPercent" class="form-control" value="@Model.Event.ActiveDraft.OrganizerCommissionPercent" />
                     </div>
                     <div class="mb-2">
-                        <label class="form-label">Admin note</label>
+                        <label class="form-label">یادداشت مدیر</label>
                         <textarea name="note" class="form-control" rows="3"></textarea>
                     </div>
-                    <button class="btn btn-success w-100 mb-2" type="submit">Approve</button>
+                    <button class="btn btn-success w-100 mb-2" type="submit">تایید</button>
                 </form>
 
                 <form method="post" asp-page-handler="Reject" class="mb-2">
                     <input type="hidden" name="id" value="@Model.Event.Id" />
                     <div class="mb-2">
-                        <label class="form-label">Reject note</label>
+                        <label class="form-label">علت رد</label>
                         <textarea name="note" class="form-control" rows="3"></textarea>
                     </div>
-                    <button class="btn btn-outline-danger w-100" type="submit">Reject</button>
+                    <button class="btn btn-outline-danger w-100" type="submit">رد تغییرات</button>
                 </form>
 
                 <form method="post" asp-page-handler="OpenSale" class="d-grid gap-2 mb-2">
                     <input type="hidden" name="id" value="@Model.Event.Id" />
-                    <button class="btn btn-outline-primary" type="submit">Open for sale</button>
+                    <button class="btn btn-outline-primary" type="submit">باز کردن فروش</button>
                 </form>
 
                 <form method="post" asp-page-handler="CloseSale" class="d-grid gap-2 mb-2">
                     <input type="hidden" name="id" value="@Model.Event.Id" />
-                    <button class="btn btn-outline-secondary" type="submit">Close sale</button>
+                    <button class="btn btn-outline-secondary" type="submit">بستن فروش</button>
                 </form>
 
                 <form method="post" asp-page-handler="Cancel" class="d-grid gap-2">
                     <input type="hidden" name="id" value="@Model.Event.Id" />
-                    <button class="btn btn-outline-dark" type="submit">Cancel event</button>
+                    <button class="btn btn-outline-dark" type="submit">لغو رویداد</button>
                 </form>
             }
             else
             {
-                <a asp-page="/Events/Edit" asp-route-id="@Model.Event.Id" class="btn btn-primary w-100">Edit draft</a>
+                <div class="d-grid gap-2">
+                    <a asp-page="/Events/Edit" asp-route-id="@Model.Event.Id" class="btn btn-primary">ویرایش پیش نویس</a>
+
+                    <form method="post" asp-page-handler="OpenSale">
+                        <input type="hidden" name="id" value="@Model.Event.Id" />
+                        <button class="btn btn-outline-primary w-100" type="submit">درخواست باز شدن فروش</button>
+                    </form>
+
+                    <form method="post" asp-page-handler="CloseSale">
+                        <input type="hidden" name="id" value="@Model.Event.Id" />
+                        <button class="btn btn-outline-secondary w-100" type="submit">درخواست بستن فروش</button>
+                    </form>
+
+                    <form method="post" asp-page-handler="Cancel">
+                        <input type="hidden" name="id" value="@Model.Event.Id" />
+                        <button class="btn btn-outline-dark w-100" type="submit">درخواست لغو رویداد</button>
+                    </form>
+
+                    <form method="post" asp-page-handler="SendSms" class="glass-panel p-3 mt-2">
+                        <input type="hidden" name="id" value="@Model.Event.Id" />
+                        <label class="form-label">پیام به شرکت کنندگان</label>
+                        <textarea name="message" class="form-control mb-2" rows="3" placeholder="متن پیامک به مهمان های این رویداد"></textarea>
+                        <button class="btn btn-outline-primary w-100" type="submit">ارسال پیامک</button>
+                    </form>
+                </div>
             }
         </div>
     </div>
 </div>
-

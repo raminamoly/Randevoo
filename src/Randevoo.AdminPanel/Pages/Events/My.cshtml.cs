@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Randevoo.AdminPanel.Models.Auth;
 using Randevoo.AdminPanel.Models.Common;
@@ -24,10 +25,37 @@ public class MyModel : PageModel
 
     public bool IsRtl => _session.IsRtl;
 
+    [TempData]
+    public string? StatusMessage { get; set; }
+
     public async Task OnGetAsync()
     {
-        var current = _session.CurrentUser ?? throw new InvalidOperationException("Current user was not resolved.");
+        var current = _session.CurrentUser ?? throw new InvalidOperationException("کاربر جاری شناسایی نشد.");
         Events = await _eventsApi.GetEventsAsync(current);
+    }
+
+    public async Task<IActionResult> OnPostOpenSaleAsync(Guid id)
+    {
+        var current = _session.CurrentUser ?? throw new InvalidOperationException("کاربر جاری شناسایی نشد.");
+        await _eventsApi.ToggleSaleAsync(id, current, true);
+        StatusMessage = "درخواست باز شدن فروش رویداد ثبت شد.";
+        return RedirectToPage();
+    }
+
+    public async Task<IActionResult> OnPostCloseSaleAsync(Guid id)
+    {
+        var current = _session.CurrentUser ?? throw new InvalidOperationException("کاربر جاری شناسایی نشد.");
+        await _eventsApi.ToggleSaleAsync(id, current, false);
+        StatusMessage = "درخواست بسته شدن فروش رویداد ثبت شد.";
+        return RedirectToPage();
+    }
+
+    public async Task<IActionResult> OnPostCancelAsync(Guid id)
+    {
+        var current = _session.CurrentUser ?? throw new InvalidOperationException("کاربر جاری شناسایی نشد.");
+        await _eventsApi.CancelAsync(id, current);
+        StatusMessage = "درخواست لغو رویداد ثبت شد.";
+        return RedirectToPage();
     }
 
     public string GetStatusClass(EventApprovalState state) => state switch

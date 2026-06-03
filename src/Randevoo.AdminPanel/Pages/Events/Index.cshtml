@@ -1,15 +1,15 @@
 @page
 @model Randevoo.AdminPanel.Pages.Events.IndexModel
 @{
-    ViewData["Title"] = "Events";
+    ViewData["Title"] = "رویدادها";
 }
 
 <section class="page-header">
     <div>
-        <h1>Events</h1>
-        <p>Admin review queue and live event registry.</p>
+        <h1>رویدادها</h1>
+        <p>صف بررسی مدیر، تایید تغییرات و کنترل وضعیت انتشار رویدادها.</p>
     </div>
-    <a asp-page="/Events/Edit" class="btn btn-primary">Create event</a>
+    <a asp-page="/Events/Edit" class="btn btn-primary">ساخت رویداد</a>
 </section>
 
 <div class="glass-panel p-4">
@@ -17,11 +17,11 @@
         <table class="table align-middle">
             <thead>
                 <tr>
-                    <th>Event</th>
-                    <th>Planner</th>
-                    <th>Start</th>
-                    <th>Status</th>
-                    <th>Commission</th>
+                    <th>رویداد</th>
+                    <th>برگزارکننده</th>
+                    <th>شروع</th>
+                    <th>وضعیت</th>
+                    <th>کمیسیون</th>
                     <th></th>
                 </tr>
             </thead>
@@ -31,15 +31,24 @@
                     <tr>
                         <td>
                             <div class="fw-semibold">@item.DisplayTitle</div>
-                            <div class="text-muted small">@item.ActiveDraft.City, @item.ActiveDraft.Country</div>
+                            <div class="text-muted small">@item.ActiveDraft.City، @item.ActiveDraft.Country</div>
+                            @if (item.ActiveDraft.Tags.Count > 0)
+                            {
+                                <div class="event-chip-list mt-2">
+                                    @foreach (var tag in item.ActiveDraft.Tags.Take(3))
+                                    {
+                                        <span class="event-chip">@tag</span>
+                                    }
+                                </div>
+                            }
                         </td>
                         <td>@item.PlannerName</td>
                         <td>@PersianDateFormatter.Format(item.ActiveDraft.StartAtUtc, Model.IsRtl)</td>
-                        <td><span class="status-badge @Model.GetStatusClass(item.Status)">@item.Status</span></td>
-                        <td>@item.ActiveDraft.OrganizerCommissionPercent%</td>
+                        <td><span class="status-badge @Model.GetStatusClass(item.Status)">@DisplayFormatter.Status(item.Status)</span></td>
+                        <td>@DisplayFormatter.Percent(item.ActiveDraft.OrganizerCommissionPercent)</td>
                         <td class="text-end">
-                            <a asp-page="/Events/Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-secondary">Review</a>
-                            <a asp-page="/Events/Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary">Edit</a>
+                            <a asp-page="/Events/Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-secondary">بررسی</a>
+                            <a asp-page="/Events/Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary">ویرایش</a>
                         </td>
                     </tr>
                 }
@@ -47,4 +56,3 @@
         </table>
     </div>
 </div>
-

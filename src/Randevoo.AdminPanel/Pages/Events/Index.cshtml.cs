@@ -26,7 +26,7 @@ public class IndexModel : PageModel
 
     public async Task OnGetAsync()
     {
-        var current = _session.CurrentUser ?? throw new InvalidOperationException("Current user was not resolved.");
+        var current = _session.CurrentUser ?? throw new InvalidOperationException("کاربر جاری شناسایی نشد.");
         Events = await _eventsApi.GetEventsAsync(current);
     }
 

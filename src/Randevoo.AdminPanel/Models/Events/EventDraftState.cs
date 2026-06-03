@@ -9,5 +9,6 @@ public sealed class EventDraftState
     public DateTimeOffset SubmittedAtUtc { get; set; }
 
     public string? ReviewNote { get; set; }
-}
 
+    public string? RequestedAction { get; set; }
+}
