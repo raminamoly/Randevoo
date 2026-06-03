@@ -1,4 +1,5 @@
 @inject MockAuthState AuthState
+@inject LanguageState Language
 @inject NavigationManager NavigationManager
 
 <MudAppBar Elevation="0" Class="topbar">
@@ -6,12 +7,16 @@
     <MudSpacer />
     @if (AuthState.CurrentUser is { } user)
     {
+        <MudButtonGroup Variant="Variant.Outlined" Class="language-toggle">
+            <MudButton Size="Size.Small" Color="@LanguageButtonColor(AppLanguage.English)" OnClick="@(() => Language.SetLanguage(AppLanguage.English))">@Language.T("English")</MudButton>
+            <MudButton Size="Size.Small" Color="@LanguageButtonColor(AppLanguage.Farsi)" OnClick="@(() => Language.SetLanguage(AppLanguage.Farsi))">@Language.T("Farsi")</MudButton>
+        </MudButtonGroup>
         <MudChip T="string" Color="Color.Default" Variant="Variant.Outlined" Icon="@Icons.Material.Filled.Security">
             @user.Role
         </MudChip>
         <MudText Typo="Typo.body2" Class="user-name">@user.DisplayName</MudText>
         <MudButton Variant="Variant.Text" Color="Color.Default" StartIcon="@Icons.Material.Filled.Logout" OnClick="SignOut">
-            Sign out
+            @Language.T("SignOut")
         </MudButton>
     }
 </MudAppBar>
@@ -25,4 +30,6 @@
         AuthState.SignOut();
         NavigationManager.NavigateTo("/login");
     }
+
+    private Color LanguageButtonColor(AppLanguage language) => Language.Current == language ? Color.Primary : Color.Default;
 }

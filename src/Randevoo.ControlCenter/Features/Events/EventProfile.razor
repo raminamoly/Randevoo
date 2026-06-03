@@ -1,0 +1,226 @@
+@page "/events/{EventId:guid}"
+@attribute [ControlCenterAuthorize(ControlCenterRole.Admin, ControlCenterRole.EventPlanner)]
+@using Randevoo.ControlCenter.Services.ApiClients
+@inject IEventsApiClient EventsClient
+@inject LanguageState Language
+@inject MockAuthState AuthState
+@inject ISnackbar Snackbar
+
+@if (_event is null)
+{
+    <LoadingState />
+}
+else
+{
+    <PageHeader Title="@_event.Title" Kicker="@Language.T("EventProfile")" Description="@_event.Description">
+        <Actions>
+            <MudButton Variant="Variant.Text" Href="@BackHref" StartIcon="@Icons.Material.Filled.ArrowBack">
+                @Language.T("BackToEvents")
+            </MudButton>
+        </Actions>
+    </PageHeader>
+
+    <MudGrid>
+        <MudItem xs="12" lg="8">
+            @if (IsPlanner)
+            {
+                <EventCreateForm Input="_editInput" OnSubmit="UpdateEventAsync" TitleText="@Language.T("UpdateEvent")" DescriptionText="@Language.T("UpdateRequiresApproval")" SubmitButtonText="@Language.T("UpdateEvent")" />
+            }
+
+            <MudPaper Class="profile-panel" Elevation="0">
+                <div class="profile-hero">
+                    <MudIcon Icon="@Icons.Material.Filled.EventAvailable" Size="Size.Large" />
+                    <div>
+                        <MudText Typo="Typo.h5">@_event.Title</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">@_event.VenueName · @_event.City · @_event.Country</MudText>
+                    </div>
+                    <StatusBadge Status="@_event.Status" />
+                </div>
+
+                <MudDivider Class="my-4" />
+
+                <MudGrid>
+                    <MudItem xs="12" md="6">
+                        <DetailBlock Label="@Language.T("Venue")" Value="@_event.VenueName" />
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <DetailBlock Label="@Language.T("EventType")" Value="@_event.EventType" />
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <DetailBlock Label="@Language.T("Planner")" Value="@_event.PlannerName" />
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <DetailBlock Label="@Language.T("Country")" Value="@_event.Country" />
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <DetailBlock Label="@Language.T("City")" Value="@_event.City" />
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <DetailBlock Label="@Language.T("Region")" Value="@(_event.Region ?? "-")" />
+                    </MudItem>
+                    <MudItem xs="12">
+                        <DetailBlock Label="@Language.T("Address")" Value="@_event.Address" />
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <DetailBlock Label="@Language.T("Latitude")" Value="@_event.Latitude.ToString()" />
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <DetailBlock Label="@Language.T("Longitude")" Value="@_event.Longitude.ToString()" />
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@Language.T("Description")</MudText>
+                        <div class="rich-preview-body">@((MarkupString)_event.Description)</div>
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@Language.T("Images")</MudText>
+                        <div class="event-image-slots readonly">
+                            @foreach (var image in ImageSlots)
+                            {
+                                <div class="event-image-slot">
+                                    <div class="event-image-box">
+                                        @if (!string.IsNullOrWhiteSpace(image))
+                                        {
+                                            @if (image.StartsWith("/", StringComparison.Ordinal))
+                                            {
+                                                <img src="@image" alt="@Language.T("ImagePreview")" />
+                                            }
+                                            else
+                                            {
+                                                <MudIcon Icon="@Icons.Material.Filled.Image" />
+                                                <span>@image</span>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <MudIcon Icon="@Icons.Material.Filled.ImageNotSupported" />
+                                            <span>@Language.T("ImagePreview")</span>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </MudItem>
+                </MudGrid>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" lg="4">
+            @if (IsAdmin)
+            {
+                <MudPaper Class="profile-panel mb-4" Elevation="0">
+                    <MudText Typo="Typo.h6">@Language.T("DomainActions")</MudText>
+                    <MudStack Spacing="2" Class="mt-3">
+                        <MudNumericField @bind-Value="_commissionPercent" Label="@Language.T("Commission")" Variant="Variant.Outlined" Min="0" Max="100" />
+                        <MudButton Variant="Variant.Outlined" Color="Color.Secondary" OnClick="SetCommissionAsync">@Language.T("SetCommission")</MudButton>
+                        @if (_event.Status == EventStatus.PendingAdminReview)
+                        {
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ConfirmEventAsync">@Language.T("Confirm")</MudButton>
+                        }
+                        <MudButton Variant="Variant.Outlined" Color="Color.Success" OnClick="OpenForSellAsync">@Language.T("OpenForSell")</MudButton>
+                        <MudButton Variant="Variant.Outlined" Color="Color.Warning" OnClick="CloseForSellAsync">@Language.T("CloseForSell")</MudButton>
+                        <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="CancelEventAsync">@Language.T("CancelEvent")</MudButton>
+                    </MudStack>
+                </MudPaper>
+            }
+
+            <MudPaper Class="profile-panel" Elevation="0">
+                <MudText Typo="Typo.h6">@Language.T("Status")</MudText>
+                <MudStack Spacing="3" Class="mt-3">
+                    <DetailBlock Label="@Language.T("Starts")" Value="@PersianDateFormatter.Format(_event.StartsAt, Language.IsRtl)" />
+                    <DetailBlock Label="@Language.T("EndDate")" Value="@PersianDateFormatter.Format(_event.EndsAt, Language.IsRtl)" />
+                    <DetailBlock Label="@Language.T("MaleCapacity")" Value="@FormatNumber(_event.MaleCapacity)" />
+                    <DetailBlock Label="@Language.T("FemaleCapacity")" Value="@FormatNumber(_event.FemaleCapacity)" />
+                    <DetailBlock Label="@Language.T("TicketsSold")" Value="@FormatNumber(_event.TicketsSold)" />
+                    <DetailBlock Label="@Language.T("TicketPrice")" Value="@FormatMoney(_event.TicketPrice)" />
+                    <DetailBlock Label="@Language.T("AgeRangeForMale")" Value="@FormatText(_event.AgeRangeForMale)" />
+                    <DetailBlock Label="@Language.T("AgeRangeForFemale")" Value="@FormatText(_event.AgeRangeForFemale)" />
+                    <DetailBlock Label="@Language.T("NumberOfChatAllowed")" Value="@FormatNumber(_event.NumberOfChatAllowed)" />
+                    <DetailBlock Label="@Language.T("Commission")" Value="@($"{FormatText(_event.EventPlannerCommissionPercent.ToString())}%")" />
+                    <DetailBlock Label="@Language.T("IsOpenForSell")" Value="@(_event.IsOpenForSell ? Language.T("IsOpenForSell") : Language.T("NotConfirmed"))" />
+                    <DetailBlock Label="@Language.T("CreatedAt")" Value="@PersianDateFormatter.Format(_event.CreatedAt, Language.IsRtl)" />
+                    <DetailBlock Label="@Language.T("ConfirmedAt")" Value="@(_event.ConfirmedAt is null ? Language.T("NotConfirmed") : PersianDateFormatter.Format(_event.ConfirmedAt.Value, Language.IsRtl))" />
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    [Parameter]
+    public Guid EventId { get; set; }
+
+    private EventSummary? _event;
+    private EventDraftInput _editInput = new();
+    private decimal _commissionPercent;
+
+    private string BackHref => AuthState.CurrentUser?.Role == ControlCenterRole.EventPlanner ? "/my/events" : "/events";
+
+    private string?[] ImageSlots => [_event?.EventImage1, _event?.EventImage2, _event?.EventImage3];
+
+    private bool IsAdmin => AuthState.CurrentUser?.Role == ControlCenterRole.Admin;
+
+    private bool IsPlanner => AuthState.CurrentUser?.Role == ControlCenterRole.EventPlanner && _event?.PlannerName == "Nava Events";
+
+    private string FormatNumber(int value) => Language.IsRtl ? PersianDateFormatter.ToPersianNumber(value) : value.ToString();
+
+    private string FormatText(string value) => Language.IsRtl ? PersianDateFormatter.ToPersianNumber(value) : value;
+
+    private string FormatMoney(decimal value) => Language.IsRtl ? $"{PersianDateFormatter.ToPersianNumber(value.ToString("#,0"))} تومان" : value.ToString("C0");
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _event = await EventsClient.GetEventAsync(EventId);
+        if (_event is not null)
+        {
+            _editInput = EventDraftInput.FromEvent(_event);
+            _commissionPercent = _event.EventPlannerCommissionPercent;
+        }
+    }
+
+    private async Task UpdateEventAsync(EventDraftInput input)
+    {
+        _event = await EventsClient.UpdatePlannerEventAsync(EventId, input);
+        if (_event is not null)
+        {
+            _editInput = EventDraftInput.FromEvent(_event);
+            Snackbar.Add(Language.T("EventUpdated"), Severity.Success);
+        }
+    }
+
+    private async Task ConfirmEventAsync()
+    {
+        await ApplyAdminActionAsync(() => EventsClient.ConfirmEventAsync(EventId, _commissionPercent), Language.T("EventConfirmed"));
+    }
+
+    private async Task SetCommissionAsync()
+    {
+        await ApplyAdminActionAsync(() => EventsClient.SetCommissionAsync(EventId, _commissionPercent), Language.T("EventActionDone"));
+    }
+
+    private async Task OpenForSellAsync()
+    {
+        await ApplyAdminActionAsync(() => EventsClient.OpenForSellAsync(EventId), Language.T("EventActionDone"));
+    }
+
+    private async Task CloseForSellAsync()
+    {
+        await ApplyAdminActionAsync(() => EventsClient.CloseForSellAsync(EventId), Language.T("EventActionDone"));
+    }
+
+    private async Task CancelEventAsync()
+    {
+        await ApplyAdminActionAsync(() => EventsClient.CancelEventAsync(EventId), Language.T("EventActionDone"));
+    }
+
+    private async Task ApplyAdminActionAsync(Func<Task<EventSummary?>> action, string message)
+    {
+        var updated = await action();
+        if (updated is not null)
+        {
+            _event = updated;
+            _editInput = EventDraftInput.FromEvent(updated);
+            _commissionPercent = updated.EventPlannerCommissionPercent;
+            Snackbar.Add(message, Severity.Success);
+        }
+    }
+}

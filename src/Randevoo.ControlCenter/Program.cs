@@ -13,6 +13,7 @@ builder.Services.AddRazorComponents()
 builder.Services.AddMudServices();
 builder.Services.AddScoped<MockAuthState>();
 builder.Services.AddScoped<AppUiState>();
+builder.Services.AddScoped<LanguageState>();
 builder.Services.AddSingleton<ControlCenterMockData>();
 builder.Services.AddScoped<IControlCenterAuthClient, MockControlCenterAuthClient>();
 builder.Services.AddScoped<IDashboardApiClient, MockDashboardApiClient>();

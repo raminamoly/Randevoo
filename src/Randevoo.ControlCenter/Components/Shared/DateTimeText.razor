@@ -1,4 +1,6 @@
-<span title="@Value.ToString("u")">@Value.ToLocalTime().ToString("MMM d, yyyy h:mm tt")</span>
+@inject LanguageState Language
+
+<span title="@Value.ToString("u")">@PersianDateFormatter.Format(Value, Language.IsRtl)</span>
 
 @code {
     [Parameter]

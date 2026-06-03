@@ -1,18 +1,19 @@
 @using Randevoo.ControlCenter.Models.Common
 @inject MockAuthState AuthState
+@inject LanguageState Language
 
 <div class="brand-block">
     <MudIcon Icon="@Icons.Material.Filled.AdminPanelSettings" Size="Size.Medium" />
     <div>
-        <div class="brand-title">Randevoo</div>
-        <div class="brand-subtitle">Control Center</div>
+        <div class="brand-title">@Language.T("Brand")</div>
+        <div class="brand-subtitle">@Language.T("ControlCenter")</div>
     </div>
 </div>
 
 <MudNavMenu Class="nav-stack" Rounded="true" Margin="Margin.Dense">
     @foreach (var item in VisibleItems)
     {
-        <MudNavLink Href="@item.Href" Match="NavLinkMatch.All" Icon="@item.Icon">@item.Label</MudNavLink>
+        <MudNavLink Href="@item.Href" Match="NavLinkMatch.All" Icon="@item.Icon">@Language.T(item.Label)</MudNavLink>
     }
 </MudNavMenu>
 
@@ -20,10 +21,10 @@
     private static readonly NavItem[] Items =
     [
         new("Dashboard", "/dashboard", Icons.Material.Filled.Dashboard, [ControlCenterRole.Admin]),
-        new("My dashboard", "/my/dashboard", Icons.Material.Filled.SpaceDashboard, [ControlCenterRole.EventPlanner]),
+        new("MyDashboard", "/my/dashboard", Icons.Material.Filled.SpaceDashboard, [ControlCenterRole.EventPlanner]),
         new("Events", "/events", Icons.Material.Filled.Event, [ControlCenterRole.Admin]),
-        new("My events", "/my/events", Icons.Material.Filled.EventNote, [ControlCenterRole.EventPlanner]),
-        new("Event planners", "/event-planners", Icons.Material.Filled.Groups, [ControlCenterRole.Admin]),
+        new("MyEvents", "/my/events", Icons.Material.Filled.EventNote, [ControlCenterRole.EventPlanner]),
+        new("EventPlanners", "/event-planners", Icons.Material.Filled.Groups, [ControlCenterRole.Admin]),
         new("Participants", "/participants", Icons.Material.Filled.Badge, [ControlCenterRole.Admin]),
         new("Balances", "/balances", Icons.Material.Filled.AccountBalanceWallet, [ControlCenterRole.Admin, ControlCenterRole.EventPlanner]),
         new("Moderation", "/moderation", Icons.Material.Filled.Policy, [ControlCenterRole.Admin]),

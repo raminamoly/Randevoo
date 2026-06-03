@@ -1,0 +1,73 @@
+@page
+@model Randevoo.AdminPanel.Pages.Account.LoginModel
+@{
+    ViewData["Title"] = "Login";
+    ViewData["UseShell"] = false;
+}
+
+<section class="auth-card glass-panel">
+    <div class="auth-brand">
+        <img src="~/images/logo.png" alt="Randevoo" class="auth-logo" />
+        <div>
+            <h1>Randevoo Admin Panel</h1>
+            <p>Sign in with your mock mobile account and manage events with approval flow.</p>
+        </div>
+    </div>
+
+    <div class="auth-language-switch">
+        <a asp-page="/Settings/Index" asp-route-lang="en" asp-route-returnUrl="/Account/Login" class="lang-pill @(Model.IsRtl ? string.Empty : "active")">EN</a>
+        <a asp-page="/Settings/Index" asp-route-lang="fa" asp-route-returnUrl="/Account/Login" class="lang-pill @(Model.IsRtl ? "active" : string.Empty)">FA</a>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(Model.Message))
+    {
+        <div class="alert alert-info border-0">@Model.Message</div>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger border-0">@Model.ErrorMessage</div>
+    }
+
+    <form method="post" class="stacked-form">
+        <input type="hidden" asp-for="Step" />
+
+        @if (Model.Step == 1)
+        {
+            <div class="mb-3">
+                <label asp-for="Input.Mobile" class="form-label">Mobile number</label>
+                <input asp-for="Input.Mobile" class="form-control form-control-lg" placeholder="09125177721" />
+            </div>
+            <div class="mb-3">
+                <label asp-for="Input.Role" class="form-label">Login as</label>
+                <select asp-for="Input.Role" class="form-select form-select-lg" asp-items="Model.RoleOptions"></select>
+            </div>
+            <button type="submit" asp-page-handler="RequestCode" class="btn btn-primary btn-lg w-100">
+                Continue
+            </button>
+            <p class="auth-note">The first account is seeded for the admin mobile only. Mock code is accepted after the role matches.</p>
+        }
+        else
+        {
+            <div class="mb-3">
+                <label class="form-label">Mobile number</label>
+                <input asp-for="Input.Mobile" class="form-control form-control-lg" readonly />
+            </div>
+            <div class="mb-3">
+                <label asp-for="Input.VerificationCode" class="form-label">SMS code</label>
+                <input asp-for="Input.VerificationCode" class="form-control form-control-lg" placeholder="123456" />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Role</label>
+                <input class="form-control form-control-lg" value="@Model.Input.Role" readonly />
+            </div>
+            <input type="hidden" asp-for="Input.Role" />
+            <button type="submit" asp-page-handler="Login" class="btn btn-primary btn-lg w-100">
+                Sign in
+            </button>
+            <button type="submit" asp-page-handler="Back" class="btn btn-link w-100 mt-2">Change mobile / role</button>
+            <p class="auth-note">Admin starts with `09125177721`. Event planners are created from the Users page.</p>
+        }
+    </form>
+</section>
+

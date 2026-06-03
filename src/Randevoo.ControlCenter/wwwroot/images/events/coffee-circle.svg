@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360" role="img" aria-label="Coffee circle">
+  <rect width="640" height="360" fill="#f7f4ea"/>
+  <circle cx="320" cy="172" r="110" fill="#f2b705"/>
+  <circle cx="320" cy="172" r="72" fill="#6b3f24"/>
+  <rect x="388" y="146" width="96" height="56" rx="28" fill="none" stroke="#6b3f24" stroke-width="20"/>
+  <text x="206" y="320" fill="#162033" font-family="Arial" font-size="24" font-weight="700">Coffee Circle</text>
+</svg>

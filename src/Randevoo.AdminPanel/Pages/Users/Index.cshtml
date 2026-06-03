@@ -1,0 +1,72 @@
+@page "{id?}"
+@model Randevoo.AdminPanel.Pages.Users.IndexModel
+@{
+    ViewData["Title"] = "Users";
+}
+
+<section class="page-header">
+    <div>
+        <h1>Users</h1>
+        <p>Create planners and support users, then control their role from one screen.</p>
+    </div>
+</section>
+
+<div class="row g-4">
+    <div class="col-lg-4">
+        <form method="post" class="glass-panel p-4 sticky-panel">
+            <input type="hidden" asp-for="UserId" />
+            <h2 class="section-title">@((Model.UserId is null) ? "Create user" : "Edit user")</h2>
+
+            <div class="mb-3">
+                <label asp-for="Input.FullName" class="form-label">Full name</label>
+                <input asp-for="Input.FullName" class="form-control" />
+            </div>
+            <div class="mb-3">
+                <label asp-for="Input.Mobile" class="form-label">Mobile</label>
+                <input asp-for="Input.Mobile" class="form-control" />
+            </div>
+            <div class="mb-3">
+                <label asp-for="Input.Role" class="form-label">Role</label>
+                <select asp-for="Input.Role" class="form-select" asp-items="Model.RoleOptions"></select>
+            </div>
+            <div class="form-check form-switch mb-3">
+                <input asp-for="Input.IsActive" class="form-check-input" />
+                <label asp-for="Input.IsActive" class="form-check-label">Active</label>
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Save user</button>
+        </form>
+    </div>
+
+    <div class="col-lg-8">
+        <div class="glass-panel p-4">
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Mobile</th>
+                            <th>Role</th>
+                            <th>Status</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var user in Model.Users)
+                        {
+                            <tr>
+                                <td>@user.FullName</td>
+                                <td>@user.Mobile</td>
+                                <td>@user.Role</td>
+                                <td><span class="status-badge @(user.IsActive ? "status-approved" : "status-rejected")">@(user.IsActive ? "Active" : "Disabled")</span></td>
+                                <td class="text-end">
+                                    <a asp-page="/Users/Index" asp-route-id="@user.Id" class="btn btn-sm btn-outline-primary">Edit</a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+

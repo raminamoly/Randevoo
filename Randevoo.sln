@@ -21,6 +21,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Randevoo.WebApi", "src\Rand
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Randevoo.ControlCenter", "src\Randevoo.ControlCenter\Randevoo.ControlCenter.csproj", "{7EE8EF21-6574-4C22-B0EA-DE8D168A3D6C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Randevoo.AdminPanel", "src\Randevoo.AdminPanel\Randevoo.AdminPanel.csproj", "{EAA652B8-0C4B-4A7B-B5F2-59AD9FD630FD}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -115,6 +117,18 @@ Global
 		{7EE8EF21-6574-4C22-B0EA-DE8D168A3D6C}.Release|x64.Build.0 = Release|Any CPU
 		{7EE8EF21-6574-4C22-B0EA-DE8D168A3D6C}.Release|x86.ActiveCfg = Release|Any CPU
 		{7EE8EF21-6574-4C22-B0EA-DE8D168A3D6C}.Release|x86.Build.0 = Release|Any CPU
+		{EAA652B8-0C4B-4A7B-B5F2-59AD9FD630FD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EAA652B8-0C4B-4A7B-B5F2-59AD9FD630FD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EAA652B8-0C4B-4A7B-B5F2-59AD9FD630FD}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{EAA652B8-0C4B-4A7B-B5F2-59AD9FD630FD}.Debug|x64.Build.0 = Debug|Any CPU
+		{EAA652B8-0C4B-4A7B-B5F2-59AD9FD630FD}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{EAA652B8-0C4B-4A7B-B5F2-59AD9FD630FD}.Debug|x86.Build.0 = Debug|Any CPU
+		{EAA652B8-0C4B-4A7B-B5F2-59AD9FD630FD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EAA652B8-0C4B-4A7B-B5F2-59AD9FD630FD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EAA652B8-0C4B-4A7B-B5F2-59AD9FD630FD}.Release|x64.ActiveCfg = Release|Any CPU
+		{EAA652B8-0C4B-4A7B-B5F2-59AD9FD630FD}.Release|x64.Build.0 = Release|Any CPU
+		{EAA652B8-0C4B-4A7B-B5F2-59AD9FD630FD}.Release|x86.ActiveCfg = Release|Any CPU
+		{EAA652B8-0C4B-4A7B-B5F2-59AD9FD630FD}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -127,6 +141,7 @@ Global
 		{559E8F82-C3B2-443E-B99B-68AB438AD94F} = {FF514C20-E195-4148-9EEF-F492500D8984}
 		{18FC3228-EE3D-4280-A05E-BE786FEE51D6} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 		{7EE8EF21-6574-4C22-B0EA-DE8D168A3D6C} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{EAA652B8-0C4B-4A7B-B5F2-59AD9FD630FD} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {F4604B35-5158-4595-B386-E32EEA3691C9}

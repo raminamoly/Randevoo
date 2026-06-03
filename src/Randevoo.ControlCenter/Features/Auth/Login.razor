@@ -2,13 +2,18 @@
 @using Randevoo.ControlCenter.Services.ApiClients
 @inject IControlCenterAuthClient AuthClient
 @inject MockAuthState AuthState
+@inject LanguageState Language
 @inject NavigationManager NavigationManager
 
-<div class="login-page">
+<div class="login-page" dir="@Language.Direction" lang="@Language.LanguageCode">
     <MudPaper Class="login-panel" Elevation="0">
+        <MudButtonGroup Variant="Variant.Outlined" Class="language-toggle">
+            <MudButton Size="Size.Small" Color="@LanguageButtonColor(AppLanguage.English)" OnClick="@(() => Language.SetLanguage(AppLanguage.English))">@Language.T("English")</MudButton>
+            <MudButton Size="Size.Small" Color="@LanguageButtonColor(AppLanguage.Farsi)" OnClick="@(() => Language.SetLanguage(AppLanguage.Farsi))">@Language.T("Farsi")</MudButton>
+        </MudButtonGroup>
         <MudIcon Icon="@Icons.Material.Filled.AdminPanelSettings" Size="Size.Large" Color="Color.Primary" />
-        <MudText Typo="Typo.h4">Randevoo Control Center</MudText>
-        <MudText Typo="Typo.body2" Color="Color.Secondary">Admin and EventPlanner operations access</MudText>
+        <MudText Typo="Typo.h4">@Language.T("Brand") @Language.T("ControlCenter")</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">@Language.T("MockPlan")</MudText>
 
         @if (_step == 1)
         {
@@ -58,4 +63,6 @@
         AuthState.SignIn(user);
         NavigationManager.NavigateTo(user.Role == ControlCenterRole.Admin ? "/dashboard" : "/my/dashboard");
     }
+
+    private Color LanguageButtonColor(AppLanguage language) => Language.Current == language ? Color.Primary : Color.Default;
 }

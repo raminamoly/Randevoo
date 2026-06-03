@@ -1,0 +1,33 @@
+@page
+@model Randevoo.AdminPanel.Pages.Settings.IndexModel
+@{
+    ViewData["Title"] = "Settings";
+}
+
+<section class="page-header">
+    <div>
+        <h1>Settings</h1>
+        <p>Choose language and keep the panel aligned with the brand.</p>
+    </div>
+</section>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="glass-panel p-4">
+            <h2 class="section-title">Language</h2>
+            <p class="text-muted">English keeps the panel left-to-right. Farsi switches the shell to RTL and enables Shamsi date input.</p>
+            <div class="d-flex gap-2 flex-wrap">
+                <a class="btn btn-outline-primary" asp-page="/Settings/Index" asp-route-lang="en" asp-route-returnUrl="@Model.ReturnUrl">English</a>
+                <a class="btn btn-outline-primary" asp-page="/Settings/Index" asp-route-lang="fa" asp-route-returnUrl="@Model.ReturnUrl">فارسی</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="glass-panel p-4">
+            <img src="~/images/logo.png" class="settings-logo" alt="Randevoo" />
+            <p class="mb-0 text-muted">White background, logo-driven palette, glass surfaces, and a clean operations feel.</p>
+        </div>
+    </div>
+</div>
+

@@ -1,0 +1,165 @@
+@using Randevoo.ControlCenter.Models.Events
+@inject LanguageState Language
+
+<MudPaper Class="form-panel" Elevation="0">
+    <MudText Typo="Typo.h6">@Title</MudText>
+    <MudText Typo="Typo.body2" Color="Color.Secondary">@Description</MudText>
+
+    <MudGrid Class="mt-2">
+        <MudItem xs="12" md="6">
+            <MudTextField @bind-Value="Input.Title" Label="@Language.T("Title")" Variant="Variant.Outlined" />
+        </MudItem>
+        <MudItem xs="12" md="3">
+            <MudSelect T="string" @bind-Value="Input.Country" Label="@Language.T("Country")" Variant="Variant.Outlined">
+                @foreach (var country in Countries)
+                {
+                    <MudSelectItem Value="@country">@country</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" md="3">
+            <MudSelect T="string" @bind-Value="Input.City" Label="@Language.T("City")" Variant="Variant.Outlined">
+                @foreach (var city in Cities)
+                {
+                    <MudSelectItem Value="@city">@city</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" md="4">
+            <MudTextField @bind-Value="Input.Region" Label="@Language.T("Region")" Variant="Variant.Outlined" />
+        </MudItem>
+        <MudItem xs="12" md="8">
+            <MapPicker @bind-Latitude="Input.Latitude" @bind-Longitude="Input.Longitude" @bind-City="Input.City" />
+        </MudItem>
+        <MudItem xs="12" md="6">
+            <MudTextField @bind-Value="Input.VenueName" Label="@Language.T("Venue")" Variant="Variant.Outlined" />
+        </MudItem>
+        <MudItem xs="12" md="6">
+            <MudTextField @bind-Value="Input.Address" Label="@Language.T("Address")" Variant="Variant.Outlined" />
+        </MudItem>
+        <MudItem xs="12" md="6">
+            <MudDatePicker Date="_startDate" DateChanged="OnStartDateChanged" Label="@Language.T("StartDate")" Variant="Variant.Outlined" />
+        </MudItem>
+        <MudItem xs="12" md="6">
+            <MudDatePicker Date="_endDate" DateChanged="OnEndDateChanged" Label="@Language.T("EndDate")" Variant="Variant.Outlined" />
+        </MudItem>
+        <MudItem xs="12" md="4">
+            <MudSelect T="string" @bind-Value="Input.AgeRangeForMale" Label="@Language.T("AgeRangeForMale")" Variant="Variant.Outlined">
+                @foreach (var range in AgeRanges)
+                {
+                    <MudSelectItem Value="@range">@range</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" md="4">
+            <MudSelect T="string" @bind-Value="Input.AgeRangeForFemale" Label="@Language.T("AgeRangeForFemale")" Variant="Variant.Outlined">
+                @foreach (var range in AgeRanges)
+                {
+                    <MudSelectItem Value="@range">@range</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" md="4">
+            <MudSelect T="long" Value="Input.EventTypeId" ValueChanged="OnEventTypeChanged" Label="@Language.T("EventType")" Variant="Variant.Outlined">
+                @foreach (var eventType in EventTypes)
+                {
+                    <MudSelectItem Value="@eventType.Id">@eventType.Name</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" md="3">
+            <MudNumericField @bind-Value="Input.MaleCapacity" Label="@Language.T("MaleCapacity")" Variant="Variant.Outlined" Min="1" />
+        </MudItem>
+        <MudItem xs="12" md="3">
+            <MudNumericField @bind-Value="Input.FemaleCapacity" Label="@Language.T("FemaleCapacity")" Variant="Variant.Outlined" Min="1" />
+        </MudItem>
+        <MudItem xs="12" md="3">
+            <MudNumericField @bind-Value="Input.NumberOfChatAllowed" Label="@Language.T("NumberOfChatAllowed")" Variant="Variant.Outlined" Min="0" />
+        </MudItem>
+        <MudItem xs="12" md="3">
+            <MudNumericField @bind-Value="Input.TicketPrice" Label="@Language.T("TicketPrice")" Variant="Variant.Outlined" Min="0" />
+        </MudItem>
+        <MudItem xs="12">
+            <MudText Typo="Typo.caption" Color="Color.Secondary">@Language.T("Images")</MudText>
+            <EventImageSlots @bind-Image1="Input.EventImage1" @bind-Image2="Input.EventImage2" @bind-Image3="Input.EventImage3" />
+        </MudItem>
+        <MudItem xs="12">
+            <RichTextEditor @bind-Value="Input.EventDescriptionHtml" Label="@Language.T("Description")" />
+        </MudItem>
+        <MudItem xs="12">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Send" OnClick="SubmitAsync">
+                @SubmitText
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@code {
+    private static readonly string[] Countries = ["ایران"];
+    private static readonly string[] Cities = ["تهران", "شیراز", "اصفهان", "مشهد", "تبریز", "کرج"];
+    private static readonly string[] AgeRanges = ["20-30", "25-35", "30-40", "35-45", "40-50"];
+    private static readonly EventTypeOption[] EventTypes =
+    [
+        new(1, "دورهمی اجتماعی"),
+        new(2, "فرهنگی و هنری"),
+        new(3, "کافه و گفتگو"),
+        new(4, "شام رسمی"),
+        new(5, "طبیعت‌گردی سبک")
+    ];
+
+    private DateTime? _startDate;
+    private DateTime? _endDate;
+
+    [Parameter, EditorRequired]
+    public EventDraftInput Input { get; set; } = new();
+
+    [Parameter, EditorRequired]
+    public EventCallback<EventDraftInput> OnSubmit { get; set; }
+
+    [Parameter]
+    public string? TitleText { get; set; }
+
+    [Parameter]
+    public string? DescriptionText { get; set; }
+
+    [Parameter]
+    public string? SubmitButtonText { get; set; }
+
+    private string Title => TitleText ?? Language.T("CreateEvent");
+
+    private string Description => DescriptionText ?? Language.T("MockPlan");
+
+    private string SubmitText => SubmitButtonText ?? Language.T("SaveDraft");
+
+    protected override void OnParametersSet()
+    {
+        _startDate = Input.StartsAt.Date;
+        _endDate = Input.EndsAt.Date;
+    }
+
+    private void OnStartDateChanged(DateTime? value)
+    {
+        if (value is not null)
+        {
+            Input.StartsAt = new DateTimeOffset(value.Value.Date.AddHours(19), TimeSpan.Zero);
+        }
+    }
+
+    private void OnEndDateChanged(DateTime? value)
+    {
+        if (value is not null)
+        {
+            Input.EndsAt = new DateTimeOffset(value.Value.Date.AddHours(22), TimeSpan.Zero);
+        }
+    }
+
+    private void OnEventTypeChanged(long eventTypeId)
+    {
+        Input.EventTypeId = eventTypeId;
+        Input.EventType = EventTypes.First(item => item.Id == eventTypeId).Name;
+    }
+
+    private Task SubmitAsync() => OnSubmit.InvokeAsync(Input);
+
+    private sealed record EventTypeOption(long Id, string Name);
+}

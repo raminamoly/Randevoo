@@ -1,0 +1,14 @@
+@page
+@model Randevoo.AdminPanel.Pages.Account.ForbiddenModel
+@{
+    ViewData["Title"] = "Forbidden";
+    ViewData["UseShell"] = false;
+}
+
+<section class="auth-card glass-panel text-center">
+    <img src="~/images/logo.png" alt="Randevoo" class="auth-logo mx-auto mb-3" />
+    <h1 class="mb-2">Access denied</h1>
+    <p class="text-muted mb-4">This area is not available for your current role.</p>
+    <a asp-page="/Dashboard/Index" class="btn btn-primary">Go to Dashboard</a>
+</section>
+

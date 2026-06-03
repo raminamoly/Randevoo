@@ -1,0 +1,61 @@
+@inject LanguageState Language
+
+<div class="map-picker">
+    <div class="map-picker-header">
+        <MudText Typo="Typo.body2" Class="table-primary">@Language.T("MapPicker")</MudText>
+        <MudText Typo="Typo.caption" Color="Color.Secondary">@Language.T("SelectedLocation"): @City</MudText>
+    </div>
+    <div class="map-surface">
+        <div class="map-marker" style="@MarkerStyle"></div>
+        @foreach (var city in Cities)
+        {
+            <button type="button" class="map-city" style="@city.Style" @onclick="@(() => SelectCity(city))">@city.Name</button>
+        }
+    </div>
+    <MudText Typo="Typo.caption" Color="Color.Secondary">@Language.T("SelectOnMap")</MudText>
+</div>
+
+@code {
+    private static readonly CityLocation[] Cities =
+    [
+        new("تهران", 35.7219m, 51.3347m, "left:62%;top:34%"),
+        new("شیراز", 29.625m, 52.545m, "left:52%;top:72%"),
+        new("اصفهان", 32.6546m, 51.668m, "left:55%;top:55%"),
+        new("مشهد", 36.2605m, 59.6168m, "left:82%;top:31%"),
+        new("تبریز", 38.0962m, 46.2738m, "left:28%;top:18%"),
+        new("کرج", 35.8400m, 50.9391m, "left:58%;top:32%")
+    ];
+
+    [Parameter]
+    public decimal Latitude { get; set; }
+
+    [Parameter]
+    public EventCallback<decimal> LatitudeChanged { get; set; }
+
+    [Parameter]
+    public decimal Longitude { get; set; }
+
+    [Parameter]
+    public EventCallback<decimal> LongitudeChanged { get; set; }
+
+    [Parameter]
+    public string? City { get; set; }
+
+    [Parameter]
+    public EventCallback<string> CityChanged { get; set; }
+
+    private string MarkerStyle => Cities.FirstOrDefault(item => item.Name == City)?.Style ?? "left:62%;top:34%";
+
+    private async Task SelectCity(CityLocation city)
+    {
+        Latitude = city.Latitude;
+        Longitude = city.Longitude;
+        City = city.Name;
+
+        await LatitudeChanged.InvokeAsync(city.Latitude);
+        await LongitudeChanged.InvokeAsync(city.Longitude);
+        await CityChanged.InvokeAsync(city.Name);
+    }
+
+    private sealed record CityLocation(string Name, decimal Latitude, decimal Longitude, string Style);
+}

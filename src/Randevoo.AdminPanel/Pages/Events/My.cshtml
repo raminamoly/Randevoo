@@ -1,0 +1,48 @@
+@page
+@model Randevoo.AdminPanel.Pages.Events.MyModel
+@{
+    ViewData["Title"] = "My Events";
+}
+
+<section class="page-header">
+    <div>
+        <h1>My Events</h1>
+        <p>Draft and published events wait for admin approval whenever you change them.</p>
+    </div>
+    <a asp-page="/Events/Edit" class="btn btn-primary">Create event</a>
+</section>
+
+<div class="glass-panel p-4">
+    <div class="table-responsive">
+        <table class="table align-middle">
+            <thead>
+                <tr>
+                    <th>Event</th>
+                    <th>Start</th>
+                    <th>Status</th>
+                    <th>Review note</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model.Events)
+                {
+                    <tr>
+                        <td>
+                            <div class="fw-semibold">@item.DisplayTitle</div>
+                            <div class="text-muted small">@item.ActiveDraft.City</div>
+                        </td>
+                        <td>@PersianDateFormatter.Format(item.ActiveDraft.StartAtUtc, Model.IsRtl)</td>
+                        <td><span class="status-badge @Model.GetStatusClass(item.Status)">@item.Status</span></td>
+                        <td class="text-muted">@item.AdminReviewNote</td>
+                        <td class="text-end">
+                            <a asp-page="/Events/Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-secondary">Open</a>
+                            <a asp-page="/Events/Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary">Edit</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+

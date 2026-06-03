@@ -16,6 +16,46 @@ public sealed class MockEventsApiClient(ControlCenterMockData data) : IEventsApi
         return Task.FromResult<IReadOnlyList<EventSummary>>(events);
     }
 
+    public Task<EventSummary?> GetEventAsync(Guid eventId, CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(data.GetEvent(eventId));
+    }
+
+    public Task<EventSummary> CreatePlannerEventAsync(EventDraftInput input, CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(data.AddPlannerEvent(input));
+    }
+
+    public Task<EventSummary?> UpdatePlannerEventAsync(Guid eventId, EventDraftInput input, CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(data.UpdatePlannerEvent(eventId, input));
+    }
+
+    public Task<EventSummary?> ConfirmEventAsync(Guid eventId, decimal commissionPercent, CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(data.ConfirmEvent(eventId, commissionPercent));
+    }
+
+    public Task<EventSummary?> SetCommissionAsync(Guid eventId, decimal commissionPercent, CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(data.SetCommission(eventId, commissionPercent));
+    }
+
+    public Task<EventSummary?> OpenForSellAsync(Guid eventId, CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(data.OpenForSell(eventId));
+    }
+
+    public Task<EventSummary?> CloseForSellAsync(Guid eventId, CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(data.CloseForSell(eventId));
+    }
+
+    public Task<EventSummary?> CancelEventAsync(Guid eventId, CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(data.CancelEvent(eventId));
+    }
+
     public Task<IReadOnlyList<EventPlannerSummary>> GetEventPlannersAsync(CancellationToken cancellationToken = default)
     {
         return Task.FromResult(data.EventPlanners);

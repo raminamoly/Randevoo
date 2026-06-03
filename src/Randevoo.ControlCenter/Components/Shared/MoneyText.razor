@@ -1,6 +1,12 @@
-<span class="money-text">@Amount.ToString("C0")</span>
+@inject LanguageState Language
+
+<span class="money-text">@Text</span>
 
 @code {
     [Parameter]
     public decimal Amount { get; set; }
+
+    private string Text => Language.IsRtl
+        ? $"{PersianDateFormatter.ToPersianNumber(Amount.ToString("#,0"))} تومان"
+        : Amount.ToString("C0");
 }

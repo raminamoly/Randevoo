@@ -1,0 +1,50 @@
+@page
+@model Randevoo.AdminPanel.Pages.Events.IndexModel
+@{
+    ViewData["Title"] = "Events";
+}
+
+<section class="page-header">
+    <div>
+        <h1>Events</h1>
+        <p>Admin review queue and live event registry.</p>
+    </div>
+    <a asp-page="/Events/Edit" class="btn btn-primary">Create event</a>
+</section>
+
+<div class="glass-panel p-4">
+    <div class="table-responsive">
+        <table class="table align-middle">
+            <thead>
+                <tr>
+                    <th>Event</th>
+                    <th>Planner</th>
+                    <th>Start</th>
+                    <th>Status</th>
+                    <th>Commission</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model.Events)
+                {
+                    <tr>
+                        <td>
+                            <div class="fw-semibold">@item.DisplayTitle</div>
+                            <div class="text-muted small">@item.ActiveDraft.City, @item.ActiveDraft.Country</div>
+                        </td>
+                        <td>@item.PlannerName</td>
+                        <td>@PersianDateFormatter.Format(item.ActiveDraft.StartAtUtc, Model.IsRtl)</td>
+                        <td><span class="status-badge @Model.GetStatusClass(item.Status)">@item.Status</span></td>
+                        <td>@item.ActiveDraft.OrganizerCommissionPercent%</td>
+                        <td class="text-end">
+                            <a asp-page="/Events/Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-secondary">Review</a>
+                            <a asp-page="/Events/Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary">Edit</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+

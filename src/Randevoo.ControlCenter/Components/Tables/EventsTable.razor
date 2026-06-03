@@ -1,28 +1,47 @@
 @using Randevoo.ControlCenter.Models.Events
+@inject LanguageState Language
 
 <MudTable Items="Events" Hover="true" Dense="true" Elevation="0" Class="data-table">
     <HeaderContent>
-        <MudTh>Event</MudTh>
-        <MudTh>Planner</MudTh>
-        <MudTh>Starts</MudTh>
-        <MudTh>Status</MudTh>
-        <MudTh>Tickets</MudTh>
-        <MudTh>Sales</MudTh>
+        <MudTh>@Language.T("Event")</MudTh>
+        <MudTh>@Language.T("Planner")</MudTh>
+        <MudTh>@Language.T("Starts")</MudTh>
+        <MudTh>@Language.T("Status")</MudTh>
+        <MudTh>@Language.T("Tickets")</MudTh>
+        <MudTh>@Language.T("Sales")</MudTh>
+        <MudTh>@Language.T("Actions")</MudTh>
     </HeaderContent>
     <RowTemplate>
-        <MudTd DataLabel="Event">
+        <MudTd DataLabel="@Language.T("Event")">
             <MudText Typo="Typo.body2" Class="table-primary">@context.Title</MudText>
             <MudText Typo="Typo.caption" Color="Color.Secondary">@context.City</MudText>
         </MudTd>
-        <MudTd DataLabel="Planner">@context.PlannerName</MudTd>
-        <MudTd DataLabel="Starts"><DateTimeText Value="@context.StartsAt" /></MudTd>
-        <MudTd DataLabel="Status"><StatusBadge Status="@context.Status" /></MudTd>
-        <MudTd DataLabel="Tickets">@context.TicketsSold / @context.Capacity</MudTd>
-        <MudTd DataLabel="Sales"><MoneyText Amount="@context.GrossSales" /></MudTd>
+        <MudTd DataLabel="@Language.T("Planner")">@context.PlannerName</MudTd>
+        <MudTd DataLabel="@Language.T("Starts")"><DateTimeText Value="@context.StartsAt" /></MudTd>
+        <MudTd DataLabel="@Language.T("Status")"><StatusBadge Status="@context.Status" /></MudTd>
+        <MudTd DataLabel="@Language.T("Tickets")">@context.TicketsSold / @(context.MaleCapacity + context.FemaleCapacity)</MudTd>
+        <MudTd DataLabel="@Language.T("Sales")"><MoneyText Amount="@context.GrossSales" /></MudTd>
+        <MudTd DataLabel="@Language.T("Actions")">
+            <MudButton Size="Size.Small" Variant="Variant.Text" Href="@($"/events/{context.Id}")" StartIcon="@Icons.Material.Filled.OpenInNew">
+                @Language.T("Open")
+            </MudButton>
+            @if (ShowApprovalAction && context.Status == EventStatus.PendingAdminReview)
+            {
+                <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary" OnClick="@(() => OnApprove.InvokeAsync(context.Id))">
+                    @Language.T("Confirm")
+                </MudButton>
+            }
+        </MudTd>
     </RowTemplate>
 </MudTable>
 
 @code {
     [Parameter, EditorRequired]
     public IReadOnlyList<EventSummary> Events { get; set; } = [];
+
+    [Parameter]
+    public bool ShowApprovalAction { get; set; }
+
+    [Parameter]
+    public EventCallback<Guid> OnApprove { get; set; }
 }

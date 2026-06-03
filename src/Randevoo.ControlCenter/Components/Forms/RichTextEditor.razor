@@ -1,0 +1,62 @@
+@inject LanguageState Language
+
+<div class="rich-editor">
+    <div class="rich-toolbar">
+        <MudButton Size="Size.Small" Variant="Variant.Outlined" OnClick="@(() => Wrap("strong"))">@Language.T("Bold")</MudButton>
+        <MudButton Size="Size.Small" Variant="Variant.Outlined" OnClick="@(() => Wrap("em"))">@Language.T("Italic")</MudButton>
+        <MudButton Size="Size.Small" Variant="Variant.Outlined" OnClick="MakeList">@Language.T("BulletList")</MudButton>
+        <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="ClearFormat">@Language.T("ClearFormat")</MudButton>
+    </div>
+
+    <MudTextField T="string" Value="Value" ValueChanged="@((string value) => OnValueChanged(value))" Label="@Label" Variant="Variant.Outlined" Lines="5" />
+
+    <div class="rich-preview">
+        <MudText Typo="Typo.caption" Color="Color.Secondary">@Language.T("RichTextPreview")</MudText>
+        <div class="rich-preview-body">@((MarkupString)Value)</div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public string Label { get; set; } = string.Empty;
+
+    [Parameter]
+    public string Value { get; set; } = string.Empty;
+
+    [Parameter]
+    public EventCallback<string> ValueChanged { get; set; }
+
+    private Task OnValueChanged(string value)
+    {
+        Value = value;
+        return ValueChanged.InvokeAsync(value);
+    }
+
+    private Task Wrap(string tag)
+    {
+        Value = $"<{tag}>{Value}</{tag}>";
+        return ValueChanged.InvokeAsync(Value);
+    }
+
+    private Task MakeList()
+    {
+        var items = Value
+            .Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .DefaultIfEmpty(Value)
+            .Select(item => $"<li>{item}</li>");
+
+        Value = $"<ul>{string.Join(string.Empty, items)}</ul>";
+        return ValueChanged.InvokeAsync(Value);
+    }
+
+    private Task ClearFormat()
+    {
+        Value = Value
+            .Replace("<strong>", string.Empty).Replace("</strong>", string.Empty)
+            .Replace("<em>", string.Empty).Replace("</em>", string.Empty)
+            .Replace("<ul>", string.Empty).Replace("</ul>", string.Empty)
+            .Replace("<li>", string.Empty).Replace("</li>", Environment.NewLine);
+
+        return ValueChanged.InvokeAsync(Value);
+    }
+}

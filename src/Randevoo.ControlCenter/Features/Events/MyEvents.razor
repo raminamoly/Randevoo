@@ -2,8 +2,12 @@
 @attribute [ControlCenterAuthorize(ControlCenterRole.EventPlanner)]
 @using Randevoo.ControlCenter.Services.ApiClients
 @inject IEventsApiClient EventsClient
+@inject LanguageState Language
+@inject ISnackbar Snackbar
 
-<PageHeader Title="My events" Kicker="EventPlanner workspace" Description="Events owned by the current mock EventPlanner account." />
+<PageHeader Title="@Language.T("MyEvents")" Kicker="@Language.T("PlannerWorkspace")" Description="@Language.T("MyEventsDescription")" />
+
+<EventCreateForm Input="_draft" OnSubmit="CreateEventAsync" />
 
 @if (_events is null)
 {
@@ -11,7 +15,7 @@
 }
 else if (_events.Count == 0)
 {
-    <EmptyState Title="No planner events" />
+    <EmptyState Title="@Language.T("NoEvents")" />
 }
 else
 {
@@ -20,9 +24,18 @@ else
 
 @code {
     private IReadOnlyList<EventSummary>? _events;
+    private EventDraftInput _draft = new();
 
     protected override async Task OnInitializedAsync()
     {
+        _events = await EventsClient.GetEventsAsync(ControlCenterRole.EventPlanner);
+    }
+
+    private async Task CreateEventAsync(EventDraftInput input)
+    {
+        await EventsClient.CreatePlannerEventAsync(input);
+        Snackbar.Add(Language.T("EventCreated"), Severity.Success);
+        _draft = new();
         _events = await EventsClient.GetEventsAsync(ControlCenterRole.EventPlanner);
     }
 }

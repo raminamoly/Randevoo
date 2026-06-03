@@ -1,0 +1,78 @@
+@inject LanguageState Language
+
+<div class="event-image-slots">
+    @for (var index = 0; index < 3; index++)
+    {
+        var slot = index;
+        <div class="event-image-slot">
+            <MudText Typo="Typo.caption" Color="Color.Secondary">@Language.T($"Image{slot + 1}")</MudText>
+            <div class="event-image-box">
+                @if (!string.IsNullOrWhiteSpace(Values[slot]))
+                {
+                    @if (Values[slot]!.StartsWith("/", StringComparison.Ordinal))
+                    {
+                        <img src="@Values[slot]" alt="@Language.T($"Image{slot + 1}")" />
+                    }
+                    else
+                    {
+                        <MudIcon Icon="@Icons.Material.Filled.Image" />
+                        <span>@Values[slot]</span>
+                    }
+                }
+                else
+                {
+                    <MudIcon Icon="@Icons.Material.Filled.AddPhotoAlternate" />
+                    <span>@Language.T("ImagePreview")</span>
+                }
+            </div>
+            <label class="slot-upload-button">
+                <MudIcon Icon="@Icons.Material.Filled.Upload" />
+                <span>@Language.T("UploadImages")</span>
+                <InputFile OnChange="@((args) => OnImageChanged(slot, args))" accept=".jpg,.jpeg,.png,.webp,.jfif" />
+            </label>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public string? Image1 { get; set; }
+
+    [Parameter]
+    public EventCallback<string?> Image1Changed { get; set; }
+
+    [Parameter]
+    public string? Image2 { get; set; }
+
+    [Parameter]
+    public EventCallback<string?> Image2Changed { get; set; }
+
+    [Parameter]
+    public string? Image3 { get; set; }
+
+    [Parameter]
+    public EventCallback<string?> Image3Changed { get; set; }
+
+    private string?[] Values => [Image1, Image2, Image3];
+
+    private async Task OnImageChanged(int slot, InputFileChangeEventArgs args)
+    {
+        var file = args.File;
+        var value = $"mock-upload://{file.Name}";
+        switch (slot)
+        {
+            case 0:
+                Image1 = value;
+                await Image1Changed.InvokeAsync(value);
+                break;
+            case 1:
+                Image2 = value;
+                await Image2Changed.InvokeAsync(value);
+                break;
+            case 2:
+                Image3 = value;
+                await Image3Changed.InvokeAsync(value);
+                break;
+        }
+    }
+}

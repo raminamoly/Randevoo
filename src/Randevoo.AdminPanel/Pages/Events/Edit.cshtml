@@ -1,0 +1,174 @@
+@page "{id?}"
+@model Randevoo.AdminPanel.Pages.Events.EditModel
+@{
+    ViewData["Title"] = Model.IsNew ? "Create event" : "Edit event";
+}
+
+<section class="page-header">
+    <div>
+        <h1>@(Model.IsNew ? "Create event" : "Edit event")</h1>
+        <p>@(Model.IsPlanner ? "Your changes will return to admin review before they appear publicly." : "Admin edits can go live immediately.")</p>
+    </div>
+    @if (!Model.IsNew)
+    {
+        <a asp-page="/Events/Details" asp-route-id="@Model.ExistingEventId" class="btn btn-outline-secondary">Open profile</a>
+    }
+</section>
+
+<form method="post" enctype="multipart/form-data" class="glass-panel p-4 event-form">
+    <input type="hidden" asp-for="ExistingEventId" />
+    <input type="hidden" asp-for="Input.Image1" />
+    <input type="hidden" asp-for="Input.Image2" />
+    <input type="hidden" asp-for="Input.Image3" />
+
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label asp-for="Input.Title" class="form-label">Title</label>
+                    <input asp-for="Input.Title" class="form-control" />
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="Input.VenueName" class="form-label">Venue name</label>
+                    <input asp-for="Input.VenueName" class="form-control" />
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="Input.Country" class="form-label">Country</label>
+                    <select asp-for="Input.Country" class="form-select" asp-items="Model.CountryOptions"></select>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="Input.City" class="form-label">City</label>
+                    <select asp-for="Input.City" class="form-select" asp-items="Model.CityOptions"></select>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="Input.Region" class="form-label">Region</label>
+                    <input asp-for="Input.Region" class="form-control" />
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="Input.Address" class="form-label">Address</label>
+                    <input asp-for="Input.Address" class="form-control" />
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="Input.AgeRangeForMale" class="form-label">Age range for male</label>
+                    <select asp-for="Input.AgeRangeForMale" class="form-select" asp-items="Model.AgeRangeOptions"></select>
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="Input.AgeRangeForFemale" class="form-label">Age range for female</label>
+                    <select asp-for="Input.AgeRangeForFemale" class="form-select" asp-items="Model.AgeRangeOptions"></select>
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="Input.EventType" class="form-label">Event type</label>
+                    <select asp-for="Input.EventType" class="form-select" asp-items="Model.EventTypeOptions"></select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Start date and time</label>
+                    @if (Model.IsRtl)
+                    {
+                        <input asp-for="StartAtText" class="form-control jalali-picker" />
+                    }
+                    else
+                    {
+                        <input asp-for="StartAtText" class="form-control" type="datetime-local" />
+                    }
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">End date and time</label>
+                    @if (Model.IsRtl)
+                    {
+                        <input asp-for="EndAtText" class="form-control jalali-picker" />
+                    }
+                    else
+                    {
+                        <input asp-for="EndAtText" class="form-control" type="datetime-local" />
+                    }
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="Input.TicketPrice" class="form-label">Ticket price</label>
+                    <input asp-for="Input.TicketPrice" class="form-control" type="number" step="1000" />
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="Input.CapacityMale" class="form-label">Male capacity</label>
+                    <input asp-for="Input.CapacityMale" class="form-control" type="number" />
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="Input.CapacityFemale" class="form-label">Female capacity</label>
+                    <input asp-for="Input.CapacityFemale" class="form-control" type="number" />
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="Input.ChatLimit" class="form-label">Chat limit</label>
+                    <input asp-for="Input.ChatLimit" class="form-control" type="number" />
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="Input.Latitude" class="form-label">Latitude</label>
+                    <input asp-for="Input.Latitude" class="form-control" step="0.0001" />
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="Input.Longitude" class="form-label">Longitude</label>
+                    <input asp-for="Input.Longitude" class="form-control" step="0.0001" />
+                </div>
+                <div class="col-12">
+                    <label class="form-label">Description</label>
+                    <div class="editor-toolbar mb-2">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-editor-command="bold"><i class="bi bi-type-bold"></i></button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-editor-command="italic"><i class="bi bi-type-italic"></i></button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-editor-command="underline"><i class="bi bi-type-underline"></i></button>
+                    </div>
+                    <textarea asp-for="Input.DescriptionHtml" class="form-control rich-text" rows="10"></textarea>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Image 1</label>
+                    <input type="file" class="form-control image-input" asp-for="Image1File" accept="image/*" data-target="#preview1" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Image 2</label>
+                    <input type="file" class="form-control image-input" asp-for="Image2File" accept="image/*" data-target="#preview2" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Image 3</label>
+                    <input type="file" class="form-control image-input" asp-for="Image3File" accept="image/*" data-target="#preview3" />
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="sticky-panel">
+                <div class="glass-panel p-3 mb-3">
+                    <div class="fw-semibold mb-2">Preview images</div>
+                    <div class="event-image-grid">
+                        <img id="preview1" src="@Model.Input.Image1" alt="Image 1" />
+                        <img id="preview2" src="@Model.Input.Image2" alt="Image 2" />
+                        <img id="preview3" src="@Model.Input.Image3" alt="Image 3" />
+                    </div>
+                </div>
+
+                <div class="glass-panel p-3 mb-3">
+                    <div class="fw-semibold mb-2">Approval state</div>
+                    <p class="text-muted small mb-2">Current status: <span class="status-badge @Model.StatusClass">@Model.StatusText</span></p>
+                    @if (!string.IsNullOrWhiteSpace(Model.ReviewNote))
+                    {
+                        <div class="alert alert-warning border-0 mb-0">@Model.ReviewNote</div>
+                    }
+                </div>
+
+                @if (Model.IsPlanner)
+                {
+                    <div class="alert alert-info border-0">
+                        Planner changes create a new approval request for admin review.
+                    </div>
+                }
+
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-primary btn-lg">Save event</button>
+                    <a asp-page="/Events/My" class="btn btn-outline-secondary">Cancel</a>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</form>
+
+@section Scripts {
+    <script>
+        window.randevooEventEdit = { isRtl: @(Model.IsRtl.ToString().ToLowerInvariant()) };
+    </script>
+}

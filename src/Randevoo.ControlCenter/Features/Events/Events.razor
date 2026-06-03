@@ -2,8 +2,10 @@
 @attribute [ControlCenterAuthorize(ControlCenterRole.Admin)]
 @using Randevoo.ControlCenter.Services.ApiClients
 @inject IEventsApiClient EventsClient
+@inject LanguageState Language
+@inject ISnackbar Snackbar
 
-<PageHeader Title="Events" Kicker="Admin operations" Description="Mock overview of events managed through the WebApi client surface." />
+<PageHeader Title="@Language.T("Events")" Kicker="@Language.T("AdminOperations")" Description="@Language.T("EventsDescription")" />
 
 @if (_events is null)
 {
@@ -11,7 +13,7 @@
 }
 else if (_events.Count == 0)
 {
-    <EmptyState Title="No events" />
+    <EmptyState Title="@Language.T("NoEvents")" />
 }
 else
 {
@@ -25,4 +27,5 @@ else
     {
         _events = await EventsClient.GetEventsAsync(ControlCenterRole.Admin);
     }
+
 }

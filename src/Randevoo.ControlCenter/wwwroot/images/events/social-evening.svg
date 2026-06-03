@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360" role="img" aria-label="Social evening">
+  <rect width="640" height="360" fill="#f7f4ea"/>
+  <circle cx="196" cy="134" r="58" fill="#1f4e79"/>
+  <circle cx="320" cy="120" r="64" fill="#f2b705"/>
+  <circle cx="444" cy="134" r="58" fill="#b91c1c"/>
+  <rect x="110" y="232" width="420" height="38" rx="8" fill="#0f172a"/>
+  <text x="178" y="257" fill="#fff" font-family="Arial" font-size="22" font-weight="700">Curated Social Evening</text>
+</svg>

@@ -1,0 +1,135 @@
+@page "{id:guid}"
+@model Randevoo.AdminPanel.Pages.Events.DetailsModel
+@{
+    ViewData["Title"] = "Event profile";
+}
+
+<section class="page-header">
+    <div>
+        <h1>@Model.Event.DisplayTitle</h1>
+        <p>@Model.Event.ActiveDraft.City, @Model.Event.ActiveDraft.Country</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-page="/Events/Edit" asp-route-id="@Model.Event.Id" class="btn btn-outline-primary">Edit</a>
+        <a asp-page="/Events/My" class="btn btn-outline-secondary">Back</a>
+    </div>
+</section>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="glass-panel p-4 mb-4">
+            <div class="event-gallery">
+                <img src="@Model.Event.ActiveDraft.Image1" alt="Image 1" />
+                <img src="@Model.Event.ActiveDraft.Image2" alt="Image 2" />
+                <img src="@Model.Event.ActiveDraft.Image3" alt="Image 3" />
+            </div>
+        </div>
+
+        <div class="glass-panel p-4 mb-4">
+            <h2 class="section-title">Event profile</h2>
+            <div class="row g-3">
+                <div class="col-md-6"><div class="detail-block"><span>Venue</span><strong>@Model.Event.ActiveDraft.VenueName</strong></div></div>
+                <div class="col-md-6"><div class="detail-block"><span>Address</span><strong>@Model.Event.ActiveDraft.Address</strong></div></div>
+                <div class="col-md-4"><div class="detail-block"><span>Country</span><strong>@Model.Event.ActiveDraft.Country</strong></div></div>
+                <div class="col-md-4"><div class="detail-block"><span>City</span><strong>@Model.Event.ActiveDraft.City</strong></div></div>
+                <div class="col-md-4"><div class="detail-block"><span>Region</span><strong>@Model.Event.ActiveDraft.Region</strong></div></div>
+                <div class="col-md-4"><div class="detail-block"><span>Event type</span><strong>@Model.Event.ActiveDraft.EventType</strong></div></div>
+                <div class="col-md-4"><div class="detail-block"><span>Male age</span><strong>@Model.Event.ActiveDraft.AgeRangeForMale</strong></div></div>
+                <div class="col-md-4"><div class="detail-block"><span>Female age</span><strong>@Model.Event.ActiveDraft.AgeRangeForFemale</strong></div></div>
+                <div class="col-md-4"><div class="detail-block"><span>Start</span><strong>@PersianDateFormatter.Format(Model.Event.ActiveDraft.StartAtUtc, Model.IsRtl)</strong></div></div>
+                <div class="col-md-4"><div class="detail-block"><span>End</span><strong>@PersianDateFormatter.Format(Model.Event.ActiveDraft.EndAtUtc, Model.IsRtl)</strong></div></div>
+                <div class="col-md-4"><div class="detail-block"><span>Ticket price</span><strong>@DisplayFormatter.Money(Model.Event.ActiveDraft.TicketPrice, Model.IsRtl)</strong></div></div>
+                <div class="col-md-4"><div class="detail-block"><span>Commission</span><strong>@Model.Event.ActiveDraft.OrganizerCommissionPercent%</strong></div></div>
+                <div class="col-md-4"><div class="detail-block"><span>Male capacity</span><strong>@Model.Event.ActiveDraft.CapacityMale</strong></div></div>
+                <div class="col-md-4"><div class="detail-block"><span>Female capacity</span><strong>@Model.Event.ActiveDraft.CapacityFemale</strong></div></div>
+                <div class="col-md-4"><div class="detail-block"><span>Chat limit</span><strong>@Model.Event.ActiveDraft.ChatLimit</strong></div></div>
+                <div class="col-md-12">
+                    <div class="detail-block">
+                        <span>Description</span>
+                        <div class="rich-text-preview">@Html.Raw(Model.Event.ActiveDraft.DescriptionHtml)</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @if (Model.Event.Pending is not null)
+        {
+            <div class="glass-panel p-4">
+                <h2 class="section-title">Pending changes</h2>
+                <div class="alert alert-warning border-0">
+                    Submitted by @Model.Event.Pending.SubmittedByName on @PersianDateFormatter.Format(Model.Event.Pending.SubmittedAtUtc, Model.IsRtl)
+                </div>
+                <div class="change-list">
+                    @foreach (var change in Model.PendingChanges)
+                    {
+                        <div class="change-item">@change</div>
+                    }
+                </div>
+                @if (!string.IsNullOrWhiteSpace(Model.Event.Pending.ReviewNote))
+                {
+                    <div class="mt-3 alert alert-secondary border-0">@Model.Event.Pending.ReviewNote</div>
+                }
+            </div>
+        }
+    </div>
+
+    <div class="col-lg-4">
+        <div class="glass-panel p-4 sticky-panel">
+            <h2 class="section-title">Status</h2>
+            <div class="mb-3">
+                <span class="status-badge @Model.StatusClass">@Model.Event.Status</span>
+            </div>
+            <p class="text-muted">Planner: @Model.Event.PlannerName</p>
+            <p class="text-muted">Updated: @PersianDateFormatter.Format(Model.Event.UpdatedAtUtc, Model.IsRtl)</p>
+            @if (!string.IsNullOrWhiteSpace(Model.Event.AdminReviewNote))
+            {
+                <div class="alert alert-info border-0">@Model.Event.AdminReviewNote</div>
+            }
+
+            @if (Model.IsAdmin)
+            {
+                <form method="post" asp-page-handler="Approve" class="mb-2">
+                    <input type="hidden" name="id" value="@Model.Event.Id" />
+                    <div class="mb-2">
+                        <label class="form-label">Commission percent</label>
+                        <input name="commissionPercent" class="form-control" value="@Model.Event.ActiveDraft.OrganizerCommissionPercent" />
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Admin note</label>
+                        <textarea name="note" class="form-control" rows="3"></textarea>
+                    </div>
+                    <button class="btn btn-success w-100 mb-2" type="submit">Approve</button>
+                </form>
+
+                <form method="post" asp-page-handler="Reject" class="mb-2">
+                    <input type="hidden" name="id" value="@Model.Event.Id" />
+                    <div class="mb-2">
+                        <label class="form-label">Reject note</label>
+                        <textarea name="note" class="form-control" rows="3"></textarea>
+                    </div>
+                    <button class="btn btn-outline-danger w-100" type="submit">Reject</button>
+                </form>
+
+                <form method="post" asp-page-handler="OpenSale" class="d-grid gap-2 mb-2">
+                    <input type="hidden" name="id" value="@Model.Event.Id" />
+                    <button class="btn btn-outline-primary" type="submit">Open for sale</button>
+                </form>
+
+                <form method="post" asp-page-handler="CloseSale" class="d-grid gap-2 mb-2">
+                    <input type="hidden" name="id" value="@Model.Event.Id" />
+                    <button class="btn btn-outline-secondary" type="submit">Close sale</button>
+                </form>
+
+                <form method="post" asp-page-handler="Cancel" class="d-grid gap-2">
+                    <input type="hidden" name="id" value="@Model.Event.Id" />
+                    <button class="btn btn-outline-dark" type="submit">Cancel event</button>
+                </form>
+            }
+            else
+            {
+                <a asp-page="/Events/Edit" asp-route-id="@Model.Event.Id" class="btn btn-primary w-100">Edit draft</a>
+            }
+        </div>
+    </div>
+</div>
+

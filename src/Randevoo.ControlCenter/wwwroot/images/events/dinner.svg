@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360" role="img" aria-label="Formal dinner">
+  <rect width="640" height="360" fill="#0f172a"/>
+  <rect x="120" y="120" width="400" height="128" rx="18" fill="#f2b705"/>
+  <circle cx="212" cy="184" r="34" fill="#fffaf0"/>
+  <circle cx="320" cy="184" r="34" fill="#fffaf0"/>
+  <circle cx="428" cy="184" r="34" fill="#fffaf0"/>
+  <text x="216" y="306" fill="#fff" font-family="Arial" font-size="24" font-weight="700">Formal Dinner</text>
+</svg>

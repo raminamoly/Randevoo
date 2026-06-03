@@ -1,14 +1,17 @@
 @inject MockAuthState AuthState
+@inject LanguageState Language
+@implements IDisposable
 
 <MudThemeProvider Theme="_theme" />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
 
+<div dir="@Language.Direction" lang="@Language.LanguageCode" class="@ShellClass">
 <MudLayout Class="control-shell">
     @if (AuthState.IsAuthenticated)
     {
-        <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="0" Breakpoint="Breakpoint.Md" Class="control-drawer">
+        <MudDrawer @bind-Open="_drawerOpen" Anchor="@DrawerAnchor" ClipMode="DrawerClipMode.Always" Elevation="0" Breakpoint="Breakpoint.Md" Class="control-drawer">
             <SidebarNav />
         </MudDrawer>
         <Topbar OnMenuClicked="ToggleDrawer" />
@@ -20,6 +23,7 @@
         </MudContainer>
     </MudMainContent>
 </MudLayout>
+</div>
 
 <div id="blazor-error-ui" data-nosnippet>
     An unhandled error has occurred.
@@ -37,21 +41,22 @@
     {
         PaletteLight = new PaletteLight
         {
-            Primary = "#1f4e79",
-            Secondary = "#0f766e",
-            Tertiary = "#6d6a75",
-            Background = "#f6f7f9",
+            Primary = "#f2b705",
+            Secondary = "#1f4e79",
+            Tertiary = "#b91c1c",
+            Background = "#f7f4ea",
             Surface = "#ffffff",
             AppbarBackground = "#ffffff",
-            DrawerBackground = "#111827",
-            DrawerText = "#d1d5db",
-            TextPrimary = "#111827",
-            TextSecondary = "#64748b",
-            Divider = "#e5e7eb"
+            DrawerBackground = "#0f172a",
+            DrawerText = "#f8fafc",
+            DrawerIcon = "#f2b705",
+            TextPrimary = "#162033",
+            TextSecondary = "#5c6472",
+            Divider = "#e7dfc8"
         },
         Typography = new Typography
         {
-            Default = new DefaultTypography { FontFamily = ["Inter", "Segoe UI", "Arial", "sans-serif"] },
+            Default = new DefaultTypography { FontFamily = ["Inter", "AnjomanFaNum", "BYekan", "Segoe UI", "Arial", "sans-serif"] },
             H4 = new H4Typography { FontWeight = "700" },
             H5 = new H5Typography { FontWeight = "700" },
             H6 = new H6Typography { FontWeight = "700" }
@@ -61,5 +66,21 @@
     private void ToggleDrawer()
     {
         _drawerOpen = !_drawerOpen;
+    }
+
+    private string ShellClass => Language.IsRtl ? "language-shell is-rtl" : "language-shell is-ltr";
+
+    private Anchor DrawerAnchor => Language.IsRtl ? Anchor.Right : Anchor.Left;
+
+    protected override void OnInitialized()
+    {
+        Language.Changed += OnLanguageChanged;
+    }
+
+    private void OnLanguageChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        Language.Changed -= OnLanguageChanged;
     }
 }
