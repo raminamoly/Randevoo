@@ -9,10 +9,10 @@ public sealed class ControlCenterMockData
 {
     private readonly List<EventSummary> _events =
     [
-        new(Guid.Parse("19733337-708f-45af-9c4d-01574dd8ac10"), "دورهمی عصرانه تهران", "Nava Events", "ایران", "تهران", "منطقه ۳", 35.7219m, 51.3347m, "باغ‌رووف جردن", "تهران، جردن، خیابان گلستان", "رویداد حضوری با پذیرش کنترل‌شده، ظرفیت تفکیک‌شده و نظرسنجی بعد از برنامه.", DateTimeOffset.Now.AddDays(3), DateTimeOffset.Now.AddDays(3).AddHours(3), 1, "دورهمی اجتماعی", EventStatus.OnSale, true, false, 10m, 40, 40, 5, 54, 135_000_000m, 2_500_000m, "25-35", "20-30", "/images/events/tehran-rooftop.svg", "/images/events/social-evening.svg", null, DateTimeOffset.Now.AddDays(-12), DateTimeOffset.Now.AddDays(-10)),
-        new(Guid.Parse("8db13d6a-22d2-4d1e-b5ee-9d7b15c09ad2"), "شب گالری شیراز", "Orange Room", "ایران", "شیراز", "حافظیه", 29.625m, 52.545m, "گالری حافظ", "شیراز، محدوده حافظیه", "یک شب فرهنگی در فضای گالری با زمان‌بندی ورود و ظرفیت محدود.", DateTimeOffset.Now.AddDays(8), DateTimeOffset.Now.AddDays(8).AddHours(2), 2, "فرهنگی و هنری", EventStatus.Scheduled, false, false, 12m, 21, 21, 3, 19, 47_500_000m, 2_500_000m, "25-35", "25-35", "/images/events/gallery-night.svg", null, null, DateTimeOffset.Now.AddDays(-6), DateTimeOffset.Now.AddDays(-5)),
-        new(Guid.Parse("b9376c3c-0ad2-4767-b074-3367a2cd9917"), "کافه‌نشینی اصفهان", "Nava Events", "ایران", "اصفهان", "چهارباغ", 32.6546m, 51.668m, "استودیو بلوکاپ", "اصفهان، چهارباغ عباسی", "رویداد کوچک برگزارکننده که منتظر تایید ادمین برای شروع فروش است.", DateTimeOffset.Now.AddDays(15), DateTimeOffset.Now.AddDays(15).AddHours(2), 3, "کافه و گفتگو", EventStatus.PendingAdminReview, false, false, 10m, 18, 18, 4, 0, 0m, 1_800_000m, "30-40", "25-35", "/images/events/coffee-circle.svg", null, null, DateTimeOffset.Now.AddDays(-1), null),
-        new(Guid.Parse("ef5d0283-38d9-4b4c-9704-2d6f65d912b1"), "شام مدیران تهران", "North Star Gatherings", "ایران", "تهران", "ونک", 35.7575m, 51.409m, "سالن اطلس", "تهران، میدان ونک", "رویداد بسته‌شده که به عنوان سابقه عملیاتی نگهداری می‌شود.", DateTimeOffset.Now.AddDays(-2), DateTimeOffset.Now.AddDays(-2).AddHours(3), 4, "شام رسمی", EventStatus.Closed, false, false, 15m, 14, 14, 2, 28, 196_000_000m, 7_000_000m, "35-45", "30-40", "/images/events/dinner.svg", null, null, DateTimeOffset.Now.AddDays(-25), DateTimeOffset.Now.AddDays(-23))
+        new(Guid.Parse("19733337-708f-45af-9c4d-01574dd8ac10"), "دورهمی عصرانه تهران", "Nava Events", "ایران", "تهران", "منطقه ۳", 35.7219m, 51.3347m, "باغ‌رووف جردن", "تهران، جردن، خیابان گلستان", "رویداد حضوری با پذیرش کنترل‌شده، ظرفیت تفکیک‌شده و نظرسنجی بعد از برنامه.", DateTimeOffset.Now.AddDays(3), DateTimeOffset.Now.AddDays(3).AddHours(3), 1, "دورهمی اجتماعی", EventStatus.OnSale, true, false, 10m, 40, 40, 5, 54, 135_000_000m, 2_500_000m, "WithoutLimit", "25-35", "20-30", "/images/events/tehran-rooftop.svg", "/images/events/social-evening.svg", null, DateTimeOffset.Now.AddDays(-12), DateTimeOffset.Now.AddDays(-10)),
+        new(Guid.Parse("8db13d6a-22d2-4d1e-b5ee-9d7b15c09ad2"), "شب گالری شیراز", "Orange Room", "ایران", "شیراز", "حافظیه", 29.625m, 52.545m, "گالری حافظ", "شیراز، محدوده حافظیه", "یک شب فرهنگی در فضای گالری با زمان‌بندی ورود و ظرفیت محدود.", DateTimeOffset.Now.AddDays(8), DateTimeOffset.Now.AddDays(8).AddHours(2), 2, "فرهنگی و هنری", EventStatus.Scheduled, false, false, 12m, 21, 21, 3, 19, 47_500_000m, 2_500_000m, "BachelorOrHigher", "25-35", "25-35", "/images/events/gallery-night.svg", null, null, DateTimeOffset.Now.AddDays(-6), DateTimeOffset.Now.AddDays(-5)),
+        new(Guid.Parse("b9376c3c-0ad2-4767-b074-3367a2cd9917"), "کافه‌نشینی اصفهان", "Nava Events", "ایران", "اصفهان", "چهارباغ", 32.6546m, 51.668m, "استودیو بلوکاپ", "اصفهان، چهارباغ عباسی", "رویداد کوچک برگزارکننده که منتظر تایید ادمین برای شروع فروش است.", DateTimeOffset.Now.AddDays(15), DateTimeOffset.Now.AddDays(15).AddHours(2), 3, "کافه و گفتگو", EventStatus.PendingAdminReview, false, false, 10m, 18, 18, 4, 0, 0m, 1_800_000m, "DiplomaOrHigher", "30-40", "25-35", "/images/events/coffee-circle.svg", null, null, DateTimeOffset.Now.AddDays(-1), null),
+        new(Guid.Parse("ef5d0283-38d9-4b4c-9704-2d6f65d912b1"), "شام مدیران تهران", "North Star Gatherings", "ایران", "تهران", "ونک", 35.7575m, 51.409m, "سالن اطلس", "تهران، میدان ونک", "رویداد بسته‌شده که به عنوان سابقه عملیاتی نگهداری می‌شود.", DateTimeOffset.Now.AddDays(-2), DateTimeOffset.Now.AddDays(-2).AddHours(3), 4, "شام رسمی", EventStatus.Closed, false, false, 15m, 14, 14, 2, 28, 196_000_000m, 7_000_000m, "MasterOrHigher", "35-45", "30-40", "/images/events/dinner.svg", null, null, DateTimeOffset.Now.AddDays(-25), DateTimeOffset.Now.AddDays(-23))
     ];
 
     public IReadOnlyList<DashboardMetric> AdminMetrics { get; } =
@@ -68,6 +68,7 @@ public sealed class ControlCenterMockData
             0,
             0m,
             input.TicketPrice,
+            input.EducationLevelRestriction,
             input.AgeRangeForMale,
             input.AgeRangeForFemale,
             input.EventImage1,
@@ -113,6 +114,7 @@ public sealed class ControlCenterMockData
             FemaleCapacity = input.FemaleCapacity,
             NumberOfChatAllowed = input.NumberOfChatAllowed,
             TicketPrice = input.TicketPrice,
+            EducationLevelRestriction = input.EducationLevelRestriction,
             AgeRangeForMale = input.AgeRangeForMale,
             AgeRangeForFemale = input.AgeRangeForFemale,
             EventImage1 = input.EventImage1,

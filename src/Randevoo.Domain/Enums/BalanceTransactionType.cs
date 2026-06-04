@@ -7,5 +7,7 @@ public enum BalanceTransactionType
     TicketRefund = 2,
     EventPlannerIncome = 3,
     PlatformCommission = 4,
-    EmergencyRemovalRefund = 5
+    EmergencyRemovalRefund = 5,
+    PlannerWithdrawalPayout = 6,
+    EventPlannerIncomeReversal = 7
 }

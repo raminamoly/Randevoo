@@ -7,6 +7,6 @@
     public decimal Amount { get; set; }
 
     private string Text => Language.IsRtl
-        ? $"{PersianDateFormatter.ToPersianNumber(Amount.ToString("#,0"))} تومان"
-        : Amount.ToString("C0");
+        ? $"{PersianDateFormatter.ToPersianNumber(Amount.ToString("#,0"))} ریال"
+        : $"{Amount:#,0} IRR";
 }

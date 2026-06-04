@@ -1,46 +1,85 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.EntityFrameworkCore;
 using Randevoo.AdminPanel.Models.Auth;
-using Randevoo.AdminPanel.Services.MockData;
+using Randevoo.AdminPanel.Services.ApiClients;
+using Randevoo.Domain.Enums;
+using Randevoo.Infrastructure.Data;
 
 namespace Randevoo.AdminPanel.Services.Auth;
 
 public sealed class MockAuthService
 {
-    private readonly AdminPanelStore _store;
+    private const string DemoVerificationCode = "123456";
+    private readonly RandevooDbContext _db;
     private readonly IHttpContextAccessor _httpContextAccessor;
 
-    public MockAuthService(AdminPanelStore store, IHttpContextAccessor httpContextAccessor)
+    public MockAuthService(RandevooDbContext db, IHttpContextAccessor httpContextAccessor)
     {
-        _store = store;
+        _db = db;
         _httpContextAccessor = httpContextAccessor;
     }
 
-    public Task<MockAuthResult> VerifyLoginAsync(string mobile, string verificationCode, AdminRole requestedRole)
+    public async Task<MockAuthResult> RequestCodeAsync(string mobile, AdminRole requestedRole)
     {
-        var user = _store.FindUserByMobile(mobile);
-        if (user is null)
+        var normalizedMobile = (mobile ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(normalizedMobile))
         {
-            return Task.FromResult(MockAuthResult.Fail("این شماره موبایل هنوز ثبت نشده است."));
+            return MockAuthResult.Fail("شماره موبایل را وارد کنید.");
         }
 
-        if (user.Role != requestedRole)
+        if (requestedRole == AdminRole.SupportTeam)
         {
-            return Task.FromResult(MockAuthResult.Fail("نقش انتخاب شده با این حساب هماهنگ نیست."));
+            return MockAuthResult.Fail("نقش تیم پشتیبانی در نسخه واقعی پنل فعال نشده است.");
+        }
+
+        var user = await _db.Users
+            .Include(item => item.Profile)
+            .FirstOrDefaultAsync(item => item.MobileNumber == normalizedMobile);
+
+        if (user is null)
+        {
+            return MockAuthResult.Fail("این شماره موبایل هنوز در پایگاه داده ثبت نشده است.");
+        }
+
+        if (user.Role == UserRole.EndUser)
+        {
+            return MockAuthResult.Fail("این حساب برای پنل مدیریت دسترسی ندارد.");
+        }
+
+        if (DatabaseModelMapper.ToAdminRole(user.Role) != requestedRole)
+        {
+            return MockAuthResult.Fail("نقش انتخاب شده با این حساب هماهنگ نیست.");
         }
 
         if (!user.IsActive)
         {
-            return Task.FromResult(MockAuthResult.Fail("این حساب غیرفعال شده است."));
+            return MockAuthResult.Fail("این حساب غیرفعال شده است.");
+        }
+
+        return MockAuthResult.Ok(DatabaseModelMapper.ToAdminUser(user));
+    }
+
+    public async Task<MockAuthResult> VerifyLoginAsync(string mobile, string verificationCode, AdminRole requestedRole)
+    {
+        var result = await RequestCodeAsync(mobile, requestedRole);
+        if (!result.Success || result.User is null)
+        {
+            return result;
         }
 
         if (string.IsNullOrWhiteSpace(verificationCode))
         {
-            return Task.FromResult(MockAuthResult.Fail("کد تایید را وارد کنید."));
+            return MockAuthResult.Fail("کد تایید را وارد کنید.");
         }
 
-        return Task.FromResult(MockAuthResult.Ok(user));
+        if (!string.Equals(verificationCode.Trim(), DemoVerificationCode, StringComparison.Ordinal))
+        {
+            return MockAuthResult.Fail("کد تایید آزمایشی معتبر نیست.");
+        }
+
+        return result;
     }
 
     public async Task SignInAsync(MockUser user)

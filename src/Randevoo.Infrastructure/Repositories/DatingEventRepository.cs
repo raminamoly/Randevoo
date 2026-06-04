@@ -19,6 +19,10 @@ public class DatingEventRepository : IDatingEventRepository
         return _db.DatingEvents
             .Include(e => e.EventPlannerUser)
             .Include(e => e.EventType)
+            .Include(e => e.Country)
+            .Include(e => e.City)
+            .Include(e => e.EventTags)
+            .ThenInclude(eventTag => eventTag.Tag)
             .FirstOrDefaultAsync(e => e.Id == id, cancellationToken);
     }
 
@@ -27,6 +31,10 @@ public class DatingEventRepository : IDatingEventRepository
         return _db.DatingEvents
             .Include(e => e.EventPlannerUser)
             .Include(e => e.EventType)
+            .Include(e => e.Country)
+            .Include(e => e.City)
+            .Include(e => e.EventTags)
+            .ThenInclude(eventTag => eventTag.Tag)
             .Include(e => e.Tickets)
             .FirstOrDefaultAsync(e => e.Id == id, cancellationToken);
     }
@@ -45,6 +53,10 @@ public class DatingEventRepository : IDatingEventRepository
     {
         var query = _db.DatingEvents
             .Include(e => e.EventType)
+            .Include(e => e.Country)
+            .Include(e => e.City)
+            .Include(e => e.EventTags)
+            .ThenInclude(eventTag => eventTag.Tag)
             .Include(e => e.Tickets)
             .Where(e => e.IsOpenForSell && !e.IsCancelled)
             .AsQueryable();
@@ -52,7 +64,7 @@ public class DatingEventRepository : IDatingEventRepository
         if (afterId is not null)
             query = query.Where(e => e.Id > afterId);
         if (!string.IsNullOrWhiteSpace(city))
-            query = query.Where(e => e.Location.City == city);
+            query = query.Where(e => e.City != null && e.City.Name == city);
         if (dateFrom is not null)
             query = query.Where(e => e.DateTimeStart >= dateFrom);
         if (dateTo is not null)

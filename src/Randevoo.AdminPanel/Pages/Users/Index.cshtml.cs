@@ -24,23 +24,24 @@ public class IndexModel : PageModel
     public UserUpsertInput Input { get; set; } = new();
 
     [BindProperty(SupportsGet = true)]
-    public Guid? Id { get; set; }
+    public long? Id { get; set; }
 
     public IReadOnlyList<MockUser> Users { get; private set; } = Array.Empty<MockUser>();
 
-    public Guid? UserId
+    public long? UserId
     {
         get => Id;
         set => Id = value;
     }
 
-    public SelectList RoleOptions => new(Enum.GetValues<AdminRole>().Select(role => new { Value = role, Text = DisplayFormatter.Role(role) }), "Value", "Text");
+    public SelectList RoleOptions => new(new[] { AdminRole.Admin, AdminRole.EventPlanner }
+        .Select(role => new { Value = role, Text = DisplayFormatter.Role(role) }), "Value", "Text");
 
     public async Task<IActionResult> OnGetAsync()
     {
         Users = await _usersApi.GetUsersAsync();
 
-        if (Id is Guid userId)
+        if (Id is long userId)
         {
             var user = await _usersApi.GetUserAsync(userId);
             if (user is null)

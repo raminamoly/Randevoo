@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Randevoo.AdminPanel.Models.Auth;
 using Randevoo.AdminPanel.Services.Auth;
-using Randevoo.AdminPanel.Services.MockData;
 using Randevoo.AdminPanel.Services.State;
 
 namespace Randevoo.AdminPanel.Pages.Account;
@@ -12,13 +11,11 @@ namespace Randevoo.AdminPanel.Pages.Account;
 [AllowAnonymous]
 public class LoginModel : PageModel
 {
-    private readonly AdminPanelStore _store;
     private readonly MockAuthService _authService;
     private readonly CurrentSessionState _session;
 
-    public LoginModel(AdminPanelStore store, MockAuthService authService, CurrentSessionState session)
+    public LoginModel(MockAuthService authService, CurrentSessionState session)
     {
-        _store = store;
         _authService = authService;
         _session = session;
     }
@@ -35,7 +32,7 @@ public class LoginModel : PageModel
 
     public bool IsRtl => _session.IsRtl;
 
-    public SelectList RoleOptions => new(Enum.GetValues<AdminRole>()
+    public SelectList RoleOptions => new(new[] { AdminRole.Admin, AdminRole.EventPlanner }
         .Select(role => new { Value = role, Text = DisplayFormatter.Role(role) }), "Value", "Text");
 
     public IActionResult OnGet()
@@ -57,29 +54,16 @@ public class LoginModel : PageModel
         return Page();
     }
 
-    public IActionResult OnPostRequestCode()
+    public async Task<IActionResult> OnPostRequestCodeAsync()
     {
         Input ??= new LoginRequest();
-        var mobile = (Input.Mobile ?? string.Empty).Trim();
-        if (string.IsNullOrWhiteSpace(mobile))
-        {
-            ErrorMessage = "شماره موبایل را وارد کنید.";
-            Step = 1;
-            return Page();
-        }
+        var result = await _authService.RequestCodeAsync(
+            (Input.Mobile ?? string.Empty).Trim(),
+            Input.Role);
 
-        var user = _store.FindUserByMobile(mobile);
-        if (user is null)
+        if (!result.Success || result.User is null)
         {
-            ErrorMessage = "این شماره موبایل هنوز ثبت نشده است.";
-            Step = 1;
-            Input.Role = AdminRole.Admin;
-            return Page();
-        }
-
-        if (user.Role != Input.Role)
-        {
-            ErrorMessage = "نقش انتخاب شده با این حساب هماهنگ نیست.";
+            ErrorMessage = result.ErrorMessage ?? "دریافت کد تایید انجام نشد.";
             Step = 1;
             return Page();
         }

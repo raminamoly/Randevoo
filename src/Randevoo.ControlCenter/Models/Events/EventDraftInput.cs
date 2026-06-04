@@ -40,6 +40,8 @@ public sealed class EventDraftInput
 
     public decimal TicketPrice { get; set; } = 2_500_000m;
 
+    public string EducationLevelRestriction { get; set; } = "WithoutLimit";
+
     public decimal EventPlannerCommissionPercent { get; set; } = 10m;
 
     public string? EventImage1 { get; set; }
@@ -73,6 +75,7 @@ public sealed class EventDraftInput
             FemaleCapacity = item.FemaleCapacity,
             NumberOfChatAllowed = item.NumberOfChatAllowed,
             TicketPrice = item.TicketPrice,
+            EducationLevelRestriction = item.EducationLevelRestriction,
             EventPlannerCommissionPercent = item.EventPlannerCommissionPercent,
             EventImage1 = item.EventImage1,
             EventImage2 = item.EventImage2,

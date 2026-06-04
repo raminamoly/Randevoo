@@ -34,7 +34,7 @@ public class EventModel : PageModel
         Images = EventImages
     };
 
-    public async Task<IActionResult> OnGetAsync(Guid id)
+    public async Task<IActionResult> OnGetAsync(long id)
     {
         var @event = await _eventsApi.GetEventAsync(id);
         if (@event is null || !@event.IsVisibleToEndUsers)
@@ -43,10 +43,7 @@ public class EventModel : PageModel
         }
 
         Event = @event;
-        if (Guid.TryParse(@event.PlannerId, out var plannerId))
-        {
-            PlannerProfile = await _plannerProfilesApi.GetByUserIdAsync(plannerId);
-        }
+        PlannerProfile = await _plannerProfilesApi.GetByUserIdAsync(@event.PlannerUserId);
 
         return Page();
     }

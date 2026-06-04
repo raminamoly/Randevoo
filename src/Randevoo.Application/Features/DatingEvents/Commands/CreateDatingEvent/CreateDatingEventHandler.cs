@@ -57,16 +57,46 @@ public class CreateDatingEventHandler : IRequestHandler<CreateDatingEventCommand
             input.FemaleCapacity,
             input.NumberOfChatAllowed,
             input.TicketPrice,
+            input.EducationLevelRestriction,
             input.Tags,
             input.EventImage1,
             input.EventImage2,
             input.EventImage3,
             input.EventDescriptionHtml,
             input.EventPlannerCommissionPercent ?? 10);
+        var (countryId, cityId) = MapLocationIds(input.Country, input.City);
+        datingEvent.SetLocationLookup(countryId, cityId);
 
         await _events.AddAsync(datingEvent, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         _logger.LogInformation("Event planner {EventPlannerUserId} created dating event {EventId}", user.Id, datingEvent.Id);
         return DatingEventDto.FromEntity(datingEvent);
+    }
+
+    private static (long? CountryId, long? CityId) MapLocationIds(string countryName, string cityName)
+    {
+        var countryId = countryName switch
+        {
+            "ایران" or "Iran" => 1L,
+            "امارات متحده عربی" or "UAE" or "United Arab Emirates" => 2L,
+            "ترکیه" or "Turkey" => 3L,
+            _ => (long?)null
+        };
+
+        var cityId = (countryId, cityName) switch
+        {
+            (1, "تهران" or "Tehran") => 1L,
+            (1, "مشهد" or "Mashhad") => 2L,
+            (1, "شیراز" or "Shiraz") => 3L,
+            (1, "اصفهان" or "Isfahan") => 4L,
+            (1, "تبریز" or "Tabriz") => 5L,
+            (2, "دبی" or "Dubai") => 6L,
+            (2, "ابوظبی" or "Abu Dhabi") => 7L,
+            (3, "استانبول" or "Istanbul") => 8L,
+            (3, "آنکارا" or "Ankara") => 9L,
+            _ => (long?)null
+        };
+
+        return (countryId, cityId);
     }
 }

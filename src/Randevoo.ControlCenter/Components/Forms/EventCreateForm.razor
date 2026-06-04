@@ -67,6 +67,14 @@
                 }
             </MudSelect>
         </MudItem>
+        <MudItem xs="12" md="4">
+            <MudSelect T="string" @bind-Value="Input.EducationLevelRestriction" Label="@Language.T("EducationRestriction")" Variant="Variant.Outlined">
+                @foreach (var option in EducationRestrictions)
+                {
+                    <MudSelectItem Value="@option.Value">@option.Label</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
         <MudItem xs="12" md="3">
             <MudNumericField @bind-Value="Input.MaleCapacity" Label="@Language.T("MaleCapacity")" Variant="Variant.Outlined" Min="1" />
         </MudItem>
@@ -105,6 +113,14 @@
         new(3, "کافه و گفتگو"),
         new(4, "شام رسمی"),
         new(5, "طبیعت‌گردی سبک")
+    ];
+    private static readonly EducationOption[] EducationRestrictions =
+    [
+        new("WithoutLimit", "بدون محدودیت"),
+        new("DiplomaOrHigher", "دیپلم به بالا"),
+        new("BachelorOrHigher", "لیسانس به بالا"),
+        new("MasterOrHigher", "فوق لیسانس به بالا"),
+        new("ProfessionalDoctorateOrPhD", "دکترای حرفه ای / PHD / پزشک / دندان پزشک")
     ];
 
     private DateTime? _startDate;
@@ -162,4 +178,5 @@
     private Task SubmitAsync() => OnSubmit.InvokeAsync(Input);
 
     private sealed record EventTypeOption(long Id, string Name);
+    private sealed record EducationOption(string Value, string Label);
 }

@@ -32,8 +32,8 @@ public class PrivacyDataReader : IPrivacyDataReader
                 p.DateOfBirth,
                 p.EducationLevel,
                 p.Smoking,
-                Country = p.Location.Country,
-                City = p.Location.City,
+                Country = p.Country == null ? string.Empty : p.Country.Name,
+                City = p.City == null ? string.Empty : p.City.Name,
                 p.Location.Region
             })
             .FirstOrDefaultAsync(cancellationToken);

@@ -86,7 +86,9 @@ public class ProfileModel : PageModel
             Role = current.Role,
             IsActive = current.IsActive
         });
-        TempData["PlannerProfileSaved"] = "پروفایل برگزارکننده ذخیره شد.";
+        TempData["PlannerProfileSaved"] = Profile.HasPendingChanges
+            ? "تغییرات پروفایل برای تایید مدیر ثبت شد و هنوز منتشر نشده است."
+            : "پروفایل برگزارکننده ذخیره شد.";
         return RedirectToPage();
     }
 

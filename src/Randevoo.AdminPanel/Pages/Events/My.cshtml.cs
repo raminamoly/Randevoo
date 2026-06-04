@@ -34,27 +34,27 @@ public class MyModel : PageModel
         Events = await _eventsApi.GetEventsAsync(current);
     }
 
-    public async Task<IActionResult> OnPostOpenSaleAsync(Guid id)
+    public async Task<IActionResult> OnPostOpenSaleAsync(long id)
     {
         var current = _session.CurrentUser ?? throw new InvalidOperationException("کاربر جاری شناسایی نشد.");
         await _eventsApi.ToggleSaleAsync(id, current, true);
-        StatusMessage = "درخواست باز شدن فروش رویداد ثبت شد.";
+        StatusMessage = "فروش رویداد باز شد.";
         return RedirectToPage();
     }
 
-    public async Task<IActionResult> OnPostCloseSaleAsync(Guid id)
+    public async Task<IActionResult> OnPostCloseSaleAsync(long id)
     {
         var current = _session.CurrentUser ?? throw new InvalidOperationException("کاربر جاری شناسایی نشد.");
         await _eventsApi.ToggleSaleAsync(id, current, false);
-        StatusMessage = "درخواست بسته شدن فروش رویداد ثبت شد.";
+        StatusMessage = "فروش رویداد بسته شد.";
         return RedirectToPage();
     }
 
-    public async Task<IActionResult> OnPostCancelAsync(Guid id)
+    public async Task<IActionResult> OnPostCancelAsync(long id)
     {
         var current = _session.CurrentUser ?? throw new InvalidOperationException("کاربر جاری شناسایی نشد.");
         await _eventsApi.CancelAsync(id, current);
-        StatusMessage = "درخواست لغو رویداد ثبت شد.";
+        StatusMessage = "رویداد لغو شد.";
         return RedirectToPage();
     }
 

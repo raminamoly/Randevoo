@@ -1,0 +1,146 @@
+@page
+@model Randevoo.AdminPanel.Pages.Finance.MyModel
+@{
+    ViewData["Title"] = "مالی من";
+}
+
+<section class="page-header">
+    <div>
+        <h1>مالی من</h1>
+        <p>خلاصه درآمد کمیسیون رویدادها، تراکنش ها و درخواست های تسویه حساب.</p>
+    </div>
+</section>
+
+@if (!string.IsNullOrWhiteSpace(Model.StatusMessage))
+{
+    <div class="alert alert-success border-0 mb-4">@Model.StatusMessage</div>
+}
+
+<div asp-validation-summary="ModelOnly" class="alert alert-danger border-0 mb-4"></div>
+
+<section class="stats-grid">
+    <div class="stat-card glass-panel">
+        <div class="stat-label">موجودی فعلی</div>
+        <div class="stat-value">@DisplayFormatter.Money(Model.Finance.CurrentBalance, Model.IsRtl)</div>
+    </div>
+    <div class="stat-card glass-panel">
+        <div class="stat-label">کل درآمد کمیسیون</div>
+        <div class="stat-value">@DisplayFormatter.Money(Model.Finance.TotalCommissionIncome, Model.IsRtl)</div>
+    </div>
+    <div class="stat-card glass-panel">
+        <div class="stat-label">در انتظار تسویه</div>
+        <div class="stat-value">@DisplayFormatter.Money(Model.Finance.PendingWithdrawalAmount, Model.IsRtl)</div>
+    </div>
+    <div class="stat-card glass-panel">
+        <div class="stat-label">قابل برداشت</div>
+        <div class="stat-value">@DisplayFormatter.Money(Model.Finance.AvailableWithdrawalAmount, Model.IsRtl)</div>
+    </div>
+</section>
+
+<div class="row g-4 mt-1">
+    <div class="col-lg-8">
+        <div class="glass-panel p-4 mb-4">
+            <h2 class="section-title">درآمد رویدادها</h2>
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead>
+                        <tr>
+                            <th>رویداد</th>
+                            <th>زمان شروع</th>
+                            <th>بلیت فروش رفته</th>
+                            <th>فروش کل</th>
+                            <th>سهم شما</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.Finance.Events)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="fw-semibold">@item.EventTitle</div>
+                                    <div class="text-muted small">کمیسیون برگزارکننده: @DisplayFormatter.Percent(item.PlannerCommissionPercent)</div>
+                                </td>
+                                <td>@PersianDateFormatter.Format(item.StartAtUtc, Model.IsRtl)</td>
+                                <td>@DisplayFormatter.Count(item.TicketsSold)</td>
+                                <td>@DisplayFormatter.Money(item.GrossTicketSales, Model.IsRtl)</td>
+                                <td class="fw-semibold">@DisplayFormatter.Money(item.PlannerIncome, Model.IsRtl)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            @if (Model.Finance.Events.Count == 0)
+            {
+                <div class="empty-state">هنوز درآمد کمیسیونی برای رویدادهای شما ثبت نشده است.</div>
+            }
+        </div>
+
+        <div class="glass-panel p-4">
+            <h2 class="section-title">تراکنش های کمیسیون</h2>
+            <div class="finance-card-list">
+                @foreach (var item in Model.Finance.Transactions)
+                {
+                    <article class="finance-transaction-card">
+                        <div>
+                            <div class="fw-semibold">@item.EventTitle</div>
+                            <div class="text-muted small">@item.Description</div>
+                            <div class="text-muted small">@PersianDateFormatter.FormatDateTime(item.CreatedAtUtc, Model.IsRtl)</div>
+                        </div>
+                        <div class="text-end">
+                            <span class="status-badge @(item.Amount >= 0 ? "status-approved" : "status-closed")">@DisplayFormatter.TransactionType(item.Type)</span>
+                            <div class="finance-amount @(item.Amount >= 0 ? "positive" : "negative")">@DisplayFormatter.Money(item.Amount, Model.IsRtl)</div>
+                        </div>
+                    </article>
+                }
+            </div>
+            @if (Model.Finance.Transactions.Count == 0)
+            {
+                <div class="empty-state">هنوز تراکنشی برای نمایش وجود ندارد.</div>
+            }
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <form method="post" asp-page-handler="RequestWithdrawal" class="glass-panel p-4 mb-4 sticky-panel">
+            <h2 class="section-title">درخواست تسویه</h2>
+            <p class="text-muted small">درخواست شما برای مدیر ارسال می شود و بعد از تایید، پرداخت ثبت خواهد شد.</p>
+            <div class="mb-3">
+                <label asp-for="Input.Amount" class="form-label">مبلغ برداشت</label>
+                <input asp-for="Input.Amount" class="form-control" type="number" min="1" step="1000" />
+                <span asp-validation-for="Input.Amount" class="text-danger small"></span>
+                <div class="help-tip">حداکثر قابل برداشت: @DisplayFormatter.Money(Model.Finance.AvailableWithdrawalAmount, Model.IsRtl)</div>
+            </div>
+            <button type="submit" class="btn btn-primary w-100" disabled="@(Model.Finance.AvailableWithdrawalAmount <= 0)">ثبت درخواست تسویه</button>
+        </form>
+
+        <div class="glass-panel p-4">
+            <h2 class="section-title">درخواست های تسویه</h2>
+            <div class="finance-card-list compact">
+                @foreach (var item in Model.Finance.Withdrawals)
+                {
+                    <article class="finance-withdrawal-card">
+                        <div class="d-flex justify-content-between gap-2">
+                            <strong>@DisplayFormatter.Money(item.Amount, Model.IsRtl)</strong>
+                            <span class="status-badge @Model.WithdrawalStatusClass(item.Status)">@DisplayFormatter.WithdrawalStatus(item.Status)</span>
+                        </div>
+                        <div class="text-muted small mt-2">ثبت: @PersianDateFormatter.FormatDateTime(item.RequestedAtUtc, Model.IsRtl)</div>
+                        @if (item.ReviewedAtUtc is not null)
+                        {
+                            <div class="text-muted small">بررسی: @PersianDateFormatter.FormatDateTime(item.ReviewedAtUtc.Value, Model.IsRtl)</div>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(item.ReviewNote))
+                        {
+                            <div class="finance-note">@item.ReviewNote</div>
+                        }
+                    </article>
+                }
+            </div>
+            @if (Model.Finance.Withdrawals.Count == 0)
+            {
+                <div class="empty-state">هنوز درخواست تسویه ای ثبت نشده است.</div>
+            }
+        </div>
+    </div>
+</div>
+
+<partial name="_ValidationScriptsPartial" />

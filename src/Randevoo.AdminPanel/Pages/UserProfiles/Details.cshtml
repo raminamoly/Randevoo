@@ -1,0 +1,111 @@
+@page "{userId:long}"
+@model Randevoo.AdminPanel.Pages.UserProfiles.DetailsModel
+@{
+    ViewData["Title"] = $"پروفایل {Model.Profile.DisplayName}";
+    var primaryImage = Model.Profile.Images.FirstOrDefault()?.ImageUrl ?? "/images/logo.png";
+}
+
+<section class="user-profile-hero glass-panel">
+    <div class="user-profile-hero-bg" style="background-image: url('@primaryImage')"></div>
+    <div class="user-profile-hero-content">
+        <div class="user-profile-avatar-wrap">
+            <img src="@primaryImage" alt="@Model.Profile.DisplayName" class="user-profile-avatar" />
+        </div>
+        <div class="user-profile-identity">
+            <div class="eyebrow">پروفایل کاربر</div>
+            <h1>@Model.Profile.DisplayName</h1>
+            <div class="user-profile-meta">
+                <span>@Model.Profile.GenderTitle</span>
+                <span>@DisplayFormatter.Count(Model.Profile.Age) ساله</span>
+                <span>@Model.Profile.City، @Model.Profile.Country</span>
+                @if (!string.IsNullOrWhiteSpace(Model.Profile.MobileNumber))
+                {
+                    <span dir="ltr">@Model.Profile.MobileNumber</span>
+                }
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="row g-4 mt-1">
+    <div class="col-xl-5">
+        <div class="glass-panel p-4">
+            <h2 class="section-title">گالری پروفایل</h2>
+            <div class="user-profile-gallery">
+                @foreach (var image in Model.Profile.Images)
+                {
+                    <figure class="user-profile-gallery-item @(image.IsPrimary ? "is-primary" : string.Empty)">
+                        <img src="@image.ImageUrl" alt="@Model.Profile.DisplayName" />
+                        @if (image.IsPrimary)
+                        {
+                            <figcaption>عکس اصلی</figcaption>
+                        }
+                    </figure>
+                }
+            </div>
+            @if (Model.Profile.Images.Count == 0)
+            {
+                <div class="empty-state">برای این کاربر عکسی ثبت نشده است.</div>
+            }
+        </div>
+    </div>
+
+    <div class="col-xl-7">
+        <div class="glass-panel p-4 mb-4">
+            <h2 class="section-title">اطلاعات اصلی</h2>
+            <div class="user-profile-facts">
+                <div class="detail-block"><span>تحصیلات</span><strong>@Model.Profile.EducationLevelTitle</strong></div>
+                <div class="detail-block"><span>قد</span><strong>@DisplayFormatter.Count(Model.Profile.HeightCentimeters) سانتی متر</strong></div>
+                <div class="detail-block"><span>ماه تولد</span><strong>@Model.Profile.BirthMonth</strong></div>
+                <div class="detail-block"><span>زودیاک</span><strong>@Model.Profile.ZodiacSign</strong></div>
+                <div class="detail-block"><span>سیگار</span><strong>@DisplayFormatter.Bool(Model.Profile.Smoking)</strong></div>
+                <div class="detail-block"><span>منطقه</span><strong>@(string.IsNullOrWhiteSpace(Model.Profile.Region) ? "ثبت نشده" : Model.Profile.Region)</strong></div>
+            </div>
+        </div>
+
+        <div class="glass-panel p-4 mb-4">
+            <h2 class="section-title">علایق</h2>
+            <div class="event-chip-list">
+                @foreach (var interest in Model.Profile.Interests)
+                {
+                    <span class="event-chip">@interest</span>
+                }
+            </div>
+            @if (Model.Profile.Interests.Count == 0)
+            {
+                <div class="empty-state">هنوز علاقه ای برای این کاربر ثبت نشده است.</div>
+            }
+        </div>
+
+        <div class="glass-panel p-4">
+            <h2 class="section-title">حضور در رویدادها</h2>
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead>
+                        <tr>
+                            <th>رویداد</th>
+                            <th>زمان</th>
+                            <th>قیمت</th>
+                            <th>وضعیت</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var ticket in Model.Profile.Tickets)
+                        {
+                            <tr>
+                                <td><a asp-page="/Events/Details" asp-route-id="@ticket.EventId">@ticket.EventTitle</a></td>
+                                <td>@PersianDateFormatter.FormatDateTime(ticket.StartAtUtc, Model.IsRtl)</td>
+                                <td>@DisplayFormatter.Money(ticket.Price, Model.IsRtl)</td>
+                                <td><span class="status-badge @Model.TicketStatusClass(ticket)">@Model.TicketStatus(ticket)</span></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            @if (Model.Profile.Tickets.Count == 0)
+            {
+                <div class="empty-state">هنوز خرید بلیتی برای این کاربر ثبت نشده است.</div>
+            }
+        </div>
+    </div>
+</div>

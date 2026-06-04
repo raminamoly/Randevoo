@@ -1,9 +1,12 @@
 using System.Security.Claims;
 using MediatR;
+using Randevoo.Application.Features.DatingEvents.Commands.ApproveEventParticipantSmsRequest;
 using Randevoo.Application.Features.DatingEvents.Commands.BuyDatingEventTicket;
 using Randevoo.Application.Features.DatingEvents.Commands.CancelDatingEvent;
 using Randevoo.Application.Features.DatingEvents.Commands.ChangeDatingEventLocation;
 using Randevoo.Application.Features.DatingEvents.Commands.CreateDatingEvent;
+using Randevoo.Application.Features.DatingEvents.Commands.RejectEventParticipantSmsRequest;
+using Randevoo.Application.Features.DatingEvents.Commands.RequestEventParticipantSms;
 using Randevoo.Application.Features.DatingEvents.Commands.SendSmsToParticipants;
 using Randevoo.Application.Features.DatingEvents.Commands.SetDatingEventCommission;
 using Randevoo.Application.Features.DatingEvents.Commands.SetDatingEventSaleStatus;
@@ -29,6 +32,8 @@ public static class DatingEventEndpoints
         group.MapPut("/{eventId:long}/commission", SetCommissionAsync).RequireAuthorization("AdminOnly").WithName("SetDatingEventCommission");
         group.MapPost("/{eventId:long}/tickets", BuyTicketAsync).RequireAuthorization("EndUserOnly").WithName("BuyDatingEventTicket");
         group.MapPost("/{eventId:long}/send-sms", SendSmsAsync).RequireAuthorization("EventPlannerOnly").WithName("SendSmsToParticipants");
+        group.MapPost("/sms-requests/{requestId:long}/approve", ApproveSmsRequestAsync).RequireAuthorization("AdminOnly").WithName("ApproveEventParticipantSmsRequest");
+        group.MapPost("/sms-requests/{requestId:long}/reject", RejectSmsRequestAsync).RequireAuthorization("AdminOnly").WithName("RejectEventParticipantSmsRequest");
         return group;
     }
 
@@ -151,8 +156,8 @@ public static class DatingEventEndpoints
     {
         try
         {
-            await sender.Send(new SendSmsToParticipantsCommand(EndpointHelpers.GetUserId(principal), eventId, request.Message), cancellationToken);
-            return Results.Accepted();
+            var requestId = await sender.Send(new RequestEventParticipantSmsCommand(EndpointHelpers.GetUserId(principal), eventId, request.Message, request.PlannedSendAtUtc), cancellationToken);
+            return Results.Accepted($"/api/dating-events/sms-requests/{requestId}", new { requestId });
         }
         catch (Exception ex) when (ex is DomainException or UnauthorizedAccessException)
         {
@@ -160,7 +165,39 @@ public static class DatingEventEndpoints
         }
     }
 
-    public record SendSmsRequest(string Message);
+    private static async Task<IResult> ApproveSmsRequestAsync(long requestId, ReviewSmsRequestRequest request, ClaimsPrincipal principal, ISender sender, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var queuedRecipients = await sender.Send(new ApproveEventParticipantSmsRequestCommand(
+                EndpointHelpers.GetUserId(principal),
+                requestId,
+                request.ApprovedMessage,
+                request.PlannedSendAtUtc,
+                request.Note), cancellationToken);
+            return Results.Ok(new { queuedRecipients });
+        }
+        catch (Exception ex) when (ex is DomainException or UnauthorizedAccessException)
+        {
+            return EndpointHelpers.ToProblem(ex);
+        }
+    }
+
+    private static async Task<IResult> RejectSmsRequestAsync(long requestId, ReviewSmsRequestRequest request, ClaimsPrincipal principal, ISender sender, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await sender.Send(new RejectEventParticipantSmsRequestCommand(EndpointHelpers.GetUserId(principal), requestId, request.Note ?? string.Empty), cancellationToken);
+            return Results.NoContent();
+        }
+        catch (Exception ex) when (ex is DomainException or UnauthorizedAccessException)
+        {
+            return EndpointHelpers.ToProblem(ex);
+        }
+    }
+
+    public record SendSmsRequest(string Message, DateTime? PlannedSendAtUtc);
+    public record ReviewSmsRequestRequest(string ApprovedMessage, DateTime? PlannedSendAtUtc, string? Note);
     public record ChangeLocationRequest(string Country, string City, string? Region, decimal Latitude, decimal Longitude, string Address);
     public record SetCommissionRequest(decimal CommissionPercent);
 }

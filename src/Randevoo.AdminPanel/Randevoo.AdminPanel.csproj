@@ -6,4 +6,10 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Randevoo.Application\Randevoo.Application.csproj" />
+    <ProjectReference Include="..\Randevoo.Domain\Randevoo.Domain.csproj" />
+    <ProjectReference Include="..\Randevoo.Infrastructure\Randevoo.Infrastructure.csproj" />
+  </ItemGroup>
+
 </Project>

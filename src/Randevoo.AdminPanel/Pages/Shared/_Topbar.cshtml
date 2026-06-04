@@ -16,13 +16,26 @@
     </div>
 
     <div class="topbar-actions">
-        <span class="user-chip">
-            <i class="bi bi-person-circle"></i>
-            <span>@(user?.FullName ?? "میهمان")</span>
-            <small>@role</small>
-        </span>
-        <a class="btn btn-outline-dark btn-sm" asp-page="/Account/Logout">
-            <i class="bi bi-box-arrow-right ms-1"></i>خروج
-        </a>
+        <div class="dropdown">
+            <button class="btn topbar-user-toggle dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <span class="user-chip">
+                    <i class="bi bi-person-circle"></i>
+                    <span>
+                        <strong>@(user?.FullName ?? "میهمان")</strong>
+                        <small>@role</small>
+                    </span>
+                </span>
+            </button>
+            <div class="dropdown-menu dropdown-menu-end user-menu shadow-sm border-0">
+                <div class="user-menu-summary">
+                    <div class="fw-semibold">@(user?.FullName ?? "میهمان")</div>
+                    <div class="text-muted small">@role</div>
+                </div>
+                <div class="dropdown-divider"></div>
+                <a class="dropdown-item" asp-page="/Account/Logout">
+                    <i class="bi bi-box-arrow-right ms-2"></i>خروج از حساب
+                </a>
+            </div>
+        </div>
     </div>
 </header>

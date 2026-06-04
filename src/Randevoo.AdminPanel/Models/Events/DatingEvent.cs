@@ -2,15 +2,19 @@ namespace Randevoo.AdminPanel.Models.Events;
 
 public sealed class DatingEvent
 {
-    public Guid Id { get; set; } = Guid.NewGuid();
+    public long Id { get; set; }
 
-    public string PlannerId { get; set; } = string.Empty;
+    public long PlannerUserId { get; set; }
 
     public string PlannerName { get; set; } = string.Empty;
 
     public EventDraftInput Live { get; set; } = new();
 
     public EventDraftState? Pending { get; set; }
+
+    public List<EventSmsRequest> SmsRequests { get; set; } = new();
+
+    public List<EventChangeLogEntry> ChangeLog { get; set; } = new();
 
     public EventApprovalState Status { get; set; } = EventApprovalState.Draft;
 
@@ -30,4 +34,3 @@ public sealed class DatingEvent
 
     public EventDraftInput ActiveDraft => Pending?.Draft ?? Live;
 }
-

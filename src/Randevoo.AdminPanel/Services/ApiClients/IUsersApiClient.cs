@@ -7,8 +7,7 @@ public interface IUsersApiClient
 {
     Task<IReadOnlyList<MockUser>> GetUsersAsync(CancellationToken cancellationToken = default);
 
-    Task<MockUser?> GetUserAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<MockUser?> GetUserAsync(long id, CancellationToken cancellationToken = default);
 
-    Task<MockUser> UpsertUserAsync(UserUpsertInput input, Guid? existingUserId = null, CancellationToken cancellationToken = default);
+    Task<MockUser> UpsertUserAsync(UserUpsertInput input, long? existingUserId = null, CancellationToken cancellationToken = default);
 }
-

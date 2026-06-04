@@ -49,26 +49,31 @@
                         <td>@PersianDateFormatter.Format(item.ActiveDraft.StartAtUtc, Model.IsRtl)</td>
                         <td><span class="status-badge @Model.GetStatusClass(item.Status)">@DisplayFormatter.Status(item.Status)</span></td>
                         <td class="text-muted">@item.AdminReviewNote</td>
-                        <td class="text-end">
-                            <div class="d-inline-flex flex-wrap justify-content-end gap-2">
-                                <a asp-page="/Events/Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-secondary">پروفایل</a>
-                                <a asp-page="/Events/Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary">ویرایش</a>
-                                <a asp-page="/Public/Event" asp-route-id="@item.Id" class="btn btn-sm btn-outline-dark">نمایش عمومی</a>
-
-                                <form method="post" asp-page-handler="OpenSale" class="d-inline">
-                                    <input type="hidden" name="id" value="@item.Id" />
-                                    <button type="submit" class="btn btn-sm btn-outline-primary">درخواست فروش</button>
-                                </form>
-
-                                <form method="post" asp-page-handler="CloseSale" class="d-inline">
-                                    <input type="hidden" name="id" value="@item.Id" />
-                                    <button type="submit" class="btn btn-sm btn-outline-secondary">درخواست بستن فروش</button>
-                                </form>
-
-                                <form method="post" asp-page-handler="Cancel" class="d-inline">
-                                    <input type="hidden" name="id" value="@item.Id" />
-                                    <button type="submit" class="btn btn-sm btn-outline-danger">درخواست لغو</button>
-                                </form>
+                        <td class="text-end table-action-cell">
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle table-action-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    اقدام ها
+                                </button>
+                                <div class="dropdown-menu dropdown-menu-end action-menu shadow-sm border-0">
+                                    <a asp-page="/Events/Details" asp-route-id="@item.Id" class="dropdown-item">پروفایل رویداد</a>
+                                    <a asp-page="/Events/Edit" asp-route-id="@item.Id" class="dropdown-item">ویرایش رویداد</a>
+                                    <a asp-page="/Events/Buyers" asp-route-eventId="@item.Id" class="dropdown-item">خریداران بلیت</a>
+                                    <a asp-page="/Events/Sms" asp-route-eventId="@item.Id" class="dropdown-item">پیام به شرکت کنندگان</a>
+                                    <a asp-page="/Public/Event" asp-route-id="@item.Id" class="dropdown-item">نمایش عمومی</a>
+                                    <div class="dropdown-divider"></div>
+                                    <form method="post" asp-page-handler="OpenSale">
+                                        <input type="hidden" name="id" value="@item.Id" />
+                                        <button type="submit" class="dropdown-item">درخواست فروش</button>
+                                    </form>
+                                    <form method="post" asp-page-handler="CloseSale">
+                                        <input type="hidden" name="id" value="@item.Id" />
+                                        <button type="submit" class="dropdown-item">درخواست بستن فروش</button>
+                                    </form>
+                                    <form method="post" asp-page-handler="Cancel">
+                                        <input type="hidden" name="id" value="@item.Id" />
+                                        <button type="submit" class="dropdown-item text-danger">درخواست لغو</button>
+                                    </form>
+                                </div>
                             </div>
                         </td>
                     </tr>

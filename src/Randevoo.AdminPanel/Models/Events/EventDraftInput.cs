@@ -1,12 +1,15 @@
+using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
+using Randevoo.Domain.Enums;
+
 namespace Randevoo.AdminPanel.Models.Events;
 
 public sealed class EventDraftInput
 {
     public string Title { get; set; } = string.Empty;
 
-    public string Country { get; set; } = "Iran";
+    public string Country { get; set; } = "ایران";
 
-    public string City { get; set; } = "Tehran";
+    public string City { get; set; } = "تهران";
 
     public string Region { get; set; } = string.Empty;
 
@@ -18,7 +21,9 @@ public sealed class EventDraftInput
 
     public decimal Longitude { get; set; } = 51.3347m;
 
-    public EventType EventType { get; set; } = EventType.SocialEvening;
+    public long EventTypeId { get; set; }
+
+    public string EventTypeName { get; set; } = string.Empty;
 
     public string AgeRangeForMale { get; set; } = "25-35";
 
@@ -27,6 +32,10 @@ public sealed class EventDraftInput
     public bool IsOpenForSell { get; set; } = false;
 
     public decimal TicketPrice { get; set; } = 950000m;
+
+    public EventEducationLevelRestriction EducationLevelRestriction { get; set; } = EventEducationLevelRestriction.WithoutLimit;
+
+    public long? MinimumEducationLevelId { get; set; }
 
     public decimal OrganizerCommissionPercent { get; set; } = 12m;
 
@@ -37,6 +46,9 @@ public sealed class EventDraftInput
     public int ChatLimit { get; set; } = 80;
 
     public List<string> Tags { get; set; } = new();
+
+    [ValidateNever]
+    public List<long> TagIds { get; set; } = new();
 
     public string DescriptionHtml { get; set; } = string.Empty;
 

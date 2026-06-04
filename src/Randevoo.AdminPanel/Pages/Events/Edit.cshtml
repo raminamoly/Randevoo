@@ -6,8 +6,18 @@
 
 <section class="page-header">
     <div>
-        <h1>@(Model.IsNew ? "ساخت رویداد" : "ویرایش رویداد")</h1>
-        <p>@(Model.IsPlanner ? "هر تغییر شما دوباره برای تایید مدیر ارسال می شود و پس از تایید به کاربران نمایش داده می شود." : "مدیر می تواند مستقیما وضعیت انتشار و تایید نهایی رویداد را مدیریت کند.")</p>
+        <div class="heading-with-help">
+            <h1>@(Model.IsNew ? "ساخت رویداد" : "ویرایش رویداد")</h1>
+            <button type="button"
+                    class="help-icon-button"
+                    data-bs-toggle="tooltip"
+                    data-bs-placement="bottom"
+                    data-bs-custom-class="rv-tooltip"
+                    data-bs-title="@(Model.IsPlanner ? "تغییرات این فرم مستقیم روی رویداد واقعی ذخیره می شوند و مدیر بعداً می تواند وضعیت انتشار و فروش را مدیریت کند." : "مدیر می تواند اطلاعات رویداد، برگزارکننده و وضعیت انتشار را مستقیم روی داده های واقعی مدیریت کند.")"
+                    aria-label="راهنمای فرم">
+                <i class="bi bi-info-circle"></i>
+            </button>
+        </div>
     </div>
     @if (!Model.IsNew)
     {
@@ -23,76 +33,156 @@
     <input type="hidden" asp-for="Input.Latitude" />
     <input type="hidden" asp-for="Input.Longitude" />
 
+    <div asp-validation-summary="ModelOnly" class="alert alert-danger border-0 mb-4"></div>
+
     <div class="row g-4">
         <div class="col-lg-8">
             <div class="row g-3">
                 <div class="col-12">
                     <div class="form-section-head">
                         <div>
-                            <h2 class="section-title mb-1">مشخصات اصلی رویداد</h2>
-                            <p class="text-muted mb-0">اطلاعات پایه ای رویداد را وارد کنید تا هویت صفحه رویداد شکل بگیرد.</p>
+                            <div class="heading-with-help">
+                                <h2 class="section-title mb-1">مشخصات اصلی رویداد</h2>
+                                <button type="button"
+                                        class="help-icon-button"
+                                        data-bs-toggle="tooltip"
+                                        data-bs-placement="bottom"
+                                        data-bs-custom-class="rv-tooltip"
+                                        data-bs-title="اطلاعات پایه ای رویداد را وارد کنید تا هویت صفحه رویداد شکل بگیرد."
+                                        aria-label="راهنمای مشخصات اصلی">
+                                    <i class="bi bi-info-circle"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
                 <div class="col-md-6">
                     <label asp-for="Input.Title" class="form-label">عنوان رویداد</label>
                     <input asp-for="Input.Title" class="form-control" placeholder="مثلاً شب اجتماعی تهران" />
+                    <span asp-validation-for="Input.Title" class="text-danger small"></span>
                 </div>
                 <div class="col-md-6">
                     <label asp-for="Input.VenueName" class="form-label">نام محل برگزاری</label>
                     <input asp-for="Input.VenueName" class="form-control" placeholder="مثلاً سالن شمال" />
                 </div>
+                @if (Model.IsAdmin)
+                {
+                    <div class="col-md-6">
+                        <label asp-for="AssignedPlannerId" class="form-label">برگزارکننده</label>
+                        <select asp-for="AssignedPlannerId" class="form-select" asp-items="Model.PlannerOptions">
+                            <option value="">انتخاب برگزارکننده</option>
+                        </select>
+                        <span asp-validation-for="AssignedPlannerId" class="text-danger small"></span>
+                    </div>
+                }
                 <div class="col-md-6">
                     <label asp-for="Input.Country" class="form-label">کشور</label>
-                    <select asp-for="Input.Country" class="form-select" asp-items="Model.CountryOptions"></select>
+                    <select asp-for="Input.Country" class="form-select" asp-items="Model.CountryOptions" data-country-cascade="true"></select>
+                    <span asp-validation-for="Input.Country" class="text-danger small"></span>
                 </div>
                 <div class="col-md-6">
                     <label asp-for="Input.City" class="form-label">شهر</label>
-                    <select asp-for="Input.City" class="form-select" asp-items="Model.CityOptions"></select>
+                    <select asp-for="Input.City" class="form-select" asp-items="Model.CityOptions" data-city-cascade="true"></select>
+                    <span asp-validation-for="Input.City" class="text-danger small"></span>
                 </div>
                 <div class="col-md-6">
                     <label asp-for="Input.Region" class="form-label">منطقه</label>
                     <input asp-for="Input.Region" class="form-control" />
                 </div>
                 <div class="col-md-6">
-                    <label asp-for="Input.Address" class="form-label">آدرس</label>
+                    <label asp-for="Input.Address" class="form-label form-label-with-help">
+                        <span>آدرس</span>
+                        <button type="button"
+                                class="help-icon-button"
+                                data-bs-toggle="tooltip"
+                                data-bs-placement="bottom"
+                                data-bs-custom-class="rv-tooltip"
+                                data-bs-title="آدرس کامل را برای کاهش سوال های پشتیبانی و شرکت کننده ها وارد کنید."
+                                aria-label="راهنمای آدرس">
+                            <i class="bi bi-info-circle"></i>
+                        </button>
+                    </label>
                     <input asp-for="Input.Address" class="form-control" placeholder="آدرس کامل برای نمایش در پروفایل رویداد" />
+                    <span asp-validation-for="Input.Address" class="text-danger small"></span>
                 </div>
                 <div class="col-12 mt-2">
                     <div class="form-section-head">
                         <div>
-                            <h2 class="section-title mb-1">نوع و مخاطب رویداد</h2>
-                            <p class="text-muted mb-0">نوع رویداد، بازه سنی و ظرفیت را بر اساس تجربه ای که می خواهید بسازید تنظیم کنید.</p>
+                            <div class="heading-with-help">
+                                <h2 class="section-title mb-1">نوع و مخاطب رویداد</h2>
+                                <button type="button"
+                                        class="help-icon-button"
+                                        data-bs-toggle="tooltip"
+                                        data-bs-placement="bottom"
+                                        data-bs-custom-class="rv-tooltip"
+                                        data-bs-title="نوع رویداد، بازه سنی و ظرفیت را بر اساس تجربه ای که می خواهید بسازید تنظیم کنید."
+                                        aria-label="راهنمای نوع و مخاطب">
+                                    <i class="bi bi-info-circle"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
                 <div class="col-md-4">
                     <label asp-for="Input.AgeRangeForMale" class="form-label">بازه سنی آقایان</label>
                     <select asp-for="Input.AgeRangeForMale" class="form-select" asp-items="Model.AgeRangeOptions"></select>
+                    <span asp-validation-for="Input.AgeRangeForMale" class="text-danger small"></span>
                 </div>
                 <div class="col-md-4">
                     <label asp-for="Input.AgeRangeForFemale" class="form-label">بازه سنی بانوان</label>
                     <select asp-for="Input.AgeRangeForFemale" class="form-select" asp-items="Model.AgeRangeOptions"></select>
+                    <span asp-validation-for="Input.AgeRangeForFemale" class="text-danger small"></span>
                 </div>
                 <div class="col-md-4">
-                    <label asp-for="Input.EventType" class="form-label">نوع رویداد</label>
-                    <select asp-for="Input.EventType" class="form-select" asp-items="Model.EventTypeOptions"></select>
+                    <label asp-for="Input.EventTypeId" class="form-label">نوع رویداد</label>
+                    <select asp-for="Input.EventTypeId" class="form-select" asp-items="Model.EventTypeOptions"></select>
+                    <span asp-validation-for="Input.EventTypeId" class="text-danger small"></span>
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="Input.MinimumEducationLevelId" class="form-label">حداقل سطح تحصیل برای خرید بلیت</label>
+                    <select asp-for="Input.MinimumEducationLevelId" class="form-select" asp-items="Model.MinimumEducationLevelOptions"></select>
+                    <span asp-validation-for="Input.MinimumEducationLevelId" class="text-danger small"></span>
                 </div>
                 <div class="col-12">
-                    <label class="form-label">تگ های رویداد</label>
-                    <input asp-for="TagsText"
-                           class="form-control"
-                           placeholder="مثلاً اجتماعی، منتخب، حضوری، تهران"
-                           data-tag-input="true"
-                           data-tag-preview-target="#eventTagPreview" />
-                    <div class="form-text">تگ ها را با ویرگول یا Enter از هم جدا کنید. این تگ ها در صفحه عمومی رویداد نمایش داده می شوند.</div>
-                    <div id="eventTagPreview" class="tag-preview-list mt-3"></div>
+                    <label asp-for="Input.TagIds" class="form-label">تگ های رویداد</label>
+                    <div class="tag-combo"
+                         data-tag-combo="true"
+                         data-tag-select-target="#Input_TagIds"
+                         data-tag-picker-target="#eventTagPicker"
+                         data-tag-preview-target="#eventTagPreview">
+                        <select id="eventTagPicker" class="form-select tag-combo-picker">
+                            <option value="">انتخاب تگ از لیست</option>
+                            @foreach (var item in Model.TagOptions)
+                            {
+                                <option value="@item.Value">@item.Text</option>
+                            }
+                        </select>
+                        <div id="eventTagPreview" class="tag-preview-list tag-combo-preview"></div>
+                        <select id="Input_TagIds" name="Input.TagIds" class="d-none" multiple aria-hidden="true" tabindex="-1">
+                            @foreach (var item in Model.TagOptions)
+                            {
+                                <option value="@item.Value" selected="@item.Selected">@item.Text</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="form-text">تگ ها فقط از لیست تعریف شده توسط مدیر قابل انتخاب هستند. برای حذف، روی ضربدر هر تگ بزنید.</div>
+                    <span asp-validation-for="Input.TagIds" class="text-danger small"></span>
                 </div>
                 <div class="col-12 mt-2">
                     <div class="form-section-head">
                         <div>
-                            <h2 class="section-title mb-1">زمان بندی</h2>
-                            <p class="text-muted mb-0">تاریخ و ساعت شروع و پایان را جداگانه انتخاب کنید تا برنامه رویداد دقیق ثبت شود.</p>
+                            <div class="heading-with-help">
+                                <h2 class="section-title mb-1">زمان بندی</h2>
+                                <button type="button"
+                                        class="help-icon-button"
+                                        data-bs-toggle="tooltip"
+                                        data-bs-placement="bottom"
+                                        data-bs-custom-class="rv-tooltip"
+                                        data-bs-title="تاریخ و ساعت شروع و پایان را جداگانه انتخاب کنید تا برنامه رویداد دقیق ثبت شود."
+                                        aria-label="راهنمای زمان بندی">
+                                    <i class="bi bi-info-circle"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -106,10 +196,12 @@
                     {
                         <input asp-for="StartDateText" class="form-control" type="date" />
                     }
+                    <span asp-validation-for="StartDateText" class="text-danger small"></span>
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">ساعت شروع</label>
                     <input asp-for="StartTimeText" class="form-control" type="time" />
+                    <span asp-validation-for="StartTimeText" class="text-danger small"></span>
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">تاریخ پایان</label>
@@ -121,32 +213,59 @@
                     {
                         <input asp-for="EndDateText" class="form-control" type="date" />
                     }
+                    <span asp-validation-for="EndDateText" class="text-danger small"></span>
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">ساعت پایان</label>
                     <input asp-for="EndTimeText" class="form-control" type="time" />
+                    <span asp-validation-for="EndTimeText" class="text-danger small"></span>
                 </div>
                 <div class="col-md-4">
                     <label asp-for="Input.TicketPrice" class="form-label">قیمت بلیت</label>
                     <input asp-for="Input.TicketPrice" class="form-control" type="number" step="1000" />
+                    <span asp-validation-for="Input.TicketPrice" class="text-danger small"></span>
                 </div>
                 <div class="col-md-4">
                     <label asp-for="Input.CapacityMale" class="form-label">ظرفیت آقایان</label>
                     <input asp-for="Input.CapacityMale" class="form-control" type="number" />
+                    <span asp-validation-for="Input.CapacityMale" class="text-danger small"></span>
                 </div>
                 <div class="col-md-4">
                     <label asp-for="Input.CapacityFemale" class="form-label">ظرفیت بانوان</label>
                     <input asp-for="Input.CapacityFemale" class="form-control" type="number" />
+                    <span asp-validation-for="Input.CapacityFemale" class="text-danger small"></span>
                 </div>
                 <div class="col-md-4">
-                    <label asp-for="Input.ChatLimit" class="form-label">تعداد مجاز گفتگو</label>
+                    <label asp-for="Input.ChatLimit" class="form-label form-label-with-help">
+                        <span>تعداد مجاز گفتگو</span>
+                        <button type="button"
+                                class="help-icon-button"
+                                data-bs-toggle="tooltip"
+                                data-bs-placement="bottom"
+                                data-bs-custom-class="rv-tooltip"
+                                data-bs-title="محدودیت گفتگو را متناسب با زمان و فرمت رویداد تنظیم کنید."
+                                aria-label="راهنمای محدودیت گفتگو">
+                            <i class="bi bi-info-circle"></i>
+                        </button>
+                    </label>
                     <input asp-for="Input.ChatLimit" class="form-control" type="number" />
+                    <span asp-validation-for="Input.ChatLimit" class="text-danger small"></span>
                 </div>
                 <div class="col-12 mt-2">
                     <div class="form-section-head">
                         <div>
-                            <h2 class="section-title mb-1">محل دقیق رویداد</h2>
-                            <p class="text-muted mb-0">فقط با پین روی نقشه محل دقیق را مشخص کنید. مختصات در پشت صحنه ذخیره می شوند و به کاربر نمایش داده نمی شوند.</p>
+                            <div class="heading-with-help">
+                                <h2 class="section-title mb-1">محل دقیق رویداد</h2>
+                                <button type="button"
+                                        class="help-icon-button"
+                                        data-bs-toggle="tooltip"
+                                        data-bs-placement="bottom"
+                                        data-bs-custom-class="rv-tooltip"
+                                        data-bs-title="فقط با پین روی نقشه محل دقیق را مشخص کنید. مختصات در پشت صحنه ذخیره می شوند و به کاربر نمایش داده نمی شوند."
+                                        aria-label="راهنمای محل دقیق">
+                                    <i class="bi bi-info-circle"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -164,8 +283,8 @@
                 <div class="col-12 mt-2">
                     <div class="form-section-head">
                         <div>
-                            <h2 class="section-title mb-1">توضیحات و تصاویر</h2>
-                            <p class="text-muted mb-0">روایت رویداد و سه تصویر اصلی صفحه رویداد را کامل کنید.</p>
+                            <h2 class="section-title mb-1">توضیحات رویداد</h2>
+                            <p class="text-muted mb-0">روایت رویداد، حال و هوا، قوانین حضور و نکته های مهم را کامل کنید.</p>
                         </div>
                     </div>
                 </div>
@@ -175,6 +294,7 @@
                         <input type="hidden" asp-for="Input.DescriptionHtml" class="quill-value" />
                         <div id="eventDescriptionEditor" class="quill-editor" data-input="#Input_DescriptionHtml" data-placeholder="جزئیات رویداد، حال و هوا، قوانین حضور و ویژگی مهمان ها را بنویسید."></div>
                     </div>
+                    <span asp-validation-for="Input.DescriptionHtml" class="text-danger small"></span>
                 </div>
             </div>
         </div>
@@ -182,15 +302,74 @@
         <div class="col-lg-4">
             <div class="sticky-panel">
                 <div class="glass-panel p-3 mb-3">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <div>
-                            <div class="fw-semibold">مدیریت تصاویر رویداد</div>
-                            <div class="text-muted small">سه جایگاه ثابت برای کاور، لوکیشن و حال و هوای رویداد</div>
-                        </div>
-                        <span class="image-manager-counter">3 / 3</span>
+                    <div class="fw-semibold mb-2">وضعیت بررسی</div>
+                    <p class="text-muted small mb-2">وضعیت فعلی: <span class="status-badge @Model.StatusClass">@DisplayFormatter.Status(Model.StatusValue)</span></p>
+                    @if (!string.IsNullOrWhiteSpace(Model.ReviewNote))
+                    {
+                        <div class="alert alert-warning border-0 mb-0">@Model.ReviewNote</div>
+                    }
+                </div>
+
+                @if (Model.IsPlanner)
+                {
+                    <div class="alert alert-info border-0">
+                        تغییرات این فرم مستقیم در پایگاه داده ذخیره می شوند و روی همان رویداد واقعی اعمال خواهند شد.
                     </div>
-                    <div class="image-manager-grid">
-                        <div class="image-manager-card">
+                }
+
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-primary btn-lg">ذخیره رویداد</button>
+                    <a asp-page="/Events/My" class="btn btn-outline-secondary">انصراف</a>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="col-12">
+            <div class="glass-panel p-4 event-image-tabs-panel">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
+                    <div>
+                        <div class="heading-with-help">
+                            <h2 class="section-title mb-1">مدیریت تصاویر رویداد</h2>
+                            <button type="button"
+                                    class="help-icon-button"
+                                    data-bs-toggle="tooltip"
+                                    data-bs-placement="bottom"
+                                    data-bs-custom-class="rv-tooltip"
+                                    data-bs-title="سه جایگاه ثابت برای کاور، لوکیشن و حال و هوای رویداد."
+                                    aria-label="راهنمای تصاویر رویداد">
+                                <i class="bi bi-info-circle"></i>
+                            </button>
+                        </div>
+                        <div class="help-tip mb-0">هر تب مربوط به یکی از سه تصویر ثابت صفحه رویداد است تا انتخاب عکس ها شفاف تر و ستون کناری سبک تر بماند.</div>
+                    </div>
+                    <span class="image-manager-counter">3 / 3</span>
+                </div>
+
+                <ul class="nav nav-pills event-image-tabs mb-4" id="eventImageTab" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="event-image-1-tab" data-bs-toggle="tab" data-bs-target="#event-image-1-pane" type="button" role="tab" aria-controls="event-image-1-pane" aria-selected="true">
+                            <span class="event-image-tab-number">1</span>
+                            <span>کاور اصلی</span>
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="event-image-2-tab" data-bs-toggle="tab" data-bs-target="#event-image-2-pane" type="button" role="tab" aria-controls="event-image-2-pane" aria-selected="false">
+                            <span class="event-image-tab-number">2</span>
+                            <span>لوکیشن</span>
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="event-image-3-tab" data-bs-toggle="tab" data-bs-target="#event-image-3-pane" type="button" role="tab" aria-controls="event-image-3-pane" aria-selected="false">
+                            <span class="event-image-tab-number">3</span>
+                            <span>حال و هوا</span>
+                        </button>
+                    </li>
+                </ul>
+
+                <div class="tab-content event-image-tab-content" id="eventImageTabContent">
+                    <div class="tab-pane fade show active" id="event-image-1-pane" role="tabpanel" aria-labelledby="event-image-1-tab" tabindex="0">
+                        <div class="image-manager-card image-manager-card-tabbed">
                             <div class="image-slot-head">
                                 <div>
                                     <div class="fw-semibold">تصویر اول</div>
@@ -205,10 +384,13 @@
                                     <span>کاور اصلی رویداد را انتخاب کنید</span>
                                 </div>
                             </div>
+                            <div class="help-tip">این تصویر اولین برداشت کاربر از رویداد را می سازد، پس بهتر است واضح و شاخص باشد.</div>
                             <input type="file" class="form-control image-input" asp-for="Image1File" accept="image/*" data-target="#preview1" />
                         </div>
+                    </div>
 
-                        <div class="image-manager-card">
+                    <div class="tab-pane fade" id="event-image-2-pane" role="tabpanel" aria-labelledby="event-image-2-tab" tabindex="0">
+                        <div class="image-manager-card image-manager-card-tabbed">
                             <div class="image-slot-head">
                                 <div>
                                     <div class="fw-semibold">تصویر دوم</div>
@@ -223,10 +405,13 @@
                                     <span>یک تصویر از فضا یا لوکیشن اضافه کنید</span>
                                 </div>
                             </div>
+                            <div class="help-tip">این جایگاه برای نشان دادن کیفیت فضا و کمک به اعتماد کاربر نسبت به محل برگزاری مناسب است.</div>
                             <input type="file" class="form-control image-input" asp-for="Image2File" accept="image/*" data-target="#preview2" />
                         </div>
+                    </div>
 
-                        <div class="image-manager-card">
+                    <div class="tab-pane fade" id="event-image-3-pane" role="tabpanel" aria-labelledby="event-image-3-tab" tabindex="0">
+                        <div class="image-manager-card image-manager-card-tabbed">
                             <div class="image-slot-head">
                                 <div>
                                     <div class="fw-semibold">تصویر سوم</div>
@@ -241,32 +426,11 @@
                                     <span>حال و هوای تجربه را نشان دهید</span>
                                 </div>
                             </div>
+                            <div class="help-tip">در این بخش بهتر است حس جمع، تجربه و انرژی رویداد دیده شود نه فقط یک نمای خنثی.</div>
                             <input type="file" class="form-control image-input" asp-for="Image3File" accept="image/*" data-target="#preview3" />
                         </div>
                     </div>
                 </div>
-
-                <div class="glass-panel p-3 mb-3">
-                    <div class="fw-semibold mb-2">وضعیت بررسی</div>
-                    <p class="text-muted small mb-2">وضعیت فعلی: <span class="status-badge @Model.StatusClass">@DisplayFormatter.Status(Model.StatusValue)</span></p>
-                    @if (!string.IsNullOrWhiteSpace(Model.ReviewNote))
-                    {
-                        <div class="alert alert-warning border-0 mb-0">@Model.ReviewNote</div>
-                    }
-                </div>
-
-                @if (Model.IsPlanner)
-                {
-                    <div class="alert alert-info border-0">
-                        هر ذخیره جدید از سمت برگزارکننده یک درخواست تازه برای بررسی مدیر می سازد.
-                    </div>
-                }
-
-                <div class="d-grid gap-2">
-                    <button type="submit" class="btn btn-primary btn-lg">ذخیره رویداد</button>
-                    <a asp-page="/Events/My" class="btn btn-outline-secondary">انصراف</a>
-                </div>
-
             </div>
         </div>
     </div>
@@ -283,7 +447,9 @@
     <script>
         window.randevooEventEdit = {
             isRtl: @(Model.IsRtl.ToString().ToLowerInvariant()),
+            countrySelector: '#Input_Country',
             citySelector: '#Input_City',
+            cityOptions: @Html.Raw(Model.CityOptionsJson),
             latitudeSelector: '#Input_Latitude',
             longitudeSelector: '#Input_Longitude'
         };

@@ -7,13 +7,19 @@
 <section class="page-header">
     <div>
         <h1>پروفایل برگزارکننده</h1>
-        <p>این اطلاعات در کارت برگزارکننده و صفحه عمومی رویداد نمایش داده می شود.</p>
+        <p>این اطلاعات بعد از تایید مدیر در کارت برگزارکننده و صفحه عمومی رویداد نمایش داده می شود.</p>
     </div>
 </section>
 
 @if (TempData["PlannerProfileSaved"] is string savedMessage)
 {
     <div class="alert alert-success border-0 mb-4">@savedMessage</div>
+}
+@if (Model.Profile?.HasPendingChanges == true)
+{
+    <div class="alert alert-warning border-0 mb-4">
+        یک نسخه جدید از پروفایل شما در انتظار تایید مدیر است و هنوز منتشر نشده است.
+    </div>
 }
 
 <div class="row g-4">
@@ -57,7 +63,7 @@
             </div>
 
             <div class="mt-4 d-flex flex-wrap gap-2">
-                <button type="submit" class="btn btn-primary">ذخیره پروفایل</button>
+                <button type="submit" class="btn btn-primary">ثبت برای تایید مدیر</button>
                 <a asp-page="/Planner/Details" asp-route-id="@Model.Profile?.UserId" class="btn btn-outline-secondary">مشاهده صفحه عمومی</a>
             </div>
         </form>
@@ -82,6 +88,16 @@
                     <div class="detail-block"><span>رویداد برگزارشده</span><strong>@DisplayFormatter.Count(Model.Profile.HostedEventCount)</strong></div>
                     <div class="detail-block"><span>رویداد تکمیل شده</span><strong>@DisplayFormatter.Count(Model.Profile.CompletedEventCount)</strong></div>
                 </div>
+                @if (Model.Profile.HasPendingChanges)
+                {
+                    <div class="glass-panel p-3 mt-4">
+                        <div class="fw-semibold mb-2">نسخه در انتظار تایید</div>
+                        <div class="text-muted small mb-2">این نسخه بعد از تایید مدیر منتشر می شود.</div>
+                        <div class="detail-block"><span>نام</span><strong>@(Model.Profile.PendingFullName ?? Model.Profile.FullName)</strong></div>
+                        <div class="detail-block mt-2"><span>شهر</span><strong>@(Model.Profile.PendingCity ?? Model.Profile.City)</strong></div>
+                        <div class="detail-block mt-2"><span>عنوان</span><strong>@(Model.Profile.PendingTitle ?? Model.Profile.Title)</strong></div>
+                    </div>
+                }
             </div>
         }
     </div>

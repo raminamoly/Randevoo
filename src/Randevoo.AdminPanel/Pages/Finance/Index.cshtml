@@ -1,0 +1,139 @@
+@page
+@model Randevoo.AdminPanel.Pages.Finance.IndexModel
+@{
+    ViewData["Title"] = "گزارش مالی";
+}
+
+<section class="page-header">
+    <div>
+        <h1>گزارش مالی</h1>
+        <p>بررسی درخواست های تسویه برگزارکنندگان و تراکنش های خرید بلیت به تفکیک رویداد.</p>
+    </div>
+</section>
+
+@if (!string.IsNullOrWhiteSpace(Model.StatusMessage))
+{
+    <div class="alert alert-info border-0 mb-4">@Model.StatusMessage</div>
+}
+
+<div class="glass-panel p-4 mb-4">
+    <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+        <div>
+            <h2 class="section-title mb-1">درخواست های تسویه</h2>
+            <p class="text-muted small mb-0">پرداخت فقط بعد از تایید مدیر از موجودی برگزارکننده کسر می شود.</p>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table align-middle">
+            <thead>
+                <tr>
+                    <th>برگزارکننده</th>
+                    <th>مبلغ</th>
+                    <th>وضعیت</th>
+                    <th>زمان درخواست</th>
+                    <th>یادداشت</th>
+                    <th>اقدام ها</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model.WithdrawalRequests)
+                {
+                    <tr>
+                        <td>
+                            <div class="fw-semibold">@item.PlannerName</div>
+                            <div class="text-muted small">@item.PlannerMobile</div>
+                        </td>
+                        <td>@DisplayFormatter.Money(item.Amount, Model.IsRtl)</td>
+                        <td><span class="status-badge @Model.WithdrawalStatusClass(item.Status)">@DisplayFormatter.WithdrawalStatus(item.Status)</span></td>
+                        <td>@PersianDateFormatter.FormatDateTime(item.RequestedAtUtc, Model.IsRtl)</td>
+                        <td class="table-wrap-cell">@(string.IsNullOrWhiteSpace(item.ReviewNote) ? "بدون یادداشت" : item.ReviewNote)</td>
+                        <td class="text-end table-action-cell">
+                            @if (item.Status == Randevoo.Domain.Enums.PlannerWithdrawalRequestStatus.Pending)
+                            {
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle table-action-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        اقدام ها
+                                    </button>
+                                    <div class="dropdown-menu dropdown-menu-end action-menu shadow-sm border-0 finance-review-menu">
+                                        <form method="post" asp-page-handler="ConfirmWithdrawal">
+                                            <input type="hidden" name="ReviewInput.RequestId" value="@item.Id" />
+                                            <label class="form-label small">یادداشت تایید</label>
+                                            <textarea name="ReviewInput.ReviewNote" class="form-control form-control-sm mb-2" rows="2"></textarea>
+                                            <button type="submit" class="dropdown-item text-success">تایید پرداخت</button>
+                                        </form>
+                                        <div class="dropdown-divider"></div>
+                                        <form method="post" asp-page-handler="RejectWithdrawal">
+                                            <input type="hidden" name="ReviewInput.RequestId" value="@item.Id" />
+                                            <label class="form-label small">علت رد</label>
+                                            <textarea name="ReviewInput.ReviewNote" class="form-control form-control-sm mb-2" rows="2"></textarea>
+                                            <button type="submit" class="dropdown-item text-danger">رد درخواست</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            }
+                            else
+                            {
+                                <span class="text-muted small">بررسی شده</span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    @if (Model.WithdrawalRequests.Count == 0)
+    {
+        <div class="empty-state">فعلا درخواست تسویه ای ثبت نشده است.</div>
+    }
+</div>
+
+<div class="glass-panel p-4">
+    <h2 class="section-title">تراکنش های خرید بلیت به تفکیک رویداد</h2>
+    <div class="finance-event-groups">
+        @foreach (var group in Model.EventTransactions)
+        {
+            <article class="finance-event-group">
+                <header class="finance-event-head">
+                    <div>
+                        <h3>@group.EventTitle</h3>
+                        <div class="text-muted small">برگزارکننده: @group.PlannerName | شروع: @PersianDateFormatter.Format(group.StartAtUtc, Model.IsRtl)</div>
+                    </div>
+                    <div class="finance-event-total">
+                        <span>@DisplayFormatter.Count(group.TicketCount) بلیت</span>
+                        <strong>@DisplayFormatter.Money(group.TotalTicketAmount, Model.IsRtl)</strong>
+                    </div>
+                </header>
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>خریدار</th>
+                                <th>موبایل</th>
+                                <th>مبلغ</th>
+                                <th>زمان خرید</th>
+                                <th>شرح</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in group.Transactions)
+                            {
+                                <tr>
+                                    <td>@item.BuyerName</td>
+                                    <td>@DisplayFormatter.ToPersianDigits(item.BuyerMobile)</td>
+                                    <td>@DisplayFormatter.Money(item.Amount, Model.IsRtl)</td>
+                                    <td>@PersianDateFormatter.FormatDateTime(item.PurchasedAtUtc, Model.IsRtl)</td>
+                                    <td class="table-wrap-cell">@item.Description</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </article>
+        }
+    </div>
+    @if (Model.EventTransactions.Count == 0)
+    {
+        <div class="empty-state">هنوز تراکنش خرید بلیتی ثبت نشده است.</div>
+    }
+</div>

@@ -1,0 +1,91 @@
+@page "{id?}"
+@model Randevoo.AdminPanel.Pages.Tags.IndexModel
+@{
+    ViewData["Title"] = "تگ های رویداد";
+}
+
+<section class="page-header">
+    <div>
+        <h1>تگ های رویداد</h1>
+        <p>تگ ها در فرم ساخت رویداد انتخاب می شوند و بعداً برای فیلتر رویدادها استفاده خواهند شد.</p>
+    </div>
+</section>
+
+@if (!string.IsNullOrWhiteSpace(Model.StatusMessage))
+{
+    <div class="alert alert-info border-0 mb-4">@Model.StatusMessage</div>
+}
+
+<div class="row g-4">
+    <div class="col-lg-4">
+        <form method="post" class="glass-panel p-4 sticky-panel">
+            <input type="hidden" asp-for="Id" />
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger border-0 mb-3"></div>
+
+            <h2 class="section-title">@((Model.IsEditing) ? "ویرایش تگ" : "ایجاد تگ")</h2>
+
+            <div class="mb-3">
+                <label asp-for="Input.Name" class="form-label">نام</label>
+                <input asp-for="Input.Name" class="form-control" />
+                <span asp-validation-for="Input.Name" class="text-danger small"></span>
+                <div class="help-tip">این نام در فرم ساخت و ویرایش رویداد نمایش داده می شود.</div>
+            </div>
+
+            <div class="form-check form-switch mb-3">
+                <input asp-for="Input.IsActive" class="form-check-input" />
+                <label asp-for="Input.IsActive" class="form-check-label">فعال</label>
+            </div>
+
+            <div class="d-grid gap-2">
+                <button type="submit" class="btn btn-primary">ذخیره تگ</button>
+                @if (Model.IsEditing)
+                {
+                    <a asp-page="/Tags/Index" class="btn btn-outline-secondary">ثبت تگ جدید</a>
+                }
+            </div>
+        </form>
+    </div>
+
+    <div class="col-lg-8">
+        <div class="glass-panel p-4">
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead>
+                        <tr>
+                            <th>نام</th>
+                            <th>وضعیت</th>
+                            <th>تعداد استفاده</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.Tags)
+                        {
+                            <tr>
+                                <td class="fw-semibold">@item.Name</td>
+                                <td><span class="status-badge @(item.IsActive ? "status-approved" : "status-closed")">@(item.IsActive ? "فعال" : "غیرفعال")</span></td>
+                                <td>@DisplayFormatter.Count(item.EventUsageCount)</td>
+                                <td class="text-end table-action-cell">
+                                    <div class="dropdown">
+                                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle table-action-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                            اقدام ها
+                                        </button>
+                                        <div class="dropdown-menu dropdown-menu-end action-menu shadow-sm border-0">
+                                            <a asp-page="/Tags/Index" asp-route-id="@item.Id" class="dropdown-item">ویرایش تگ</a>
+                                            <form method="post" asp-page-handler="Delete" onsubmit="return confirm('تگ حذف شود؟');">
+                                                <input type="hidden" name="id" value="@item.Id" />
+                                                <button class="dropdown-item text-danger" type="submit">حذف تگ</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<partial name="_ValidationScriptsPartial" />

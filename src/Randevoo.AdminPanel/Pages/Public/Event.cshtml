@@ -1,4 +1,4 @@
-@page "{id:guid}"
+@page "{id:long}"
 @model Randevoo.AdminPanel.Pages.Public.EventModel
 @{
     ViewData["Title"] = Model.Event.DisplayTitle;
@@ -37,7 +37,8 @@
                 <div class="row g-3">
                     <div class="col-md-6"><div class="detail-block"><span>محل برگزاری</span><strong>@Model.Event.Live.VenueName</strong></div></div>
                     <div class="col-md-6"><div class="detail-block"><span>آدرس</span><strong>@Model.Event.Live.Address</strong></div></div>
-                    <div class="col-md-4"><div class="detail-block"><span>نوع رویداد</span><strong>@DisplayFormatter.EventTypeLabel(Model.Event.Live.EventType)</strong></div></div>
+                    <div class="col-md-4"><div class="detail-block"><span>نوع رویداد</span><strong>@DisplayFormatter.EventTypeLabel(Model.Event.Live.EventTypeName)</strong></div></div>
+                    <div class="col-md-4"><div class="detail-block"><span>حداقل تحصیلات خرید بلیت</span><strong>@DisplayFormatter.EducationRestriction(Model.Event.Live.EducationLevelRestriction)</strong></div></div>
                     <div class="col-md-8">
                         <div class="detail-block">
                             <span>تگ های رویداد</span>

@@ -32,6 +32,7 @@
                         <td>
                             <div class="fw-semibold">@item.DisplayTitle</div>
                             <div class="text-muted small">@item.ActiveDraft.City، @item.ActiveDraft.Country</div>
+                            <div class="text-muted small">@DisplayFormatter.EducationRestriction(item.ActiveDraft.EducationLevelRestriction)</div>
                             @if (item.ActiveDraft.Tags.Count > 0)
                             {
                                 <div class="event-chip-list mt-2">
@@ -46,9 +47,18 @@
                         <td>@PersianDateFormatter.Format(item.ActiveDraft.StartAtUtc, Model.IsRtl)</td>
                         <td><span class="status-badge @Model.GetStatusClass(item.Status)">@DisplayFormatter.Status(item.Status)</span></td>
                         <td>@DisplayFormatter.Percent(item.ActiveDraft.OrganizerCommissionPercent)</td>
-                        <td class="text-end">
-                            <a asp-page="/Events/Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-secondary">بررسی</a>
-                            <a asp-page="/Events/Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary">ویرایش</a>
+                        <td class="text-end table-action-cell">
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle table-action-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    اقدام ها
+                                </button>
+                                <div class="dropdown-menu dropdown-menu-end action-menu shadow-sm border-0">
+                                    <a asp-page="/Events/Details" asp-route-id="@item.Id" class="dropdown-item">بررسی رویداد</a>
+                                    <a asp-page="/Events/Edit" asp-route-id="@item.Id" class="dropdown-item">ویرایش رویداد</a>
+                                    <a asp-page="/Events/Buyers" asp-route-eventId="@item.Id" class="dropdown-item">خریداران بلیت</a>
+                                    <a asp-page="/Events/Sms" asp-route-eventId="@item.Id" class="dropdown-item">پیام به شرکت کنندگان</a>
+                                </div>
+                            </div>
                         </td>
                     </tr>
                 }

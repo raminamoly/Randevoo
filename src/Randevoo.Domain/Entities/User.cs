@@ -135,6 +135,23 @@ public class User : BaseEntity, IAggregateRoot
         AddDomainEvent(new EntityUpdatedEvent<User>(this, nameof(IsActive), oldIsActive, IsActive));
     }
 
+    public void Activate()
+    {
+        var oldIsActive = IsActive;
+        IsActive = true;
+        UpdateTimestamp();
+        AddDomainEvent(new EntityUpdatedEvent<User>(this, nameof(IsActive), oldIsActive, IsActive));
+    }
+
+    public void UpdateMobileNumber(string mobileNumber)
+    {
+        var normalized = NormalizeMobileNumber(mobileNumber);
+        var oldMobileNumber = MobileNumber;
+        MobileNumber = normalized;
+        UpdateTimestamp();
+        AddDomainEvent(new EntityUpdatedEvent<User>(this, nameof(MobileNumber), oldMobileNumber, normalized));
+    }
+
     public void AnonymizeForPrivacyDeletion()
     {
         MobileNumber = $"del{Id % 100000000000000000}";

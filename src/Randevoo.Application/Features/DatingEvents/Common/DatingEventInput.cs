@@ -1,3 +1,5 @@
+using Randevoo.Domain.Enums;
+
 namespace Randevoo.Application.Features.DatingEvents.Common;
 
 public record DatingEventInput(
@@ -19,6 +21,7 @@ public record DatingEventInput(
     int FemaleCapacity,
     int NumberOfChatAllowed,
     decimal TicketPrice,
+    EventEducationLevelRestriction EducationLevelRestriction,
     IReadOnlyList<string>? Tags,
     string? EventImage1,
     string? EventImage2,

@@ -1,4 +1,4 @@
-@page "{id:guid}"
+@page "{id:long}"
 @model Randevoo.AdminPanel.Pages.Events.DetailsModel
 @{
     ViewData["Title"] = "پروفایل رویداد";
@@ -18,10 +18,17 @@
             </div>
         }
     </div>
-    <div class="d-flex gap-2">
-        <a asp-page="/Public/Event" asp-route-id="@Model.Event.Id" class="btn btn-outline-dark">نمایش عمومی</a>
-        <a asp-page="/Events/Edit" asp-route-id="@Model.Event.Id" class="btn btn-outline-primary">ویرایش</a>
-        <a asp-page="/Events/My" class="btn btn-outline-secondary">بازگشت</a>
+    <div class="dropdown">
+        <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            اقدام های صفحه
+        </button>
+        <div class="dropdown-menu dropdown-menu-end action-menu shadow-sm border-0">
+            <a asp-page="/Public/Event" asp-route-id="@Model.Event.Id" class="dropdown-item">نمایش عمومی</a>
+            <a asp-page="/Events/Edit" asp-route-id="@Model.Event.Id" class="dropdown-item">ویرایش رویداد</a>
+            <a asp-page="/Events/Buyers" asp-route-eventId="@Model.Event.Id" class="dropdown-item">خریداران بلیت</a>
+            <a asp-page="/Events/Sms" asp-route-eventId="@Model.Event.Id" class="dropdown-item">پیام به شرکت کنندگان</a>
+            <a asp-page="/Events/My" class="dropdown-item">بازگشت به لیست</a>
+        </div>
     </div>
 </section>
 
@@ -44,7 +51,7 @@
                 <div class="col-md-4"><div class="detail-block"><span>کشور</span><strong>@Model.Event.ActiveDraft.Country</strong></div></div>
                 <div class="col-md-4"><div class="detail-block"><span>شهر</span><strong>@Model.Event.ActiveDraft.City</strong></div></div>
                 <div class="col-md-4"><div class="detail-block"><span>منطقه</span><strong>@Model.Event.ActiveDraft.Region</strong></div></div>
-                <div class="col-md-4"><div class="detail-block"><span>نوع رویداد</span><strong>@DisplayFormatter.EventTypeLabel(Model.Event.ActiveDraft.EventType)</strong></div></div>
+                <div class="col-md-4"><div class="detail-block"><span>نوع رویداد</span><strong>@DisplayFormatter.EventTypeLabel(Model.Event.ActiveDraft.EventTypeName)</strong></div></div>
                 <div class="col-md-8">
                     <div class="detail-block">
                         <span>تگ های رویداد</span>
@@ -58,6 +65,7 @@
                 </div>
                 <div class="col-md-4"><div class="detail-block"><span>بازه سنی آقایان</span><strong>@Model.Event.ActiveDraft.AgeRangeForMale</strong></div></div>
                 <div class="col-md-4"><div class="detail-block"><span>بازه سنی بانوان</span><strong>@Model.Event.ActiveDraft.AgeRangeForFemale</strong></div></div>
+                <div class="col-md-4"><div class="detail-block"><span>حداقل تحصیلات خرید بلیت</span><strong>@DisplayFormatter.EducationRestriction(Model.Event.ActiveDraft.EducationLevelRestriction)</strong></div></div>
                 <div class="col-md-4"><div class="detail-block"><span>شروع</span><strong>@PersianDateFormatter.Format(Model.Event.ActiveDraft.StartAtUtc, Model.IsRtl)</strong></div></div>
                 <div class="col-md-4"><div class="detail-block"><span>پایان</span><strong>@PersianDateFormatter.Format(Model.Event.ActiveDraft.EndAtUtc, Model.IsRtl)</strong></div></div>
                 <div class="col-md-4"><div class="detail-block"><span>قیمت بلیت</span><strong>@DisplayFormatter.Money(Model.Event.ActiveDraft.TicketPrice, Model.IsRtl)</strong></div></div>
@@ -95,123 +103,111 @@
             </div>
         }
 
-        @if (Model.Event.Pending is not null)
+        @if (Model.ChangeLogEntries.Count > 0)
         {
-            <div class="glass-panel p-4">
-                <h2 class="section-title">تغییرات در انتظار تایید</h2>
-                <div class="alert alert-warning border-0">
-                    ارسال شده توسط @Model.Event.Pending.SubmittedByName در @PersianDateFormatter.Format(Model.Event.Pending.SubmittedAtUtc, Model.IsRtl)
-                </div>
-                @if (!string.IsNullOrWhiteSpace(Model.Event.Pending.RequestedAction))
-                {
-                    <div class="alert alert-info border-0 mb-3">اقدام درخواستی برگزارکننده: @Model.Event.Pending.RequestedAction</div>
-                }
-                <div class="review-compare-list">
-                    @foreach (var change in Model.PendingChanges)
+            <div class="glass-panel p-4 mt-4">
+                <h2 class="section-title">تاریخچه تغییرات رویداد</h2>
+                <div class="event-history-list mt-3">
+                    @foreach (var entry in Model.ChangeLogEntries)
                     {
-                        <article class="review-change-card">
-                            <div class="review-change-head">
-                                <div class="review-change-title">@change.Label</div>
-                                <div class="review-change-icon">
-                                    <i class="bi bi-arrow-left-right"></i>
+                        var badgeClass = entry.Category switch
+                        {
+                            "review" => "status-approved",
+                            "assignment" => "status-pending",
+                            "communication" => "status-draft",
+                            "lifecycle" => "status-rejected",
+                            _ => "status-closed"
+                        };
+                        var badgeText = entry.Category switch
+                        {
+                            "review" => "بازبینی",
+                            "assignment" => "تخصیص",
+                            "communication" => "ارتباطات",
+                            "lifecycle" => "وضعیت",
+                            "pricing" => "مالی",
+                            "sale" => "فروش",
+                            _ => "ویرایش"
+                        };
+
+                        <article class="event-history-card">
+                            <div class="d-flex justify-content-between align-items-start gap-3 mb-2">
+                                <div>
+                                    <div class="fw-semibold">@entry.Action</div>
+                                    <div class="event-history-meta">@entry.ActorName در @PersianDateFormatter.Format(entry.CreatedAtUtc, Model.IsRtl)</div>
                                 </div>
+                                <span class="status-badge @badgeClass">@badgeText</span>
                             </div>
-                            <div class="review-change-body">
-                                <div class="review-state review-state-before">
-                                    <div class="review-state-label">قبل از تغییر</div>
-                                    @if (change.IsImage)
-                                    {
-                                        <div class="review-image-box">
-                                            @if (!string.IsNullOrWhiteSpace(change.BeforeImageUrl))
-                                            {
-                                                <img src="@change.BeforeImageUrl" alt="قبل از تغییر" />
-                                            }
-                                            else
-                                            {
-                                                <div class="p-4 review-empty">تصویری ثبت نشده بود.</div>
-                                            }
-                                        </div>
-                                    }
-                                    else if (change.IsHtml)
-                                    {
-                                        <div class="review-state-html rich-text-preview">@Html.Raw(change.BeforeHtml)</div>
-                                    }
-                                    else if (change.IsTagList)
-                                    {
-                                        <div class="event-chip-list">
-                                            @if (change.BeforeTags.Count == 0)
-                                            {
-                                                <span class="review-empty">بدون تگ</span>
-                                            }
-                                            else
-                                            {
-                                                @foreach (var tag in change.BeforeTags)
-                                                {
-                                                    <span class="event-chip">@tag</span>
-                                                }
-                                            }
-                                        </div>
-                                    }
-                                    else
-                                    {
-                                        <div class="review-state-text">@change.BeforeText</div>
-                                    }
-                                </div>
-                                <div class="review-state review-state-after">
-                                    <div class="review-state-label">بعد از تغییر</div>
-                                    @if (change.IsImage)
-                                    {
-                                        <div class="review-image-box">
-                                            @if (!string.IsNullOrWhiteSpace(change.AfterImageUrl))
-                                            {
-                                                <img src="@change.AfterImageUrl" alt="بعد از تغییر" />
-                                            }
-                                            else
-                                            {
-                                                <div class="p-4 review-empty">تصویری ثبت نشده است.</div>
-                                            }
-                                        </div>
-                                    }
-                                    else if (change.IsHtml)
-                                    {
-                                        <div class="review-state-html rich-text-preview">@Html.Raw(change.AfterHtml)</div>
-                                    }
-                                    else if (change.IsTagList)
-                                    {
-                                        <div class="event-chip-list">
-                                            @if (change.AfterTags.Count == 0)
-                                            {
-                                                <span class="review-empty">بدون تگ</span>
-                                            }
-                                            else
-                                            {
-                                                @foreach (var tag in change.AfterTags)
-                                                {
-                                                    <span class="event-chip">@tag</span>
-                                                }
-                                            }
-                                        </div>
-                                    }
-                                    else
-                                    {
-                                        <div class="review-state-text">@change.AfterText</div>
-                                    }
-                                </div>
-                            </div>
+                            <div class="event-history-summary">@entry.Summary</div>
+                            @if (!string.IsNullOrWhiteSpace(entry.Details))
+                            {
+                                <div class="event-history-details mt-2">@entry.Details</div>
+                            }
                         </article>
                     }
                 </div>
-                @if (!string.IsNullOrWhiteSpace(Model.Event.Pending.ReviewNote))
-                {
-                    <div class="mt-3 alert alert-secondary border-0">@Model.Event.Pending.ReviewNote</div>
-                }
             </div>
         }
     </div>
 
     <div class="col-lg-4">
         <div class="glass-panel p-4 sticky-panel">
-            <h2 class="section-title">وضعیت رویداد</h2>
+            <div class="admin-actions-head">
+                <div>
+                    <h2 class="section-title mb-1">وضعیت رویداد</h2>
+                    <div class="help-tip mb-0">اقدام های کم استفاده داخل منو جمع شده اند تا ستون کناری سبک تر بماند.</div>
+                </div>
+                @if (Model.IsAdmin)
+                {
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            اقدام های سریع
+                        </button>
+                        <div class="dropdown-menu dropdown-menu-end action-menu shadow-sm border-0">
+                            <form method="post" asp-page-handler="OpenSale">
+                                <input type="hidden" name="id" value="@Model.Event.Id" />
+                                <button class="dropdown-item" type="submit">باز کردن فروش</button>
+                            </form>
+                            <form method="post" asp-page-handler="CloseSale">
+                                <input type="hidden" name="id" value="@Model.Event.Id" />
+                                <button class="dropdown-item" type="submit">بستن فروش</button>
+                            </form>
+                            <div class="dropdown-divider"></div>
+                            <form method="post" asp-page-handler="Cancel">
+                                <input type="hidden" name="id" value="@Model.Event.Id" />
+                                <button class="dropdown-item text-danger" type="submit">لغو رویداد</button>
+                            </form>
+                            <div class="dropdown-divider"></div>
+                            <a asp-page="/Events/Sms" asp-route-eventId="@Model.Event.Id" class="dropdown-item">مدیریت پیام ها</a>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            اقدام های سریع
+                        </button>
+                        <div class="dropdown-menu dropdown-menu-end action-menu shadow-sm border-0">
+                            <a asp-page="/Events/Edit" asp-route-id="@Model.Event.Id" class="dropdown-item">ویرایش پیش نویس</a>
+                            <a asp-page="/Public/Event" asp-route-id="@Model.Event.Id" class="dropdown-item">نمایش عمومی</a>
+                            <a asp-page="/Events/Sms" asp-route-eventId="@Model.Event.Id" class="dropdown-item">پیام به شرکت کنندگان</a>
+                            <div class="dropdown-divider"></div>
+                            <form method="post" asp-page-handler="OpenSale">
+                                <input type="hidden" name="id" value="@Model.Event.Id" />
+                                <button class="dropdown-item" type="submit">باز کردن فروش</button>
+                            </form>
+                            <form method="post" asp-page-handler="CloseSale">
+                                <input type="hidden" name="id" value="@Model.Event.Id" />
+                                <button class="dropdown-item" type="submit">بستن فروش</button>
+                            </form>
+                            <form method="post" asp-page-handler="Cancel">
+                                <input type="hidden" name="id" value="@Model.Event.Id" />
+                                <button class="dropdown-item text-danger" type="submit">لغو رویداد</button>
+                            </form>
+                        </div>
+                    </div>
+                }
+            </div>
             <div class="mb-3">
                 <span class="status-badge @Model.StatusClass">@DisplayFormatter.Status(Model.Event.Status)</span>
             </div>
@@ -221,73 +217,87 @@
             {
                 <div class="alert alert-info border-0">@Model.Event.AdminReviewNote</div>
             }
+            @if (Model.SmsRequests.Count > 0)
+            {
+                <div class="sms-request-list mb-3">
+                    @foreach (var request in Model.SmsRequests.Take(3))
+                    {
+                        var badgeClass = request.Status switch
+                        {
+                            EventSmsRequestStatus.Approved => "status-approved",
+                            EventSmsRequestStatus.Rejected => "status-rejected",
+                            _ => "status-pending"
+                        };
+
+                        <article class="sms-request-card">
+                            <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                                <div>
+                                    <div class="fw-semibold">پیام به شرکت کنندگان</div>
+                                    <div class="sms-request-meta">درخواست @request.RequestedByName در @PersianDateFormatter.Format(request.RequestedAtUtc, Model.IsRtl)</div>
+                                </div>
+                                <span class="status-badge @badgeClass">
+                                    @(request.Status switch
+                                    {
+                                        EventSmsRequestStatus.Approved => "تایید شد",
+                                        EventSmsRequestStatus.Rejected => "رد شد",
+                                        _ => "در انتظار تایید"
+                                    })
+                                </span>
+                            </div>
+                            <div class="sms-request-body mb-2">@request.Message</div>
+                            @if (!string.IsNullOrWhiteSpace(request.ReviewNote))
+                            {
+                                <div class="sms-request-note mb-2">@request.ReviewNote</div>
+                            }
+                            @if (request.Status == EventSmsRequestStatus.Approved)
+                            {
+                                <div class="sms-request-meta">تعداد پیام های وارد شده به صف: @DisplayFormatter.Count(request.QueuedRecipientsCount)</div>
+                            }
+                        </article>
+                    }
+                </div>
+            }
+
+            <a asp-page="/Events/Sms" asp-route-eventId="@Model.Event.Id" class="btn btn-outline-primary w-100 mb-3">ورود به صفحه پیام ها</a>
 
             @if (Model.IsAdmin)
             {
-                <form method="post" asp-page-handler="Approve" class="mb-2">
-                    <input type="hidden" name="id" value="@Model.Event.Id" />
-                    <div class="mb-2">
-                        <label class="form-label">درصد کمیسیون</label>
-                        <input name="commissionPercent" class="form-control" value="@Model.Event.ActiveDraft.OrganizerCommissionPercent" />
-                    </div>
-                    <div class="mb-2">
-                        <label class="form-label">یادداشت مدیر</label>
-                        <textarea name="note" class="form-control" rows="3"></textarea>
-                    </div>
-                    <button class="btn btn-success w-100 mb-2" type="submit">تایید</button>
-                </form>
+                <div class="admin-action-card mb-3">
+                    <div class="fw-semibold mb-2">انتشار و یادداشت مدیر</div>
+                    <div class="help-tip">این بخش مستقیم روی وضعیت واقعی فروش و یادداشت مدیریتی رویداد اثر می گذارد و در تاریخچه ثبت می شود.</div>
+                    <form method="post" asp-page-handler="Approve" class="mb-2">
+                        <input type="hidden" name="id" value="@Model.Event.Id" />
+                        <div class="mb-2">
+                            <label class="form-label">درصد کمیسیون</label>
+                            <input name="commissionPercent" class="form-control" value="@Model.Event.ActiveDraft.OrganizerCommissionPercent" />
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">یادداشت مدیر</label>
+                            <textarea name="note" class="form-control" rows="3"></textarea>
+                        </div>
+                        <button class="btn btn-success w-100 mb-2" type="submit">تایید و انتشار</button>
+                    </form>
 
-                <form method="post" asp-page-handler="Reject" class="mb-2">
-                    <input type="hidden" name="id" value="@Model.Event.Id" />
-                    <div class="mb-2">
-                        <label class="form-label">علت رد</label>
-                        <textarea name="note" class="form-control" rows="3"></textarea>
-                    </div>
-                    <button class="btn btn-outline-danger w-100" type="submit">رد تغییرات</button>
-                </form>
-
-                <form method="post" asp-page-handler="OpenSale" class="d-grid gap-2 mb-2">
-                    <input type="hidden" name="id" value="@Model.Event.Id" />
-                    <button class="btn btn-outline-primary" type="submit">باز کردن فروش</button>
-                </form>
-
-                <form method="post" asp-page-handler="CloseSale" class="d-grid gap-2 mb-2">
-                    <input type="hidden" name="id" value="@Model.Event.Id" />
-                    <button class="btn btn-outline-secondary" type="submit">بستن فروش</button>
-                </form>
-
-                <form method="post" asp-page-handler="Cancel" class="d-grid gap-2">
-                    <input type="hidden" name="id" value="@Model.Event.Id" />
-                    <button class="btn btn-outline-dark" type="submit">لغو رویداد</button>
-                </form>
+                    <form method="post" asp-page-handler="Reject">
+                        <input type="hidden" name="id" value="@Model.Event.Id" />
+                        <div class="mb-2">
+                            <label class="form-label">علت رد</label>
+                            <textarea name="note" class="form-control" rows="3"></textarea>
+                        </div>
+                        <button class="btn btn-outline-danger w-100" type="submit">ثبت بازخورد و بستن فروش</button>
+                    </form>
+                </div>
             }
             else
             {
-                <div class="d-grid gap-2">
-                    <a asp-page="/Events/Edit" asp-route-id="@Model.Event.Id" class="btn btn-primary">ویرایش پیش نویس</a>
-
-                    <form method="post" asp-page-handler="OpenSale">
-                        <input type="hidden" name="id" value="@Model.Event.Id" />
-                        <button class="btn btn-outline-primary w-100" type="submit">درخواست باز شدن فروش</button>
-                    </form>
-
-                    <form method="post" asp-page-handler="CloseSale">
-                        <input type="hidden" name="id" value="@Model.Event.Id" />
-                        <button class="btn btn-outline-secondary w-100" type="submit">درخواست بستن فروش</button>
-                    </form>
-
-                    <form method="post" asp-page-handler="Cancel">
-                        <input type="hidden" name="id" value="@Model.Event.Id" />
-                        <button class="btn btn-outline-dark w-100" type="submit">درخواست لغو رویداد</button>
-                    </form>
-
-                    <form method="post" asp-page-handler="SendSms" class="glass-panel p-3 mt-2">
-                        <input type="hidden" name="id" value="@Model.Event.Id" />
-                        <label class="form-label">پیام به شرکت کنندگان</label>
-                        <textarea name="message" class="form-control mb-2" rows="3" placeholder="متن پیامک به مهمان های این رویداد"></textarea>
-                        <button class="btn btn-outline-primary w-100" type="submit">ارسال پیامک</button>
-                    </form>
-                </div>
+                <form method="post" asp-page-handler="SendSms" class="admin-action-card">
+                    <input type="hidden" name="id" value="@Model.Event.Id" />
+                    <div class="fw-semibold mb-2">پیام به شرکت کنندگان</div>
+                    <div class="help-tip">درخواست شما اول برای تایید مدیر ثبت می شود و بعد از تایید وارد صف پیامک خواهد شد.</div>
+                    <label class="form-label">متن پیامک</label>
+                    <textarea name="message" class="form-control mb-2" rows="3" placeholder="متن پیامک به مهمان های این رویداد"></textarea>
+                    <button class="btn btn-outline-primary w-100" type="submit">ثبت درخواست ارسال پیامک</button>
+                </form>
             }
         </div>
     </div>

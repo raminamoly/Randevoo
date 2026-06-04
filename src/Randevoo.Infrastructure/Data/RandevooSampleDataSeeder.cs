@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Randevoo.Domain.Entities;
 using Randevoo.Domain.Enums;
+using Randevoo.Domain.Exceptions;
 using Randevoo.Domain.ValueObjects;
 
 namespace Randevoo.Infrastructure.Data;
@@ -31,6 +32,8 @@ public static class RandevooSampleDataSeeder
         EnsureProfile(planner, "پویا فرهی", new DateOnly(1991, 7, 23), Gender.Male, "تهران", "ولیعصر");
         EnsureProfile(guestOne, "آرزو", new DateOnly(1997, 9, 2), Gender.Female, "تهران", "جردن");
         EnsureProfile(guestTwo, "کیان", new DateOnly(1995, 2, 14), Gender.Male, "تهران", "یوسف آباد");
+        guestOne.Profile?.UpdateEducationLevel(EducationLevel.Graduated);
+        guestTwo.Profile?.UpdateEducationLevel(EducationLevel.Graduated);
 
         await db.SaveChangesAsync(cancellationToken);
 
@@ -43,6 +46,8 @@ public static class RandevooSampleDataSeeder
         await db.SaveChangesAsync(cancellationToken);
 
         var eventTypes = await EnsureEventTypesAsync(db, cancellationToken);
+        var tags = await EnsureTagsAsync(db, cancellationToken);
+        var sampleUsers = await EnsureSampleEndUsersAsync(db, cancellationToken);
 
         if (!await db.DatingEvents.AnyAsync(item => item.Title == "شب اجتماعی تهران", cancellationToken))
         {
@@ -60,6 +65,7 @@ public static class RandevooSampleDataSeeder
                 40,
                 80,
                 950000m,
+                EventEducationLevelRestriction.WithoutLimit,
                 new[] { "اجتماعی", "حضوری", "منتخب", "تهران" },
                 "/images/logo.png",
                 null,
@@ -67,6 +73,7 @@ public static class RandevooSampleDataSeeder
                 "<p>یک شب اجتماعی منتخب با مهمان های تایید شده، مدیریت ظرفیت و تجربه حرفه ای برای شروع گفتگوهای باکیفیت.</p>",
                 12m);
 
+            socialEvent.SetLocationLookup(1, 1);
             socialEvent.OpenForSell();
 
             var dinnerEvent = new DatingEvent(
@@ -83,6 +90,7 @@ public static class RandevooSampleDataSeeder
                 30,
                 60,
                 880000m,
+                EventEducationLevelRestriction.BachelorOrHigher,
                 new[] { "شام", "روف تاپ", "ویژه", "تهران" },
                 "/images/logo.png",
                 null,
@@ -90,8 +98,11 @@ public static class RandevooSampleDataSeeder
                 "<p>این رویداد برای معرفی فضای شام روف تاپ طراحی شده و پیش از باز شدن فروش، توسط مدیر بازبینی می شود.</p>",
                 15m);
 
+            dinnerEvent.SetLocationLookup(1, 1);
             db.DatingEvents.AddRange(socialEvent, dinnerEvent);
             await db.SaveChangesAsync(cancellationToken);
+            socialEvent.ReplaceTags(tags.Values.Where(tag => tag.Name is "شب اجتماعی" or "بازی").ToList());
+            dinnerEvent.ReplaceTags(tags.Values.Where(tag => tag.Name is "شام" or "روف تاپ").ToList());
 
             var plannerBalance = await db.BalanceAccounts.SingleAsync(item => item.UserId == planner.Id, cancellationToken);
             var guestOneBalance = await db.BalanceAccounts.SingleAsync(item => item.UserId == guestOne.Id, cancellationToken);
@@ -108,7 +119,212 @@ public static class RandevooSampleDataSeeder
             db.BalanceAccounts.UpdateRange(plannerBalance, guestOneBalance, guestTwoBalance);
         }
 
+        await EnsureSampleEventTagsAsync(db, tags, cancellationToken);
+
         await db.SaveChangesAsync(cancellationToken);
+        await EnsureSampleTicketsAsync(db, planner, sampleUsers.Append(guestOne).Append(guestTwo).ToList(), cancellationToken);
+        await db.SaveChangesAsync(cancellationToken);
+
+        await EnsureEventSmsRequestsAsync(db, admin, planner, guestOne, guestTwo, cancellationToken);
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
+    private sealed record SampleUserProfileSeed(
+        string Mobile,
+        string DisplayName,
+        DateOnly BirthDate,
+        Gender Gender,
+        EducationLevel Education,
+        string City,
+        string Region,
+        int Height,
+        bool Smoking,
+        string ImageUrl,
+        string[] Interests);
+
+    private static async Task<IReadOnlyList<User>> EnsureSampleEndUsersAsync(RandevooDbContext db, CancellationToken cancellationToken)
+    {
+        var samples = new[]
+        {
+            new SampleUserProfileSeed("09120001001", "رامین", new DateOnly(1992, 5, 21), Gender.Male, EducationLevel.Postgraduate, "تهران", "فرشته", 181, false, "/images/sample-profiles/ramin.jpg", ["کافه", "موسیقی", "سفر", "گفتگو"]),
+            new SampleUserProfileSeed("09120001002", "آرین", new DateOnly(1998, 9, 12), Gender.Male, EducationLevel.Graduated, "تهران", "زعفرانیه", 184, false, "/images/sample-profiles/arian.jpg", ["فیلم", "ورزش", "کافه", "تکنولوژی"]),
+            new SampleUserProfileSeed("09120001003", "بهاره", new DateOnly(1996, 4, 9), Gender.Female, EducationLevel.Postgraduate, "تهران", "جردن", 168, false, "/images/sample-profiles/bahareh.jpg", ["هنر", "گالری", "کتاب", "سفر"]),
+            new SampleUserProfileSeed("09120001004", "علی رضا", new DateOnly(1993, 11, 3), Gender.Male, EducationLevel.Graduated, "تهران", "نیاوران", 178, false, "/images/sample-profiles/alireza.jpg", ["شام", "بازی", "دوچرخه", "موسیقی"]),
+            new SampleUserProfileSeed("09120001005", "شایان", new DateOnly(1999, 2, 17), Gender.Male, EducationLevel.Undergraduate, "تهران", "سعادت آباد", 183, false, "/images/sample-profiles/shayan.jpg", ["فوتبال", "فیلم", "قرار قهوه", "بازی"]),
+            new SampleUserProfileSeed("09120001006", "یاسمن", new DateOnly(1997, 7, 28), Gender.Female, EducationLevel.Graduated, "تهران", "ونک", 166, false, "/images/sample-profiles/yasaman.jpg", ["یوگا", "کتاب", "کافه", "رویداد هنری"])
+        };
+
+        var users = new List<User>();
+        foreach (var sample in samples)
+        {
+            var user = await EnsureUserAsync(db, sample.Mobile, UserRole.EndUser, cancellationToken);
+            EnsureProfile(user, sample.DisplayName, sample.BirthDate, sample.Gender, sample.City, sample.Region);
+            user.Profile!.UpdateDisplayName(sample.DisplayName);
+            user.Profile.UpdateGender(sample.Gender);
+            user.Profile.UpdateEducationLevel(sample.Education);
+            user.Profile.UpdateHeight(new Height(sample.Height));
+            user.Profile.SetSmoking(sample.Smoking);
+            EnsureBalance(db, user, 15000000m, $"شارژ نمونه {sample.DisplayName}");
+            users.Add(user);
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
+
+        var interestMap = await EnsureInterestsAsync(db, samples.SelectMany(item => item.Interests).Distinct().ToList(), cancellationToken);
+        foreach (var sample in samples)
+        {
+            var user = await db.Users
+                .Include(item => item.Profile)!.ThenInclude(profile => profile!.Interests)
+                .Include(item => item.Profile)!.ThenInclude(profile => profile!.Images)
+                .SingleAsync(item => item.MobileNumber == sample.Mobile, cancellationToken);
+            var profile = user.Profile!;
+
+            foreach (var interestName in sample.Interests)
+            {
+                if (!profile.Interests.Any(item => item.Name == interestName))
+                {
+                    profile.AddInterest(interestMap[interestName]);
+                }
+            }
+
+            if (!profile.Images.Any(item => item.ImageUrl == sample.ImageUrl))
+            {
+                profile.AddImage(sample.ImageUrl, 1, true);
+            }
+
+            db.UserProfiles.Update(profile);
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
+        return users;
+    }
+
+    private static async Task<Dictionary<string, Interest>> EnsureInterestsAsync(RandevooDbContext db, IReadOnlyCollection<string> names, CancellationToken cancellationToken)
+    {
+        var existing = await db.Interests.IgnoreQueryFilters().Where(item => !item.IsDeleted).ToListAsync(cancellationToken);
+        foreach (var name in names)
+        {
+            var interest = existing.SingleOrDefault(item => item.Name == name);
+            if (interest is null)
+            {
+                interest = new Interest(name, "سبک زندگی");
+                db.Interests.Add(interest);
+                existing.Add(interest);
+            }
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
+        return existing.ToDictionary(item => item.Name, StringComparer.Ordinal);
+    }
+
+    private static async Task EnsureSampleTicketsAsync(RandevooDbContext db, User planner, IReadOnlyList<User> sampleUsers, CancellationToken cancellationToken)
+    {
+        var events = await db.DatingEvents
+            .Include(item => item.Tickets)
+            .Include(item => item.EventPlannerUser)
+            .Where(item => item.Title == "شب اجتماعی تهران" || item.Title == "پیش نمایش شام روف تاپ")
+            .OrderBy(item => item.Title)
+            .ToListAsync(cancellationToken);
+        if (events.Count == 0)
+            return;
+
+        foreach (var datingEvent in events)
+        {
+            if (!datingEvent.IsOpenForSell)
+                datingEvent.OpenForSell();
+        }
+
+        foreach (var user in sampleUsers)
+        {
+            var userWithProfile = await db.Users
+                .Include(item => item.Profile)
+                .SingleAsync(item => item.Id == user.Id, cancellationToken);
+            if (userWithProfile.Profile is null)
+                continue;
+
+            foreach (var datingEvent in events)
+            {
+                if (datingEvent.Tickets.Any(ticket => ticket.UserId == userWithProfile.Id))
+                    continue;
+
+                var buyerBalance = await db.BalanceAccounts.SingleAsync(item => item.UserId == userWithProfile.Id, cancellationToken);
+                var plannerBalance = await db.BalanceAccounts.SingleAsync(item => item.UserId == planner.Id, cancellationToken);
+                EventTicket ticket;
+                try
+                {
+                    ticket = datingEvent.SellTicket(userWithProfile, userWithProfile.Profile);
+                }
+                catch (BusinessRuleViolationException)
+                {
+                    continue;
+                }
+
+                buyerBalance.Debit(ticket.Price, BalanceTransactionType.TicketPurchase, $"خرید بلیت {datingEvent.Title}", datingEvent.Id);
+                var plannerIncome = ticket.Price * (100 - datingEvent.EventPlannerCommissionPercent) / 100;
+                plannerBalance.Credit(plannerIncome, BalanceTransactionType.EventPlannerIncome, $"درآمد بلیت {datingEvent.Title}", datingEvent.Id);
+
+                db.DatingEvents.Update(datingEvent);
+                db.BalanceAccounts.UpdateRange(buyerBalance, plannerBalance);
+            }
+        }
+    }
+
+    private static async Task EnsureSampleEventTagsAsync(RandevooDbContext db, Dictionary<string, Tag> tags, CancellationToken cancellationToken)
+    {
+        var socialEvent = await db.DatingEvents
+            .Include(item => item.EventTags)
+            .SingleOrDefaultAsync(item => item.Title == "شب اجتماعی تهران", cancellationToken);
+        if (socialEvent is not null && socialEvent.EventTags.Count == 0)
+        {
+            socialEvent.ReplaceTags(tags.Values.Where(tag => tag.Name is "شب اجتماعی" or "بازی").ToList());
+            db.DatingEvents.Update(socialEvent);
+        }
+
+        var dinnerEvent = await db.DatingEvents
+            .Include(item => item.EventTags)
+            .SingleOrDefaultAsync(item => item.Title == "پیش نمایش شام روف تاپ", cancellationToken);
+        if (dinnerEvent is not null && dinnerEvent.EventTags.Count == 0)
+        {
+            dinnerEvent.ReplaceTags(tags.Values.Where(tag => tag.Name is "شام" or "روف تاپ").ToList());
+            db.DatingEvents.Update(dinnerEvent);
+        }
+    }
+
+    private static async Task<Dictionary<string, Tag>> EnsureTagsAsync(RandevooDbContext db, CancellationToken cancellationToken)
+    {
+        var names = new[]
+        {
+            "شب اجتماعی",
+            "شام",
+            "کافه",
+            "بازی",
+            "هنر",
+            "کارگاه",
+            "موسیقی",
+            "روف تاپ"
+        };
+
+        var existing = await db.Tags.IgnoreQueryFilters().Where(item => !item.IsDeleted).ToListAsync(cancellationToken);
+        foreach (var name in names)
+        {
+            var tag = existing.SingleOrDefault(item => item.Name == name);
+            if (tag is null)
+            {
+                tag = new Tag(name);
+                db.Tags.Add(tag);
+                existing.Add(tag);
+                continue;
+            }
+
+            if (!tag.IsActive)
+            {
+                tag.Update(tag.Name, true);
+                db.Tags.Update(tag);
+            }
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
+        return existing.ToDictionary(item => item.Name, StringComparer.Ordinal);
     }
 
     private static async Task<Dictionary<string, EventType>> EnsureEventTypesAsync(RandevooDbContext db, CancellationToken cancellationToken)
@@ -177,6 +393,7 @@ public static class RandevooSampleDataSeeder
     {
         if (user.Profile is not null)
         {
+            user.Profile.UpdateDateOfBirth(birthDate);
             return;
         }
 
@@ -219,5 +436,57 @@ public static class RandevooSampleDataSeeder
         }
 
         db.BalanceAccounts.Add(account);
+    }
+
+    private static async Task EnsureEventSmsRequestsAsync(
+        RandevooDbContext db,
+        User admin,
+        User planner,
+        User guestOne,
+        User guestTwo,
+        CancellationToken cancellationToken)
+    {
+        var socialEvent = await db.DatingEvents
+            .SingleOrDefaultAsync(item => item.Title == "شب اجتماعی تهران", cancellationToken);
+        var dinnerEvent = await db.DatingEvents
+            .SingleOrDefaultAsync(item => item.Title == "پیش نمایش شام روف تاپ", cancellationToken);
+
+        if (socialEvent is not null && !await db.EventParticipantSmsRequests.AnyAsync(item => item.DatingEventId == socialEvent.Id, cancellationToken))
+        {
+            var pendingScheduled = new EventParticipantSmsRequest(
+                planner,
+                socialEvent,
+                "سلام. یادآوری می کنیم که ورود مهمان ها از 18:30 آغاز می شود و لطفا کمی زودتر در محل حاضر باشید.",
+                DateTime.UtcNow.AddDays(2));
+
+            var approvedEdited = new EventParticipantSmsRequest(
+                planner,
+                socialEvent,
+                "سلام. رویداد شما فردا برگزار می شود. برای هماهنگی بهتر، 15 دقیقه زودتر در محل حضور داشته باشید.");
+            approvedEdited.Approve(
+                admin.Id,
+                2,
+                "سلام. رویداد شب اجتماعی تهران فردا برگزار می شود. لطفا 15 دقیقه زودتر در محل حضور داشته باشید.",
+                null,
+                "متن برای شفافیت زمان حضور توسط مدیر ویرایش شد.");
+
+            db.EventParticipantSmsRequests.AddRange(pendingScheduled, approvedEdited);
+            await db.SaveChangesAsync(cancellationToken);
+
+            var approvedMessage = approvedEdited.GetEffectiveMessage();
+            db.SmsQueueItems.AddRange(
+                new SmsQueueItem(guestOne, socialEvent, approvedMessage, null, approvedEdited.Id),
+                new SmsQueueItem(guestTwo, socialEvent, approvedMessage, null, approvedEdited.Id));
+        }
+
+        if (dinnerEvent is not null && !await db.EventParticipantSmsRequests.AnyAsync(item => item.DatingEventId == dinnerEvent.Id, cancellationToken))
+        {
+            var rejectedRequest = new EventParticipantSmsRequest(
+                planner,
+                dinnerEvent,
+                "سلام. برای این رویداد لطفا لباس رسمی تیره بپوشید و کارت شناسایی همراه داشته باشید.");
+            rejectedRequest.Reject(admin.Id, "این پیام فعلا زودهنگام است و باید نزدیک تر به زمان رویداد ارسال شود.");
+            db.EventParticipantSmsRequests.Add(rejectedRequest);
+        }
     }
 }

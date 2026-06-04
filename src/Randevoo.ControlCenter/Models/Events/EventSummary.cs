@@ -26,6 +26,7 @@ public sealed record EventSummary(
     int TicketsSold,
     decimal GrossSales,
     decimal TicketPrice,
+    string EducationLevelRestriction,
     string AgeRangeForMale,
     string AgeRangeForFemale,
     string? EventImage1,

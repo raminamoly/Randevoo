@@ -54,6 +54,19 @@ public static class PersianDateFormatter
         return DisplayFormatter.ToPersianDigits($"{year:0000}/{month:00}/{day:00} {local:HH:mm}");
     }
 
+    public static string Format(DateTime? utcDateTime, bool useShamsi)
+    {
+        if (utcDateTime is null)
+        {
+            return "-";
+        }
+
+        return Format(new DateTimeOffset(DateTime.SpecifyKind(utcDateTime.Value, DateTimeKind.Utc)), useShamsi);
+    }
+
+    public static string FormatDateTime(DateTime utcDateTime, bool useShamsi)
+        => Format(new DateTimeOffset(DateTime.SpecifyKind(utcDateTime, DateTimeKind.Utc)), useShamsi);
+
     public static DateTimeOffset Parse(string? text)
     {
         if (string.IsNullOrWhiteSpace(text))

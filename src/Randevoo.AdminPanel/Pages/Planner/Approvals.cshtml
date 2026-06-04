@@ -1,0 +1,72 @@
+@page
+@model Randevoo.AdminPanel.Pages.Planner.ApprovalsModel
+@{
+    ViewData["Title"] = "تایید پروفایل برگزارکننده";
+}
+
+<section class="page-header">
+    <div>
+        <h1>تایید پروفایل برگزارکننده</h1>
+        <p>تغییرات ثبت شده توسط برگزارکننده ها را بررسی کنید، نسخه نهایی را ویرایش کنید و بعد از تایید منتشر کنید.</p>
+    </div>
+</section>
+
+@if (!string.IsNullOrWhiteSpace(Model.PlannerProfileReviewMessage))
+{
+    <div class="alert alert-success border-0 mb-4">@Model.PlannerProfileReviewMessage</div>
+}
+
+<div class="glass-panel p-4">
+    <div class="table-responsive">
+        <table class="table align-middle">
+            <thead>
+                <tr>
+                    <th>برگزارکننده</th>
+                    <th>عنوان فعلی</th>
+                    <th>درخواست جدید</th>
+                    <th>زمان ثبت</th>
+                    <th>رویدادها</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model.Profiles)
+                {
+                    <tr>
+                        <td>
+                            <div class="fw-semibold">@item.FullName</div>
+                            <div class="text-muted small">@item.City</div>
+                        </td>
+                        <td>@item.Title</td>
+                        <td>
+                            <span class="status-badge @(item.HasPendingChanges ? "status-pending" : "status-approved")">
+                                @(item.HasPendingChanges ? "در انتظار تایید" : "منتشر شده")
+                            </span>
+                            @if (item.HasPendingChanges && !string.IsNullOrWhiteSpace(item.PendingTitle))
+                            {
+                                <div class="text-muted small mt-2">@item.PendingTitle</div>
+                            }
+                        </td>
+                        <td>
+                            @(item.PendingSubmittedAtUtc is null
+                                ? "ندارد"
+                                : PersianDateFormatter.Format(item.PendingSubmittedAtUtc.Value, Model.IsRtl))
+                        </td>
+                        <td>@DisplayFormatter.Count(item.HostedEventCount)</td>
+                        <td class="text-end table-action-cell">
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle table-action-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    اقدام ها
+                                </button>
+                                <div class="dropdown-menu dropdown-menu-end action-menu shadow-sm border-0">
+                                    <a asp-page="/Planner/Review" asp-route-id="@item.UserId" class="dropdown-item">بررسی و تایید</a>
+                                    <a asp-page="/Planner/Details" asp-route-id="@item.UserId" class="dropdown-item">نمایش عمومی</a>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

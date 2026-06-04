@@ -2,7 +2,7 @@ namespace Randevoo.AdminPanel.Models.Users;
 
 public sealed class PlannerProfileViewModel
 {
-    public Guid UserId { get; set; }
+    public long UserId { get; set; }
 
     public string FullName { get; set; } = string.Empty;
 
@@ -13,6 +13,24 @@ public sealed class PlannerProfileViewModel
     public string Resume { get; set; } = string.Empty;
 
     public string City { get; set; } = string.Empty;
+
+    public bool HasPendingChanges { get; set; }
+
+    public string? PendingFullName { get; set; }
+
+    public string? PendingCity { get; set; }
+
+    public string? PendingTitle { get; set; }
+
+    public string? PendingPictureUrl { get; set; }
+
+    public string? PendingResume { get; set; }
+
+    public DateTimeOffset? PendingSubmittedAtUtc { get; set; }
+
+    public string? PendingReviewNote { get; set; }
+
+    public DateTimeOffset? PendingReviewedAtUtc { get; set; }
 
     public decimal AverageRating { get; set; }
 

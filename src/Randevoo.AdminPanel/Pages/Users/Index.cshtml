@@ -7,7 +7,7 @@
 <section class="page-header">
     <div>
         <h1>کاربران</h1>
-        <p>ایجاد و ویرایش برگزارکننده ها و اعضای تیم پشتیبانی از یک نقطه کنترل.</p>
+        <p>ایجاد و ویرایش مدیرها و برگزارکننده ها از یک نقطه کنترل واقعی روی داده های پایگاه داده.</p>
     </div>
 </section>
 
@@ -20,14 +20,17 @@
             <div class="mb-3">
                 <label asp-for="Input.FullName" class="form-label">نام کامل</label>
                 <input asp-for="Input.FullName" class="form-control" />
+                <div class="help-tip">نامی را وارد کنید که در لیست ها و گزارش ها برای تیم نمایش داده می شود.</div>
             </div>
             <div class="mb-3">
                 <label asp-for="Input.Mobile" class="form-label">موبایل</label>
                 <input asp-for="Input.Mobile" class="form-control" />
+                <div class="help-tip">شماره موبایل برای ورود و پیگیری اعلان های کاربر استفاده می شود.</div>
             </div>
             <div class="mb-3">
                 <label asp-for="Input.Role" class="form-label">نقش</label>
                 <select asp-for="Input.Role" class="form-select" asp-items="Model.RoleOptions"></select>
+                <div class="help-tip">برای دسترسی کمتر، نقش محدودتر را انتخاب کنید تا منوها ساده تر بمانند.</div>
             </div>
             <div class="form-check form-switch mb-3">
                 <input asp-for="Input.IsActive" class="form-check-input" />
@@ -58,8 +61,15 @@
                                 <td>@user.Mobile</td>
                                 <td>@DisplayFormatter.Role(user.Role)</td>
                                 <td><span class="status-badge @(user.IsActive ? "status-approved" : "status-rejected")">@(user.IsActive ? "فعال" : "غیرفعال")</span></td>
-                                <td class="text-end">
-                                    <a asp-page="/Users/Index" asp-route-id="@user.Id" class="btn btn-sm btn-outline-primary">ویرایش</a>
+                                <td class="text-end table-action-cell">
+                                    <div class="dropdown">
+                                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle table-action-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                            اقدام ها
+                                        </button>
+                                        <div class="dropdown-menu dropdown-menu-end action-menu shadow-sm border-0">
+                                            <a asp-page="/Users/Index" asp-route-id="@user.Id" class="dropdown-item">ویرایش کاربر</a>
+                                        </div>
+                                    </div>
                                 </td>
                             </tr>
                         }

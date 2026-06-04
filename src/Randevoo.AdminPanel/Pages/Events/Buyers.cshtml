@@ -1,0 +1,136 @@
+@page "{eventId:long}"
+@model Randevoo.AdminPanel.Pages.Events.BuyersModel
+@{
+    ViewData["Title"] = "خریداران بلیت";
+}
+
+<section class="page-header">
+    <div>
+        <h1>خریداران بلیت</h1>
+        <p>پروفایل کاربرانی که برای این رویداد بلیت خریده اند. شماره موبایل فقط برای مدیر نمایش داده می شود.</p>
+    </div>
+    <a asp-page="/Events/My" class="btn btn-outline-secondary">بازگشت به رویدادها</a>
+</section>
+
+@if (!string.IsNullOrWhiteSpace(Model.StatusMessage))
+{
+    <div class="alert alert-success border-0 mb-4">@Model.StatusMessage</div>
+}
+
+<div asp-validation-summary="ModelOnly" class="alert alert-danger border-0 mb-4"></div>
+
+<form method="get" class="glass-panel p-4 mb-4 filter-panel">
+    <input type="hidden" name="eventId" value="@Model.EventId" />
+    <div class="row g-3 align-items-end">
+        <div class="col-lg-5">
+            <label asp-for="Search" class="form-label">جستجو</label>
+            <input asp-for="Search" class="form-control" placeholder="نام، شهر یا شماره موبایل برای مدیر" />
+        </div>
+        <div class="col-md-3">
+            <label asp-for="Status" class="form-label">وضعیت بلیت</label>
+            <select asp-for="Status" class="form-select">
+                <option value="">همه وضعیت ها</option>
+                <option value="active">فعال</option>
+                <option value="refunded">بازگشت وجه</option>
+                <option value="removed">حذف اضطراری</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label asp-for="Gender" class="form-label">جنسیت</label>
+            <select asp-for="Gender" class="form-select">
+                <option value="">همه</option>
+                <option value="male">آقا</option>
+                <option value="female">خانم</option>
+            </select>
+        </div>
+        <div class="col-lg-1 d-grid">
+            <button type="submit" class="btn btn-primary">فیلتر</button>
+        </div>
+    </div>
+</form>
+
+<div class="glass-panel p-4">
+    <div class="table-responsive">
+        <table class="table align-middle">
+            <thead>
+                <tr>
+                    <th>پروفایل</th>
+                    <th>جنسیت</th>
+                    <th>سن</th>
+                    <th>تحصیلات</th>
+                    <th>موقعیت</th>
+                    @if (Model.IsAdmin)
+                    {
+                        <th>موبایل</th>
+                    }
+                    <th>قیمت</th>
+                    <th>زمان خرید</th>
+                    <th>وضعیت</th>
+                    <th>اقدام ها</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model.Buyers)
+                {
+                    <tr>
+                        <td>
+                            <div class="fw-semibold">@item.DisplayName</div>
+                            <div class="text-muted small">شناسه کاربر: @DisplayFormatter.Count((int)item.UserId)</div>
+                        </td>
+                        <td>@item.GenderTitle</td>
+                        <td>@(item.Age > 0 ? DisplayFormatter.Count(item.Age) : "ثبت نشده")</td>
+                        <td>@item.EducationLevelTitle</td>
+                        <td>
+                            <div>@item.City</div>
+                            <div class="text-muted small">@item.Country</div>
+                        </td>
+                        @if (Model.IsAdmin)
+                        {
+                            <td dir="ltr">@item.MobileNumber</td>
+                        }
+                        <td>@DisplayFormatter.Money(item.TicketPrice, Model.IsRtl)</td>
+                        <td>@PersianDateFormatter.FormatDateTime(item.PurchasedAtUtc, Model.IsRtl)</td>
+                        <td>
+                            <span class="status-badge @Model.GetTicketStatusClass(item)">@item.TicketStatus</span>
+                            @if (!string.IsNullOrWhiteSpace(item.RemovalReason))
+                            {
+                                <div class="text-muted small mt-2">@item.RemovalReason</div>
+                            }
+                        </td>
+                        <td class="table-action-cell">
+                            <div class="d-flex flex-wrap gap-2">
+                                <a asp-page="/UserProfiles/Details" asp-route-userId="@item.UserId" class="btn btn-sm btn-outline-primary">نمایش پروفایل کاربر</a>
+                                @if (!item.IsRefunded && !item.IsRemoved)
+                                {
+                                    @if (Model.IsAdmin)
+                                    {
+                                        <details class="refund-details">
+                                            <summary class="btn btn-sm btn-outline-danger">بازگشت اضطراری</summary>
+                                            <form method="post" asp-page-handler="Refund" asp-route-eventId="@Model.EventId" class="refund-form">
+                                                <input type="hidden" asp-for="Input.TicketId" value="@item.TicketId" />
+                                                <textarea asp-for="Input.Reason" class="form-control form-control-sm" rows="3" placeholder="دلیل حذف و بازگشت وجه"></textarea>
+                                                <span asp-validation-for="Input.Reason" class="text-danger small"></span>
+                                                <button type="submit" class="btn btn-sm btn-danger w-100">ثبت بازگشت وجه</button>
+                                            </form>
+                                        </details>
+                                    }
+                                }
+                                else if (Model.IsAdmin)
+                                {
+                                    <span class="text-muted small">انجام شده</span>
+                                }
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    @if (Model.Buyers.Count == 0)
+    {
+        <div class="empty-state">برای این فیلتر خریداری پیدا نشد.</div>
+    }
+</div>
+
+<partial name="_ValidationScriptsPartial" />

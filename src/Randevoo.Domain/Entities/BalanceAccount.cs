@@ -51,6 +51,25 @@ public class BalanceAccount : BaseEntity, IAggregateRoot
         UpdateTimestamp();
     }
 
+    public void Debit(decimal amount, BalanceTransactionType type, string description, long? datingEventId, string? referenceType, long? referenceId, long? createdByUserId)
+    {
+        ValidateAmount(amount);
+        if (Balance < amount)
+            throw new BusinessRuleViolationException("Insufficient balance", "User balance is lower than the requested amount");
+
+        Balance -= amount;
+        AddTransaction(-amount, type, description, datingEventId, referenceType, referenceId, createdByUserId);
+        UpdateTimestamp();
+    }
+
+    public void DebitAllowNegative(decimal amount, BalanceTransactionType type, string description, long? datingEventId, string? referenceType, long? referenceId, long? createdByUserId)
+    {
+        ValidateAmount(amount);
+        Balance -= amount;
+        AddTransaction(-amount, type, description, datingEventId, referenceType, referenceId, createdByUserId);
+        UpdateTimestamp();
+    }
+
     private void AddTransaction(decimal amount, BalanceTransactionType type, string description, long? datingEventId, string? referenceType = null, long? referenceId = null, long? createdByUserId = null)
     {
         var transaction = new BalanceTransaction(this, amount, type, description, datingEventId);

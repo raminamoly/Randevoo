@@ -2,7 +2,7 @@ namespace Randevoo.AdminPanel.Models.Auth;
 
 public sealed class MockUser
 {
-    public Guid Id { get; set; } = Guid.NewGuid();
+    public long Id { get; set; }
 
     public string FullName { get; set; } = string.Empty;
 
@@ -12,4 +12,3 @@ public sealed class MockUser
 
     public bool IsActive { get; set; } = true;
 }
-

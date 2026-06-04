@@ -4,6 +4,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Security.Claims;
 using System.Text;
+using System.Text.Json;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
@@ -57,6 +58,7 @@ public class DatingEventApiTests
         Assert.Equal(HttpStatusCode.Created, createEventResponse.StatusCode);
         var createdEvent = await createEventResponse.Content.ReadFromJsonAsync<DatingEventDto>();
         Assert.NotNull(createdEvent);
+        Assert.Equal(EventEducationLevelRestriction.WithoutLimit, createdEvent.EducationLevelRestriction);
 
         var openResponse = await client.PostAsync($"/api/dating-events/{createdEvent.Id}/open", null);
         Assert.Equal(HttpStatusCode.NoContent, openResponse.StatusCode);
@@ -87,8 +89,8 @@ public class DatingEventApiTests
         Assert.Equal(12.5m, updatedEvent.EventPlannerCommissionPercent);
 
         var endUserAuth = await LoginAsync(client, "+989122222222");
-        await factory.SeedAdminAsync();
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", CreateToken(999, "+989120000000", UserRole.Admin));
+        var adminUserId = await factory.SeedAdminAsync();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", CreateToken(adminUserId, "+989120000000", UserRole.Admin));
         var adjustResponse = await client.PostAsJsonAsync($"/api/balances/{endUserAuth.UserId}/adjust", new
         {
             Amount = 500m,
@@ -110,6 +112,23 @@ public class DatingEventApiTests
             HeightCm = 178
         });
         Assert.Equal(HttpStatusCode.Created, profileResponse.StatusCode);
+        var createdProfile = await profileResponse.Content.ReadFromJsonAsync<DatingProfileDto>();
+        Assert.NotNull(createdProfile);
+
+        var updateProfileResponse = await client.PutAsJsonAsync($"/api/dating-profiles/{createdProfile.Id}", new
+        {
+            DisplayName = createdProfile.DisplayName,
+            Gender = createdProfile.Gender,
+            Country = createdProfile.Country,
+            City = createdProfile.City,
+            Latitude = createdProfile.Latitude,
+            Longitude = createdProfile.Longitude,
+            HeightCm = createdProfile.HeightCm,
+            EducationLevel = EducationLevel.Graduated,
+            Smoking = false,
+            Region = createdProfile.Region
+        });
+        Assert.Equal(HttpStatusCode.NoContent, updateProfileResponse.StatusCode);
 
         var buyResponse = await client.PostAsync($"/api/dating-events/{createdEvent.Id}/tickets", null);
         Assert.Equal(HttpStatusCode.Created, buyResponse.StatusCode);
@@ -131,6 +150,114 @@ public class DatingEventApiTests
         var response = await client.PostAsJsonAsync("/api/dating-events", CreateEventBody());
 
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task TicketPurchaseFails_WhenBuyerEducationDoesNotMeetEventRestriction()
+    {
+        await using var factory = new RandevooEventApiFactory();
+        await factory.SeedEventTypesAsync();
+        var client = factory.CreateClient();
+
+        var plannerAuth = await LoginAsync(client, "+989121111112");
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", plannerAuth.Token);
+
+        var plannerProfileResponse = await client.PutAsJsonAsync("/api/event-planner-profile/me", new
+        {
+            Title = "Restricted Planner",
+            PictureUrl = "https://example.com/p.jpg",
+            Resume = "Planner for education restriction tests."
+        });
+        Assert.Equal(HttpStatusCode.OK, plannerProfileResponse.StatusCode);
+
+        plannerAuth = await LoginAsync(client, "+989121111112");
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", plannerAuth.Token);
+
+        var createEventResponse = await client.PostAsJsonAsync("/api/dating-events", CreateEventBody(EventEducationLevelRestriction.BachelorOrHigher));
+        Assert.Equal(HttpStatusCode.Created, createEventResponse.StatusCode);
+        var createdEvent = await createEventResponse.Content.ReadFromJsonAsync<DatingEventDto>();
+        Assert.NotNull(createdEvent);
+
+        var openResponse = await client.PostAsync($"/api/dating-events/{createdEvent.Id}/open", null);
+        Assert.Equal(HttpStatusCode.NoContent, openResponse.StatusCode);
+
+        var buyer = await CreateUserWithProfileAsync(factory, client, "+989126555555", "EducationBuyer", Gender.Male, EducationLevel.Diploma);
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", buyer.Token);
+        var buyResponse = await client.PostAsync($"/api/dating-events/{createdEvent.Id}/tickets", null);
+
+        Assert.Equal(HttpStatusCode.BadRequest, buyResponse.StatusCode);
+        var problem = await buyResponse.Content.ReadAsStringAsync();
+        Assert.Contains("education", problem, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task PlannerSmsRequestRequiresAdminApprovalBeforeQueueingMessages()
+    {
+        await using var factory = new RandevooEventApiFactory();
+        await factory.SeedEventTypesAsync();
+        var client = factory.CreateClient();
+
+        var plannerAuth = await LoginAsync(client, "+989121111111");
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", plannerAuth.Token);
+
+        var plannerProfileResponse = await client.PutAsJsonAsync("/api/event-planner-profile/me", new
+        {
+            Title = "SMS Approval Planner",
+            PictureUrl = "https://example.com/p.jpg",
+            Resume = "Planner used for SMS approval tests."
+        });
+        Assert.Equal(HttpStatusCode.OK, plannerProfileResponse.StatusCode);
+
+        plannerAuth = await LoginAsync(client, "+989121111111");
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", plannerAuth.Token);
+
+        var createEventResponse = await client.PostAsJsonAsync("/api/dating-events", CreateEventBody());
+        Assert.Equal(HttpStatusCode.Created, createEventResponse.StatusCode);
+        var createdEvent = await createEventResponse.Content.ReadFromJsonAsync<DatingEventDto>();
+        Assert.NotNull(createdEvent);
+
+        var openResponse = await client.PostAsync($"/api/dating-events/{createdEvent.Id}/open", null);
+        Assert.Equal(HttpStatusCode.NoContent, openResponse.StatusCode);
+
+        await CreateFundedProfileAndTicketAsync(factory, client, "+989126000001", createdEvent.Id, "SmsParticipant", Gender.Male);
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", plannerAuth.Token);
+        var smsRequestResponse = await client.PostAsJsonAsync($"/api/dating-events/{createdEvent.Id}/send-sms", new
+        {
+            Message = "Please arrive 20 minutes early for check-in."
+        });
+        Assert.Equal(HttpStatusCode.Accepted, smsRequestResponse.StatusCode);
+
+        var responseJson = JsonDocument.Parse(await smsRequestResponse.Content.ReadAsStringAsync());
+        var requestId = responseJson.RootElement.GetProperty("requestId").GetInt64();
+
+        var pendingRequest = await factory.GetSmsRequestAsync(requestId);
+        Assert.NotNull(pendingRequest);
+        Assert.Equal(EventParticipantSmsRequestStatus.Pending, pendingRequest.Status);
+        Assert.Equal(0, await factory.GetSmsQueueCountForRequestAsync(requestId));
+
+        var adminUserId = await factory.SeedAdminAsync();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", CreateToken(adminUserId, "+989120000000", UserRole.Admin));
+        var approveResponse = await client.PostAsJsonAsync($"/api/dating-events/sms-requests/{requestId}/approve", new
+        {
+            ApprovedMessage = "Please arrive 20 minutes early for check-in.",
+            Note = "Approved for delivery."
+        });
+        var approveBody = await approveResponse.Content.ReadAsStringAsync();
+        Assert.True(approveResponse.StatusCode == HttpStatusCode.OK, $"Approve failed with {(int)approveResponse.StatusCode}: {approveBody}");
+
+        var approvedRequest = await factory.GetSmsRequestAsync(requestId);
+        Assert.NotNull(approvedRequest);
+        Assert.Equal(EventParticipantSmsRequestStatus.Approved, approvedRequest.Status);
+        Assert.Equal("Approved for delivery.", approvedRequest.ReviewNote);
+        Assert.Equal(1, approvedRequest.QueuedRecipientsCount);
+
+        var queueItems = await factory.GetSmsQueueItemsForRequestAsync(requestId);
+        var queueItem = Assert.Single(queueItems);
+        Assert.Equal(SmsQueueItemStatus.Pending, queueItem.Status);
+        Assert.Equal("+989126000001", queueItem.MobileNumber);
+        Assert.Equal("Please arrive 20 minutes early for check-in.", queueItem.Message);
     }
 
     [Fact]
@@ -312,7 +439,7 @@ public class DatingEventApiTests
         Assert.Equal(UserRole.EventPlanner, await factory.GetUserRoleAsync(auth.UserId));
     }
 
-    private static object CreateEventBody() => new
+    private static object CreateEventBody(EventEducationLevelRestriction educationLevelRestriction = EventEducationLevelRestriction.WithoutLimit) => new
     {
         Title = "Mafia Night",
         Country = "Iran",
@@ -332,6 +459,7 @@ public class DatingEventApiTests
         FemaleCapacity = 10,
         NumberOfChatAllowed = 3,
         TicketPrice = 100m,
+        EducationLevelRestriction = educationLevelRestriction,
         Tags = new[] { "Mafia", "Night", "Friendly" },
         EventImage1 = "https://example.com/1.jpg",
         EventImage2 = "https://example.com/2.jpg",
@@ -360,6 +488,7 @@ public class DatingEventApiTests
         FemaleCapacity = 10,
         NumberOfChatAllowed = 1,
         TicketPrice = 100m,
+        EducationLevelRestriction = EventEducationLevelRestriction.WithoutLimit,
         Tags = new[] { "Social", "Completed" },
         EventImage1 = "https://example.com/past1.jpg",
         EventImage2 = "https://example.com/past2.jpg",
@@ -374,7 +503,23 @@ public class DatingEventApiTests
         string mobileNumber,
         long eventId,
         string displayName,
-        Gender gender)
+        Gender gender,
+        EducationLevel educationLevel = EducationLevel.NotSpecified)
+    {
+        var auth = await CreateUserWithProfileAsync(factory, client, mobileNumber, displayName, gender, educationLevel);
+
+        var buyResponse = await client.PostAsync($"/api/dating-events/{eventId}/tickets", null);
+        Assert.Equal(HttpStatusCode.Created, buyResponse.StatusCode);
+        return auth;
+    }
+
+    private static async Task<AuthResult> CreateUserWithProfileAsync(
+        RandevooEventApiFactory factory,
+        HttpClient client,
+        string mobileNumber,
+        string displayName,
+        Gender gender,
+        EducationLevel educationLevel)
     {
         var auth = await LoginAsync(client, mobileNumber);
         await factory.SeedAdminAsync();
@@ -401,9 +546,27 @@ public class DatingEventApiTests
             HeightCm = 178
         });
         Assert.Equal(HttpStatusCode.Created, profileResponse.StatusCode);
+        var createdProfile = await profileResponse.Content.ReadFromJsonAsync<DatingProfileDto>();
+        Assert.NotNull(createdProfile);
 
-        var buyResponse = await client.PostAsync($"/api/dating-events/{eventId}/tickets", null);
-        Assert.Equal(HttpStatusCode.Created, buyResponse.StatusCode);
+        if (educationLevel != EducationLevel.NotSpecified)
+        {
+            var updateProfileResponse = await client.PutAsJsonAsync($"/api/dating-profiles/{createdProfile.Id}", new
+            {
+                DisplayName = createdProfile.DisplayName,
+                Gender = createdProfile.Gender,
+                Country = createdProfile.Country,
+                City = createdProfile.City,
+                Latitude = createdProfile.Latitude,
+                Longitude = createdProfile.Longitude,
+                HeightCm = createdProfile.HeightCm,
+                EducationLevel = educationLevel,
+                Smoking = false,
+                Region = createdProfile.Region
+            });
+            Assert.Equal(HttpStatusCode.NoContent, updateProfileResponse.StatusCode);
+        }
+
         return auth;
     }
 
@@ -459,17 +622,19 @@ public class DatingEventApiTests
             });
         }
 
-        public async Task SeedAdminAsync()
+        public async Task<long> SeedAdminAsync()
         {
             using var scope = Services.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<RandevooDbContext>();
-            if (await db.Users.AnyAsync(u => u.Id == 999))
-                return;
+            var existingAdmin = await db.Users.FirstOrDefaultAsync(u => u.MobileNumber == "+989120000000");
+            if (existingAdmin is not null)
+                return existingAdmin.Id;
 
             var admin = new User("+989120000000");
             admin.ChangeUserRole(UserRole.Admin);
             db.Users.Add(admin);
             await db.SaveChangesAsync();
+            return admin.Id;
         }
 
         public async Task<UserRole> GetUserRoleAsync(long userId)
@@ -509,6 +674,30 @@ public class DatingEventApiTests
                 new EventType("Art Night"),
                 new EventType("Music Night"));
             await db.SaveChangesAsync();
+        }
+
+        public async Task<EventParticipantSmsRequest?> GetSmsRequestAsync(long requestId)
+        {
+            using var scope = Services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<RandevooDbContext>();
+            return await db.EventParticipantSmsRequests.SingleOrDefaultAsync(request => request.Id == requestId);
+        }
+
+        public async Task<int> GetSmsQueueCountForRequestAsync(long requestId)
+        {
+            using var scope = Services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<RandevooDbContext>();
+            return await db.SmsQueueItems.CountAsync(item => item.EventParticipantSmsRequestId == requestId);
+        }
+
+        public async Task<List<SmsQueueItem>> GetSmsQueueItemsForRequestAsync(long requestId)
+        {
+            using var scope = Services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<RandevooDbContext>();
+            return await db.SmsQueueItems
+                .Where(item => item.EventParticipantSmsRequestId == requestId)
+                .OrderBy(item => item.Id)
+                .ToListAsync();
         }
     }
 

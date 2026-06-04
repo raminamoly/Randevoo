@@ -1,4 +1,5 @@
 using Randevoo.Domain.Entities;
+using Randevoo.Domain.Enums;
 
 namespace Randevoo.Application.Features.DatingEvents.Common;
 
@@ -20,6 +21,7 @@ public record DatingEventDto(
     int FemaleCapacity,
     int NumberOfChatAllowed,
     decimal TicketPrice,
+    EventEducationLevelRestriction EducationLevelRestriction,
     IReadOnlyList<string> Tags,
     string EventDescriptionHtml)
 {
@@ -29,8 +31,8 @@ public record DatingEventDto(
             datingEvent.Title,
             datingEvent.EventTypeId,
             datingEvent.EventType.Name,
-            datingEvent.Location.Country,
-            datingEvent.Location.City,
+            datingEvent.Country?.Name ?? LookupCountryName(datingEvent.CountryId) ?? datingEvent.Location.Country,
+            datingEvent.City?.Name ?? LookupCityName(datingEvent.CityId) ?? datingEvent.Location.City,
             datingEvent.Address,
             datingEvent.DateTimeStart,
             datingEvent.DateTimeEnd,
@@ -42,6 +44,29 @@ public record DatingEventDto(
             datingEvent.FemaleCapacity,
             datingEvent.NumberOfChatAllowed,
             datingEvent.TicketPrice,
+            datingEvent.EducationLevelRestriction,
             datingEvent.Tags,
             datingEvent.EventDescriptionHtml);
+
+    private static string? LookupCountryName(long? countryId) => countryId switch
+    {
+        1 => "Iran",
+        2 => "United Arab Emirates",
+        3 => "Turkey",
+        _ => null
+    };
+
+    private static string? LookupCityName(long? cityId) => cityId switch
+    {
+        1 => "Tehran",
+        2 => "Mashhad",
+        3 => "Shiraz",
+        4 => "Isfahan",
+        5 => "Tabriz",
+        6 => "Dubai",
+        7 => "Abu Dhabi",
+        8 => "Istanbul",
+        9 => "Ankara",
+        _ => null
+    };
 }

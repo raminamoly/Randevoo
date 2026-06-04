@@ -15,6 +15,7 @@
         <MudTd DataLabel="@Language.T("Event")">
             <MudText Typo="Typo.body2" Class="table-primary">@context.Title</MudText>
             <MudText Typo="Typo.caption" Color="Color.Secondary">@context.City</MudText>
+            <MudText Typo="Typo.caption" Color="Color.Secondary">@EducationRestrictionLabel(context.EducationLevelRestriction)</MudText>
         </MudTd>
         <MudTd DataLabel="@Language.T("Planner")">@context.PlannerName</MudTd>
         <MudTd DataLabel="@Language.T("Starts")"><DateTimeText Value="@context.StartsAt" /></MudTd>
@@ -44,4 +45,14 @@
 
     [Parameter]
     public EventCallback<Guid> OnApprove { get; set; }
+
+    private string EducationRestrictionLabel(string value) => value switch
+    {
+        "WithoutLimit" => Language.T("WithoutLimit"),
+        "DiplomaOrHigher" => Language.T("DiplomaOrHigher"),
+        "BachelorOrHigher" => Language.T("BachelorOrHigher"),
+        "MasterOrHigher" => Language.T("MasterOrHigher"),
+        "ProfessionalDoctorateOrPhD" => Language.T("ProfessionalDoctorateOrPhD"),
+        _ => value
+    };
 }

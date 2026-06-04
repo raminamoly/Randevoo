@@ -132,6 +132,7 @@ else
                     <DetailBlock Label="@Language.T("FemaleCapacity")" Value="@FormatNumber(_event.FemaleCapacity)" />
                     <DetailBlock Label="@Language.T("TicketsSold")" Value="@FormatNumber(_event.TicketsSold)" />
                     <DetailBlock Label="@Language.T("TicketPrice")" Value="@FormatMoney(_event.TicketPrice)" />
+                    <DetailBlock Label="@Language.T("EducationRestriction")" Value="@EducationRestrictionLabel(_event.EducationLevelRestriction)" />
                     <DetailBlock Label="@Language.T("AgeRangeForMale")" Value="@FormatText(_event.AgeRangeForMale)" />
                     <DetailBlock Label="@Language.T("AgeRangeForFemale")" Value="@FormatText(_event.AgeRangeForFemale)" />
                     <DetailBlock Label="@Language.T("NumberOfChatAllowed")" Value="@FormatNumber(_event.NumberOfChatAllowed)" />
@@ -165,7 +166,17 @@ else
 
     private string FormatText(string value) => Language.IsRtl ? PersianDateFormatter.ToPersianNumber(value) : value;
 
-    private string FormatMoney(decimal value) => Language.IsRtl ? $"{PersianDateFormatter.ToPersianNumber(value.ToString("#,0"))} تومان" : value.ToString("C0");
+    private string FormatMoney(decimal value) => Language.IsRtl ? $"{PersianDateFormatter.ToPersianNumber(value.ToString("#,0"))} ریال" : $"{value:#,0} IRR";
+
+    private string EducationRestrictionLabel(string value) => value switch
+    {
+        "WithoutLimit" => Language.T("WithoutLimit"),
+        "DiplomaOrHigher" => Language.T("DiplomaOrHigher"),
+        "BachelorOrHigher" => Language.T("BachelorOrHigher"),
+        "MasterOrHigher" => Language.T("MasterOrHigher"),
+        "ProfessionalDoctorateOrPhD" => Language.T("ProfessionalDoctorateOrPhD"),
+        _ => value
+    };
 
     protected override async Task OnParametersSetAsync()
     {

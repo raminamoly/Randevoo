@@ -32,11 +32,33 @@ public record DatingProfileDto(
             profile.Height.Centimeters,
             profile.EducationLevel,
             profile.Smoking,
-            profile.Location.Country,
-            profile.Location.City,
+            profile.Country?.Name ?? LookupCountryName(profile.CountryId) ?? profile.Location.Country,
+            profile.City?.Name ?? LookupCityName(profile.CityId) ?? profile.Location.City,
             profile.Location.Region,
             profile.Location.Coordinates.Latitude,
             profile.Location.Coordinates.Longitude,
             profile.Interests.Select(i => i.Name).ToList());
     }
+
+    private static string? LookupCountryName(long? countryId) => countryId switch
+    {
+        1 => "Iran",
+        2 => "United Arab Emirates",
+        3 => "Turkey",
+        _ => null
+    };
+
+    private static string? LookupCityName(long? cityId) => cityId switch
+    {
+        1 => "Tehran",
+        2 => "Mashhad",
+        3 => "Shiraz",
+        4 => "Isfahan",
+        5 => "Tabriz",
+        6 => "Dubai",
+        7 => "Abu Dhabi",
+        8 => "Istanbul",
+        9 => "Ankara",
+        _ => null
+    };
 }

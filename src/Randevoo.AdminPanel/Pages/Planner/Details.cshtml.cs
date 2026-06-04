@@ -18,7 +18,7 @@ public class DetailsModel : PageModel
 
     public PlannerProfileViewModel Profile { get; private set; } = new();
 
-    public async Task<IActionResult> OnGetAsync(Guid id)
+    public async Task<IActionResult> OnGetAsync(long id)
     {
         var profile = await _profilesApi.GetByUserIdAsync(id);
         if (profile is null)
