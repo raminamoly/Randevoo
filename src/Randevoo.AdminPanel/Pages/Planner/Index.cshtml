@@ -1,0 +1,81 @@
+@page
+@model Randevoo.AdminPanel.Pages.Planner.IndexModel
+@{
+    ViewData["Title"] = "لیست برگزارکنندگان";
+}
+
+<section class="page-header">
+    <div>
+        <h1>لیست برگزارکنندگان</h1>
+        <p>مدیریت برگزارکننده ها، پروفایل عمومی، حساب های بانکی و تراکنش های مالی هر برگزارکننده.</p>
+    </div>
+    <a asp-page="/Users/Index" class="btn btn-outline-primary">
+        <i class="bi bi-person-plus"></i>ایجاد برگزارکننده
+    </a>
+</section>
+
+<div class="glass-panel p-4">
+    <div class="form-section-head">
+        <div>
+            <h2 class="section-title mb-1">برگزارکننده ها</h2>
+            <p class="text-muted mb-0">این لیست فقط کاربران با نقش برگزارکننده را نمایش می دهد.</p>
+        </div>
+        <span class="status-badge status-draft">@DisplayFormatter.Count(Model.Planners.Count) برگزارکننده</span>
+    </div>
+
+    <div class="table-responsive mt-3">
+        <table class="table align-middle">
+            <thead>
+                <tr>
+                    <th>نام برگزارکننده</th>
+                    <th>موبایل</th>
+                    <th>وضعیت</th>
+                    <th>اقدام ها</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var planner in Model.Planners)
+                {
+                    <tr>
+                        <td>
+                            <div class="fw-semibold">@planner.FullName</div>
+                            <div class="text-muted small">شناسه: @DisplayFormatter.Count((int)planner.Id)</div>
+                        </td>
+                        <td dir="ltr">@planner.Mobile</td>
+                        <td>
+                            <span class="status-badge @(planner.IsActive ? "status-approved" : "status-rejected")">
+                                @(planner.IsActive ? "فعال" : "غیرفعال")
+                            </span>
+                        </td>
+                        <td class="table-action-cell">
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle table-action-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    اقدام ها
+                                </button>
+                                <div class="dropdown-menu dropdown-menu-end action-menu shadow-sm border-0">
+                                    <a asp-page="/Planner/Details" asp-route-id="@planner.Id" class="dropdown-item">
+                                        <i class="bi bi-person-vcard"></i>پروفایل برگزارکننده
+                                    </a>
+                                    <a asp-page="/Planner/BankAccounts" asp-route-plannerUserId="@planner.Id" class="dropdown-item">
+                                        <i class="bi bi-bank2"></i>حساب های بانکی
+                                    </a>
+                                    <a asp-page="/Finance/User" asp-route-userId="@planner.Id" class="dropdown-item">
+                                        <i class="bi bi-cash-stack"></i>تراکنش های مالی
+                                    </a>
+                                    <a asp-page="/Users/Index" asp-route-id="@planner.Id" class="dropdown-item">
+                                        <i class="bi bi-pencil-square"></i>ویرایش حساب کاربری
+                                    </a>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    @if (Model.Planners.Count == 0)
+    {
+        <div class="empty-state">هنوز برگزارکننده ای ثبت نشده است.</div>
+    }
+</div>

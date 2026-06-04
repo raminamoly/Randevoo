@@ -26,6 +26,7 @@ internal static class DatabaseModelMapper
         {
             UserId = profile.UserId,
             FullName = ResolveUserDisplayName(profile.User),
+            MobileNumber = profile.User.MobileNumber,
             Title = profile.Title,
             PictureUrl = profile.PictureUrl,
             Resume = profile.Resume,
@@ -63,6 +64,12 @@ internal static class DatabaseModelMapper
             Longitude = datingEvent.Location.Coordinates.Longitude,
             EventTypeId = datingEvent.EventTypeId,
             EventTypeName = datingEvent.EventType.Name,
+            EventModeId = datingEvent.EventModeId,
+            EventModeName = datingEvent.EventMode?.Name ?? "حضوری",
+            OnlineEventPlatformId = datingEvent.OnlineEventPlatformId,
+            OnlinePlatformName = datingEvent.OnlineEventPlatform?.Name,
+            OnlineJoinUrl = datingEvent.OnlineJoinUrl,
+            OnlineAccessInstructions = datingEvent.OnlineAccessInstructions,
             AgeRangeForMale = $"{datingEvent.AgeRangeForMale.Min}-{datingEvent.AgeRangeForMale.Max}",
             AgeRangeForFemale = $"{datingEvent.AgeRangeForFemale.Min}-{datingEvent.AgeRangeForFemale.Max}",
             IsOpenForSell = datingEvent.IsOpenForSell,
@@ -79,6 +86,14 @@ internal static class DatabaseModelMapper
             Image1 = datingEvent.EventImage1,
             Image2 = datingEvent.EventImage2,
             Image3 = datingEvent.EventImage3,
+            Faqs = datingEvent.Faqs
+                .OrderBy(item => item.DisplayOrder)
+                .Select(item => new EventFaqInput
+                {
+                    Question = item.Question,
+                    Answer = item.Answer
+                })
+                .ToList(),
             StartAtUtc = DateTime.SpecifyKind(datingEvent.DateTimeStart, DateTimeKind.Utc),
             EndAtUtc = DateTime.SpecifyKind(datingEvent.DateTimeEnd, DateTimeKind.Utc)
         };

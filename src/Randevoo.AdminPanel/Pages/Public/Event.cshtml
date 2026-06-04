@@ -13,7 +13,7 @@
         <div>
             <div class="auth-kicker">پروفایل رویداد</div>
             <h1>@Model.Event.DisplayTitle</h1>
-            <p>@Model.Event.Live.City، @Model.Event.Live.Country</p>
+            <p>@(Model.Event.Live.IsOnline ? "رویداد آنلاین" : $"{Model.Event.Live.City}، {Model.Event.Live.Country}")</p>
             @if (Model.Event.Live.Tags.Count > 0)
             {
                 <div class="event-chip-list mt-3">
@@ -35,8 +35,20 @@
             <div class="glass-panel p-4 h-100">
                 <h2 class="section-title">جزئیات رویداد</h2>
                 <div class="row g-3">
-                    <div class="col-md-6"><div class="detail-block"><span>محل برگزاری</span><strong>@Model.Event.Live.VenueName</strong></div></div>
-                    <div class="col-md-6"><div class="detail-block"><span>آدرس</span><strong>@Model.Event.Live.Address</strong></div></div>
+                    <div class="col-md-4"><div class="detail-block"><span>نحوه برگزاری</span><strong>@Model.Event.Live.EventModeName</strong></div></div>
+                    @if (Model.Event.Live.IsOnline)
+                    {
+                        <div class="col-md-4"><div class="detail-block"><span>پلتفرم</span><strong>@Model.Event.Live.OnlinePlatformName</strong></div></div>
+                        @if (!string.IsNullOrWhiteSpace(Model.Event.Live.OnlineAccessInstructions))
+                        {
+                            <div class="col-md-12"><div class="detail-block"><span>راهنمای ورود</span><strong>@Model.Event.Live.OnlineAccessInstructions</strong></div></div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="col-md-6"><div class="detail-block"><span>محل برگزاری</span><strong>@Model.Event.Live.VenueName</strong></div></div>
+                        <div class="col-md-6"><div class="detail-block"><span>آدرس</span><strong>@Model.Event.Live.Address</strong></div></div>
+                    }
                     <div class="col-md-4"><div class="detail-block"><span>نوع رویداد</span><strong>@DisplayFormatter.EventTypeLabel(Model.Event.Live.EventTypeName)</strong></div></div>
                     <div class="col-md-4"><div class="detail-block"><span>حداقل تحصیلات خرید بلیت</span><strong>@DisplayFormatter.EducationRestriction(Model.Event.Live.EducationLevelRestriction)</strong></div></div>
                     <div class="col-md-8">
@@ -62,6 +74,21 @@
                         </div>
                     </div>
                 </div>
+                @if (Model.Event.Live.Faqs.Any(item => !string.IsNullOrWhiteSpace(item.Question) && !string.IsNullOrWhiteSpace(item.Answer)))
+                {
+                    <div class="mt-4">
+                        <h2 class="section-title">سوالات متداول</h2>
+                        <div class="faq-list">
+                            @foreach (var faq in Model.Event.Live.Faqs.Where(item => !string.IsNullOrWhiteSpace(item.Question) && !string.IsNullOrWhiteSpace(item.Answer)))
+                            {
+                                <article class="faq-card">
+                                    <h3>@faq.Question</h3>
+                                    <p>@faq.Answer</p>
+                                </article>
+                            }
+                        </div>
+                    </div>
+                }
             </div>
         </div>
 

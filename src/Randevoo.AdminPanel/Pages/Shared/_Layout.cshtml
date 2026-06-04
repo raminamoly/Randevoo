@@ -1,19 +1,19 @@
 @inject Randevoo.AdminPanel.Services.State.CurrentSessionState CurrentSession
 @{
     var useShell = (ViewData["UseShell"] as bool?) ?? true;
-    var pageTitle = ViewData["Title"]?.ToString() ?? "پنل مدیریت رندوو";
+    var pageTitle = ViewData["Title"]?.ToString() ?? "پنل مدیریت راندوو";
 }
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@pageTitle - پنل مدیریت رندوو</title>
+    <title>@pageTitle - پنل مدیریت راندوو</title>
     <link rel="icon" type="image/png" href="~/images/logo.png" />
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.rtl.min.css" />
     <link rel="stylesheet" href="~/lib/bootstrap-icons/font/bootstrap-icons.min.css" />
     <link rel="stylesheet" href="~/lib/persian-datepicker/dist/css/persian-datepicker.min.css" />
-    <link rel="stylesheet" href="~/css/site.css?v=20260604-dropdown-fix" />
+    <link rel="stylesheet" href="~/css/site.css?v=20260605-tree-filters" />
     @await RenderSectionAsync("Head", required: false)
 </head>
 <body class="rtl">
@@ -22,10 +22,10 @@
         <div class="admin-shell rtl-shell">
             <aside class="admin-sidebar">
                 <div class="brand-block">
-                    <img src="~/images/logo.png" alt="رندوو" class="brand-logo" />
+                    <img src="~/images/logo.png" alt="راندوو" class="brand-logo" />
                     <div>
-                        <div class="brand-name">رندوو</div>
-                        <div class="brand-subtitle">پنل مدیریت</div>
+                        <div class="brand-name">راندوو</div>
+                        <div class="brand-subtitle">پلتفرم برگزاری رویداد با چاشنی Dating</div>
                     </div>
                 </div>
                 <div id="sidebarCollapse" class="collapse d-lg-block">

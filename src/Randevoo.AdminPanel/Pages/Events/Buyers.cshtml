@@ -2,6 +2,7 @@
 @model Randevoo.AdminPanel.Pages.Events.BuyersModel
 @{
     ViewData["Title"] = "خریداران بلیت";
+    var isCardView = string.Equals(Model.View, "cards", StringComparison.OrdinalIgnoreCase);
 }
 
 <section class="page-header">
@@ -9,7 +10,15 @@
         <h1>خریداران بلیت</h1>
         <p>پروفایل کاربرانی که برای این رویداد بلیت خریده اند. شماره موبایل فقط برای مدیر نمایش داده می شود.</p>
     </div>
-    <a asp-page="/Events/My" class="btn btn-outline-secondary">بازگشت به رویدادها</a>
+    <div class="d-flex flex-wrap gap-2">
+        @if (Model.IsAdmin)
+        {
+            <a asp-page="/Finance/TicketTransactions" asp-route-EventId="@Model.EventId" class="btn btn-outline-primary">
+                <i class="bi bi-receipt-cutoff"></i>تراکنش های این رویداد
+            </a>
+        }
+        <a asp-page="/Events/My" class="btn btn-outline-secondary">بازگشت به رویدادها</a>
+    </div>
 </section>
 
 @if (!string.IsNullOrWhiteSpace(Model.StatusMessage))
@@ -20,37 +29,78 @@
 <div asp-validation-summary="ModelOnly" class="alert alert-danger border-0 mb-4"></div>
 
 <form method="get" class="glass-panel p-4 mb-4 filter-panel">
-    <input type="hidden" name="eventId" value="@Model.EventId" />
-    <div class="row g-3 align-items-end">
-        <div class="col-lg-5">
-            <label asp-for="Search" class="form-label">جستجو</label>
-            <input asp-for="Search" class="form-control" placeholder="نام، شهر یا شماره موبایل برای مدیر" />
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
+        <div>
+            <h2 class="section-title mb-1">فیلتر خریداران</h2>
+            <p class="text-muted small mb-0">برای کنترل سریع، فیلترها در شروع بسته هستند.</p>
         </div>
-        <div class="col-md-3">
-            <label asp-for="Status" class="form-label">وضعیت بلیت</label>
-            <select asp-for="Status" class="form-select">
-                <option value="">همه وضعیت ها</option>
-                <option value="active">فعال</option>
-                <option value="refunded">بازگشت وجه</option>
-                <option value="removed">حذف اضطراری</option>
-            </select>
-        </div>
-        <div class="col-md-3">
-            <label asp-for="Gender" class="form-label">جنسیت</label>
-            <select asp-for="Gender" class="form-select">
-                <option value="">همه</option>
-                <option value="male">آقا</option>
-                <option value="female">خانم</option>
-            </select>
-        </div>
-        <div class="col-lg-1 d-grid">
-            <button type="submit" class="btn btn-primary">فیلتر</button>
+        <button class="btn btn-outline-secondary btn-sm filter-toggle-button" type="button" data-bs-toggle="collapse" data-bs-target="#buyersFilterPanel" aria-expanded="@(Model.HasActiveFilters.ToString().ToLowerInvariant())" aria-controls="buyersFilterPanel">
+            <i class="bi bi-funnel"></i>فیلترها
+        </button>
+    </div>
+    <div id="buyersFilterPanel" class="collapse @(Model.HasActiveFilters ? "show" : string.Empty)">
+        <input type="hidden" name="eventId" value="@Model.EventId" />
+        <input type="hidden" asp-for="View" />
+        <div class="row g-3 align-items-end">
+            <div class="col-lg-5">
+                <label asp-for="Search" class="form-label">جستجو</label>
+                <input asp-for="Search" class="form-control" placeholder="نام، شهر یا شماره موبایل برای مدیر" />
+            </div>
+            <div class="col-md-3">
+                <label asp-for="Status" class="form-label">وضعیت بلیت</label>
+                <select asp-for="Status" class="form-select">
+                    <option value="">همه وضعیت ها</option>
+                    <option value="active">فعال</option>
+                    <option value="refunded">بازگشت وجه</option>
+                    <option value="removed">حذف اضطراری</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label asp-for="Gender" class="form-label">جنسیت</label>
+                <select asp-for="Gender" class="form-select">
+                    <option value="">همه</option>
+                    <option value="male">آقا</option>
+                    <option value="female">خانم</option>
+                </select>
+            </div>
+            <div class="col-lg-1 d-grid">
+                <button type="submit" class="btn btn-primary">فیلتر</button>
+            </div>
         </div>
     </div>
 </form>
 
 <div class="glass-panel p-4">
-    <div class="table-responsive">
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+        <div>
+            <h2 class="section-title mb-1">لیست حضور و کنترل بلیت</h2>
+            <p class="text-muted small mb-0">برای کنترل در محل، عکس پروفایل در کنار نام نمایش داده می شود.</p>
+        </div>
+        <div class="btn-group view-toggle" role="group" aria-label="تغییر نمایش">
+            <a asp-page="/Events/Buyers"
+               asp-route-eventId="@Model.EventId"
+               asp-route-Search="@Model.Search"
+               asp-route-Status="@Model.Status"
+               asp-route-Gender="@Model.Gender"
+               asp-route-View="grid"
+               class="btn btn-sm @(isCardView ? "btn-outline-primary" : "btn-primary")">
+                <i class="bi bi-table"></i>نمایش جدولی
+            </a>
+            <a asp-page="/Events/Buyers"
+               asp-route-eventId="@Model.EventId"
+               asp-route-Search="@Model.Search"
+               asp-route-Status="@Model.Status"
+               asp-route-Gender="@Model.Gender"
+               asp-route-View="cards"
+               class="btn btn-sm @(isCardView ? "btn-primary" : "btn-outline-primary")">
+                <i class="bi bi-person-square"></i>نمایش کارتی
+            </a>
+        </div>
+    </div>
+
+    @if (!isCardView)
+    {
+        <div class="table-responsive">
         <table class="table align-middle">
             <thead>
                 <tr>
@@ -74,8 +124,13 @@
                 {
                     <tr>
                         <td>
-                            <div class="fw-semibold">@item.DisplayName</div>
-                            <div class="text-muted small">شناسه کاربر: @DisplayFormatter.Count((int)item.UserId)</div>
+                            <div class="buyer-profile-cell">
+                                <img src="@(item.ProfileImageUrl ?? "/images/logo.png")" alt="@item.DisplayName" class="buyer-avatar" loading="lazy" />
+                                <div>
+                                    <div class="fw-semibold">@item.DisplayName</div>
+                                    <div class="text-muted small">شناسه کاربر: @DisplayFormatter.Count((int)item.UserId)</div>
+                                </div>
+                            </div>
                         </td>
                         <td>@item.GenderTitle</td>
                         <td>@(item.Age > 0 ? DisplayFormatter.Count(item.Age) : "ثبت نشده")</td>
@@ -98,34 +153,98 @@
                             }
                         </td>
                         <td class="table-action-cell">
-                            <div class="d-flex flex-wrap gap-2">
-                                <a asp-page="/UserProfiles/Details" asp-route-userId="@item.UserId" class="btn btn-sm btn-outline-primary">نمایش پروفایل کاربر</a>
-                                @if (!item.IsRefunded && !item.IsRemoved)
-                                {
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle table-action-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    اقدام ها
+                                </button>
+                                <div class="dropdown-menu dropdown-menu-end action-menu shadow-sm border-0">
+                                    <a asp-page="/UserProfiles/Details" asp-route-userId="@item.UserId" class="dropdown-item">
+                                        <i class="bi bi-person-bounding-box"></i>نمایش پروفایل کاربر
+                                    </a>
                                     @if (Model.IsAdmin)
                                     {
-                                        <details class="refund-details">
-                                            <summary class="btn btn-sm btn-outline-danger">بازگشت اضطراری</summary>
-                                            <form method="post" asp-page-handler="Refund" asp-route-eventId="@Model.EventId" class="refund-form">
-                                                <input type="hidden" asp-for="Input.TicketId" value="@item.TicketId" />
-                                                <textarea asp-for="Input.Reason" class="form-control form-control-sm" rows="3" placeholder="دلیل حذف و بازگشت وجه"></textarea>
-                                                <span asp-validation-for="Input.Reason" class="text-danger small"></span>
-                                                <button type="submit" class="btn btn-sm btn-danger w-100">ثبت بازگشت وجه</button>
-                                            </form>
-                                        </details>
+                                        <a asp-page="/Finance/User" asp-route-userId="@item.UserId" asp-route-view="balance" class="dropdown-item">
+                                            <i class="bi bi-wallet2"></i>موجودی کلی کاربر
+                                        </a>
+                                        <a asp-page="/Finance/User" asp-route-userId="@item.UserId" asp-route-view="payments" class="dropdown-item">
+                                            <i class="bi bi-credit-card"></i>پرداخت های کلی کاربر
+                                        </a>
+                                        <a asp-page="/UserProfiles/AdminEdit" asp-route-userId="@item.UserId" class="dropdown-item">
+                                            <i class="bi bi-person-gear"></i>ویرایش کامل پروفایل
+                                        </a>
+                                        @if (!item.IsRefunded && !item.IsRemoved)
+                                        {
+                                            <button type="button" class="dropdown-item text-danger" data-bs-toggle="collapse" data-bs-target="#refund-@item.TicketId">
+                                                <i class="bi bi-arrow-counterclockwise"></i>بازگشت اضطراری
+                                            </button>
+                                        }
                                     }
-                                }
-                                else if (Model.IsAdmin)
-                                {
-                                    <span class="text-muted small">انجام شده</span>
-                                }
+                                </div>
                             </div>
+                            @if (Model.IsAdmin && !item.IsRefunded && !item.IsRemoved)
+                            {
+                                <div class="collapse mt-2" id="refund-@item.TicketId">
+                                    <form method="post" asp-page-handler="Refund" asp-route-eventId="@Model.EventId" class="refund-form">
+                                        <input type="hidden" asp-for="Input.TicketId" value="@item.TicketId" />
+                                        <textarea asp-for="Input.Reason" class="form-control form-control-sm" rows="3" placeholder="دلیل حذف و بازگشت وجه"></textarea>
+                                        <span asp-validation-for="Input.Reason" class="text-danger small"></span>
+                                        <button type="submit" class="btn btn-sm btn-danger w-100"><i class="bi bi-check2-circle"></i>ثبت بازگشت وجه</button>
+                                    </form>
+                                </div>
+                            }
                         </td>
                     </tr>
                 }
             </tbody>
         </table>
-    </div>
+        </div>
+    }
+    else
+    {
+        <div class="buyer-card-grid">
+            @foreach (var item in Model.Buyers)
+            {
+                <article class="buyer-check-card">
+                    <img src="@(item.ProfileImageUrl ?? "/images/logo.png")" alt="@item.DisplayName" class="buyer-card-photo" loading="lazy" />
+                    <div class="buyer-card-body">
+                        <div class="d-flex justify-content-between gap-2">
+                            <div>
+                                <h3>@item.DisplayName</h3>
+                                <p>@item.GenderTitle، @(item.Age > 0 ? DisplayFormatter.Count(item.Age) : "ثبت نشده") ساله</p>
+                            </div>
+                            <span class="status-badge @Model.GetTicketStatusClass(item)">@item.TicketStatus</span>
+                        </div>
+                        <div class="buyer-card-meta">
+                            <span><i class="bi bi-mortarboard"></i>@item.EducationLevelTitle</span>
+                            <span><i class="bi bi-geo-alt"></i>@item.City، @item.Country</span>
+                            <span><i class="bi bi-ticket-perforated"></i>@DisplayFormatter.Money(item.TicketPrice, Model.IsRtl)</span>
+                            @if (Model.IsAdmin && !string.IsNullOrWhiteSpace(item.MobileNumber))
+                            {
+                                <span dir="ltr"><i class="bi bi-phone"></i>@item.MobileNumber</span>
+                            }
+                        </div>
+                        <div class="buyer-card-actions">
+                            <a asp-page="/UserProfiles/Details" asp-route-userId="@item.UserId" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-person-bounding-box"></i>پروفایل
+                            </a>
+                            @if (Model.IsAdmin)
+                            {
+                                <a asp-page="/Finance/User" asp-route-userId="@item.UserId" asp-route-view="balance" class="btn btn-sm btn-outline-secondary">
+                                    <i class="bi bi-wallet2"></i>موجودی
+                                </a>
+                                <a asp-page="/Finance/User" asp-route-userId="@item.UserId" asp-route-view="payments" class="btn btn-sm btn-outline-secondary">
+                                    <i class="bi bi-credit-card"></i>پرداخت ها
+                                </a>
+                                <a asp-page="/UserProfiles/AdminEdit" asp-route-userId="@item.UserId" class="btn btn-sm btn-outline-secondary">
+                                    <i class="bi bi-person-gear"></i>ویرایش
+                                </a>
+                            }
+                        </div>
+                    </div>
+                </article>
+            }
+        </div>
+    }
 
     @if (Model.Buyers.Count == 0)
     {

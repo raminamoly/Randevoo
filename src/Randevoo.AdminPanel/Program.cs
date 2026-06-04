@@ -49,6 +49,7 @@ builder.Services.AddScoped<IEventTypesApiClient, DatabaseEventTypesApiClient>();
 builder.Services.AddScoped<IEventTagsApiClient, DatabaseEventTagsApiClient>();
 builder.Services.AddScoped<IUsersApiClient, DatabaseUsersApiClient>();
 builder.Services.AddScoped<IUserProfilesApiClient, DatabaseUserProfilesApiClient>();
+builder.Services.AddScoped<IAdminUserProfilesApiClient, DatabaseAdminUserProfilesApiClient>();
 builder.Services.AddScoped<IDashboardApiClient, DatabaseDashboardApiClient>();
 builder.Services.AddScoped<IPlannerProfilesApiClient, DatabasePlannerProfilesApiClient>();
 builder.Services.AddScoped<IFinanceApiClient, DatabaseFinanceApiClient>();

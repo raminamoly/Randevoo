@@ -10,6 +10,7 @@ public class DatingEvent : BaseEntity, IAggregateRoot
 {
     private readonly List<EventTicket> _tickets = new();
     private readonly List<EventTag> _eventTags = new();
+    private readonly List<EventFaq> _faqs = new();
 
     public string Title { get; private set; } = null!;
     public Location Location { get; private set; } = null!;
@@ -18,6 +19,12 @@ public class DatingEvent : BaseEntity, IAggregateRoot
     public DateTime DateTimeEnd { get; private set; }
     public long EventTypeId { get; private set; }
     public EventType EventType { get; private set; } = null!;
+    public long EventModeId { get; private set; } = 2L;
+    public EventModeLookup EventMode { get; private set; } = null!;
+    public long? OnlineEventPlatformId { get; private set; }
+    public OnlineEventPlatform? OnlineEventPlatform { get; private set; }
+    public string? OnlineJoinUrl { get; private set; }
+    public string? OnlineAccessInstructions { get; private set; }
     public long? CountryId { get; private set; }
     public Country? Country { get; private set; }
     public long? CityId { get; private set; }
@@ -47,6 +54,7 @@ public class DatingEvent : BaseEntity, IAggregateRoot
         .AsReadOnly();
     public IReadOnlyList<EventTicket> Tickets => _tickets.AsReadOnly();
     public IReadOnlyList<EventTag> EventTags => _eventTags.AsReadOnly();
+    public IReadOnlyList<EventFaq> Faqs => _faqs.AsReadOnly();
 
     private DatingEvent() { }
 
@@ -309,6 +317,57 @@ public class DatingEvent : BaseEntity, IAggregateRoot
     {
         MinimumEducationLevelId = minimumEducationLevelId;
         EducationLevelRestriction = MapMinimumEducationLevelRestriction(minimumEducationLevelId);
+        UpdateTimestamp();
+    }
+
+    public void SetEventDelivery(
+        EventModeLookup eventMode,
+        OnlineEventPlatform? onlineEventPlatform,
+        string? onlineJoinUrl,
+        string? onlineAccessInstructions)
+    {
+        EventMode = GuardAgainst.Object.Null(eventMode, nameof(eventMode));
+        EventModeId = eventMode.Id;
+
+        if (!eventMode.IsOnline)
+        {
+            OnlineEventPlatform = null;
+            OnlineEventPlatformId = null;
+            OnlineJoinUrl = null;
+            OnlineAccessInstructions = null;
+            UpdateTimestamp();
+            return;
+        }
+
+        var platform = GuardAgainst.Object.Null(onlineEventPlatform!, nameof(onlineEventPlatform));
+        OnlineEventPlatform = platform;
+        OnlineEventPlatformId = platform.Id;
+        OnlineJoinUrl = string.IsNullOrWhiteSpace(onlineJoinUrl)
+            ? null
+            : GuardAgainst.String.MaxLength(onlineJoinUrl.Trim(), nameof(onlineJoinUrl), 500);
+        OnlineAccessInstructions = string.IsNullOrWhiteSpace(onlineAccessInstructions)
+            ? null
+            : GuardAgainst.String.MaxLength(onlineAccessInstructions.Trim(), nameof(onlineAccessInstructions), 1200);
+        UpdateTimestamp();
+    }
+
+    public void ReplaceFaqs(IEnumerable<(string Question, string Answer)> faqs)
+    {
+        var normalizedFaqs = GuardAgainst.Object.Null(faqs, nameof(faqs))
+            .Select(item => (Question: item.Question.Trim(), Answer: item.Answer.Trim()))
+            .Where(item => !string.IsNullOrWhiteSpace(item.Question) || !string.IsNullOrWhiteSpace(item.Answer))
+            .ToList();
+
+        if (normalizedFaqs.Count > 10)
+            throw new BusinessRuleViolationException("Too many event FAQs", "Each event can have at most 10 FAQ items");
+
+        _faqs.Clear();
+        for (var index = 0; index < normalizedFaqs.Count; index++)
+        {
+            var item = normalizedFaqs[index];
+            _faqs.Add(new EventFaq(this, item.Question, item.Answer, index + 1));
+        }
+
         UpdateTimestamp();
     }
 

@@ -39,14 +39,44 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<EventModeOption>> GetEventModesAsync(CancellationToken cancellationToken = default)
+    {
+        return await _db.EventModes
+            .Where(item => item.IsActive)
+            .OrderBy(item => item.DisplayOrder)
+            .Select(item => new EventModeOption
+            {
+                Id = item.Id,
+                Name = item.Name,
+                IsOnline = item.IsOnline
+            })
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<OnlineEventPlatformOption>> GetOnlineEventPlatformsAsync(CancellationToken cancellationToken = default)
+    {
+        return await _db.OnlineEventPlatforms
+            .Where(item => item.IsActive)
+            .OrderBy(item => item.DisplayOrder)
+            .Select(item => new OnlineEventPlatformOption
+            {
+                Id = item.Id,
+                Name = item.Name
+            })
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<IReadOnlyList<Models.Events.DatingEvent>> GetEventsAsync(MockUser currentUser, CancellationToken cancellationToken = default)
     {
         var query = _db.DatingEvents
             .Include(item => item.EventPlannerUser)
             .ThenInclude(user => user.Profile)
             .Include(item => item.EventType)
+            .Include(item => item.EventMode)
+            .Include(item => item.OnlineEventPlatform)
             .Include(item => item.Country)
             .Include(item => item.City)
+            .Include(item => item.Faqs)
             .Include(item => item.EventTags)
             .ThenInclude(eventTag => eventTag.Tag)
             .AsQueryable();
@@ -69,8 +99,11 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
             .Include(item => item.EventPlannerUser)
             .ThenInclude(user => user.Profile)
             .Include(item => item.EventType)
+            .Include(item => item.EventMode)
+            .Include(item => item.OnlineEventPlatform)
             .Include(item => item.Country)
             .Include(item => item.City)
+            .Include(item => item.Faqs)
             .Include(item => item.EventTags)
             .ThenInclude(eventTag => eventTag.Tag)
             .FirstOrDefaultAsync(item => item.Id == id, cancellationToken);
@@ -133,8 +166,12 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
         var plannerUser = await ResolvePlannerAsync(actor, assignedPlannerId, cancellationToken);
         var eventType = await _db.EventTypes.FirstOrDefaultAsync(item => item.Id == input.EventTypeId && item.IsActive, cancellationToken)
             ?? throw new InvalidOperationException("نوع رویداد انتخاب شده معتبر نیست.");
-        var locationLookup = await ResolveLocationLookupAsync(input.Country, input.City, cancellationToken);
+        var eventMode = await ResolveEventModeAsync(input.EventModeId, cancellationToken);
+        var onlineEventPlatform = await ResolveOnlineEventPlatformAsync(eventMode, input.OnlineEventPlatformId, cancellationToken);
+        var normalizedDelivery = NormalizeDeliveryInput(input, eventMode.IsOnline);
+        var locationLookup = await ResolveLocationLookupAsync(normalizedDelivery.Country, normalizedDelivery.City, cancellationToken);
         var minimumEducationLevelId = await ResolveMinimumEducationLevelIdAsync(input.MinimumEducationLevelId, cancellationToken);
+        var normalizedFaqs = NormalizeFaqs(input.Faqs);
 
         var maleRange = DatabaseModelMapper.ParseAgeRange(input.AgeRangeForMale);
         var femaleRange = DatabaseModelMapper.ParseAgeRange(input.AgeRangeForFemale);
@@ -147,6 +184,9 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
                 .Include(item => item.EventPlannerUser)
                 .ThenInclude(user => user.Profile)
                 .Include(item => item.EventType)
+                .Include(item => item.EventMode)
+                .Include(item => item.OnlineEventPlatform)
+                .Include(item => item.Faqs)
                 .Include(item => item.EventTags)
                 .ThenInclude(eventTag => eventTag.Tag)
                 .FirstOrDefaultAsync(item => item.Id == eventId, cancellationToken)
@@ -162,8 +202,8 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
 
             datingEvent.UpdateDetails(
                 input.Title,
-                new Location(input.Country, input.City, new Coordinates(input.Latitude, input.Longitude), input.Region),
-                DatabaseModelMapper.ComposeStoredAddress(input.VenueName, input.Address),
+                new Location(normalizedDelivery.Country, normalizedDelivery.City, new Coordinates(normalizedDelivery.Latitude, normalizedDelivery.Longitude), normalizedDelivery.Region),
+                DatabaseModelMapper.ComposeStoredAddress(normalizedDelivery.VenueName, normalizedDelivery.Address),
                 input.StartAtUtc.UtcDateTime,
                 input.EndAtUtc.UtcDateTime,
                 eventType,
@@ -182,6 +222,8 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
 
             datingEvent.SetLocationLookup(locationLookup.CountryId, locationLookup.CityId);
             datingEvent.SetMinimumEducationLevel(minimumEducationLevelId);
+            datingEvent.SetEventDelivery(eventMode, onlineEventPlatform, input.OnlineJoinUrl, input.OnlineAccessInstructions);
+            datingEvent.ReplaceFaqs(normalizedFaqs);
             datingEvent.ReplaceTags(await ResolveEventTagsAsync(input.TagIds, cancellationToken));
             datingEvent.SetCommissionPercent(input.OrganizerCommissionPercent);
             ApplySaleStatus(datingEvent, input.IsOpenForSell);
@@ -200,8 +242,8 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
             datingEvent = new DomainDatingEvent(
                 plannerUser,
                 input.Title,
-                new Location(input.Country, input.City, new Coordinates(input.Latitude, input.Longitude), input.Region),
-                DatabaseModelMapper.ComposeStoredAddress(input.VenueName, input.Address),
+                new Location(normalizedDelivery.Country, normalizedDelivery.City, new Coordinates(normalizedDelivery.Latitude, normalizedDelivery.Longitude), normalizedDelivery.Region),
+                DatabaseModelMapper.ComposeStoredAddress(normalizedDelivery.VenueName, normalizedDelivery.Address),
                 input.StartAtUtc.UtcDateTime,
                 input.EndAtUtc.UtcDateTime,
                 eventType,
@@ -222,6 +264,8 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
             ApplySaleStatus(datingEvent, input.IsOpenForSell);
             datingEvent.SetLocationLookup(locationLookup.CountryId, locationLookup.CityId);
             datingEvent.SetMinimumEducationLevel(minimumEducationLevelId);
+            datingEvent.SetEventDelivery(eventMode, onlineEventPlatform, input.OnlineJoinUrl, input.OnlineAccessInstructions);
+            datingEvent.ReplaceFaqs(normalizedFaqs);
             _db.DatingEvents.Add(datingEvent);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
             datingEvent.ReplaceTags(await ResolveEventTagsAsync(input.TagIds, cancellationToken));
@@ -389,6 +433,7 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
             .Include(item => item.User.Profile!.EducationLevelLookup)
             .Include(item => item.User.Profile!.Country)
             .Include(item => item.User.Profile!.City)
+            .Include(item => item.User.Profile!.Images)
             .Where(item => item.DatingEventId == eventId)
             .OrderByDescending(item => item.CreatedAt)
             .ToListAsync(cancellationToken);
@@ -408,6 +453,11 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
                 EventId = ticket.DatingEventId,
                 UserId = ticket.UserId,
                 DisplayName = profile?.DisplayName ?? $"کاربر {ticket.UserId}",
+                ProfileImageUrl = profile?.Images
+                    .OrderByDescending(image => image.IsPrimary)
+                    .ThenBy(image => image.DisplayOrder)
+                    .Select(image => image.ImageUrl)
+                    .FirstOrDefault(),
                 MobileNumber = canSeeMobile ? ticket.User.MobileNumber : null,
                 Gender = ticket.Gender,
                 GenderTitle = genderTitle,
@@ -625,8 +675,11 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
             .Include(item => item.EventPlannerUser)
             .ThenInclude(user => user.Profile)
             .Include(item => item.EventType)
+            .Include(item => item.EventMode)
+            .Include(item => item.OnlineEventPlatform)
             .Include(item => item.Country)
             .Include(item => item.City)
+            .Include(item => item.Faqs)
             .Include(item => item.EventTags)
             .ThenInclude(eventTag => eventTag.Tag)
             .FirstOrDefaultAsync(item => item.Id == eventId, cancellationToken)
@@ -686,6 +739,58 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
         return minimumEducationLevelId;
     }
 
+    private async Task<EventModeLookup> ResolveEventModeAsync(long eventModeId, CancellationToken cancellationToken)
+    {
+        var normalizedEventModeId = eventModeId <= 0 ? 2L : eventModeId;
+        return await _db.EventModes.FirstOrDefaultAsync(item => item.Id == normalizedEventModeId && item.IsActive, cancellationToken)
+            ?? throw new InvalidOperationException("نحوه برگزاری انتخاب شده معتبر نیست.");
+    }
+
+    private async Task<OnlineEventPlatform?> ResolveOnlineEventPlatformAsync(EventModeLookup eventMode, long? platformId, CancellationToken cancellationToken)
+    {
+        if (!eventMode.IsOnline)
+            return null;
+
+        if (platformId is null or 0)
+            throw new InvalidOperationException("برای رویداد آنلاین انتخاب پلتفرم الزامی است.");
+
+        return await _db.OnlineEventPlatforms.FirstOrDefaultAsync(item => item.Id == platformId && item.IsActive, cancellationToken)
+            ?? throw new InvalidOperationException("پلتفرم آنلاین انتخاب شده معتبر نیست.");
+    }
+
+    private static (string Country, string City, string Region, string VenueName, string Address, decimal Latitude, decimal Longitude) NormalizeDeliveryInput(EventDraftInput input, bool isOnline)
+    {
+        if (!isOnline)
+        {
+            return (
+                input.Country,
+                input.City,
+                input.Region,
+                input.VenueName,
+                input.Address,
+                input.Latitude,
+                input.Longitude);
+        }
+
+        return (
+            string.IsNullOrWhiteSpace(input.Country) ? "ایران" : input.Country,
+            string.IsNullOrWhiteSpace(input.City) ? "تهران" : input.City,
+            "آنلاین",
+            "رویداد آنلاین",
+            "لینک حضور آنلاین پس از خرید بلیت نمایش داده می شود.",
+            input.Latitude == 0 ? 35.6892m : input.Latitude,
+            input.Longitude == 0 ? 51.3890m : input.Longitude);
+    }
+
+    private static IReadOnlyList<(string Question, string Answer)> NormalizeFaqs(IEnumerable<EventFaqInput>? faqs)
+    {
+        return (faqs ?? Array.Empty<EventFaqInput>())
+            .Select(item => (Question: item.Question?.Trim() ?? string.Empty, Answer: item.Answer?.Trim() ?? string.Empty))
+            .Where(item => !string.IsNullOrWhiteSpace(item.Question) || !string.IsNullOrWhiteSpace(item.Answer))
+            .Take(10)
+            .ToList();
+    }
+
     private async Task<IReadOnlyList<Tag>> ResolveEventTagsAsync(IReadOnlyCollection<long>? tagIds, CancellationToken cancellationToken)
     {
         var normalizedTagIds = (tagIds ?? Array.Empty<long>())
@@ -731,6 +836,12 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
             datingEvent.Title,
             datingEvent.EventPlannerUserId,
             datingEvent.EventTypeId,
+            datingEvent.EventModeId,
+            EventModeName = datingEvent.EventMode?.Name,
+            datingEvent.OnlineEventPlatformId,
+            OnlinePlatformName = datingEvent.OnlineEventPlatform?.Name,
+            datingEvent.OnlineJoinUrl,
+            datingEvent.OnlineAccessInstructions,
             CountryName = datingEvent.Country?.Name,
             CityName = datingEvent.City?.Name,
             datingEvent.Location.Region,
@@ -748,6 +859,10 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
             datingEvent.EventImage1,
             datingEvent.EventImage2,
             datingEvent.EventImage3,
+            Faqs = datingEvent.Faqs
+                .OrderBy(item => item.DisplayOrder)
+                .Select(item => new { item.Question, item.Answer })
+                .ToArray(),
             datingEvent.IsOpenForSell,
             datingEvent.IsCancelled
         };

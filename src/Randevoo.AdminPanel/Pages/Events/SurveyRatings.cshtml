@@ -1,0 +1,56 @@
+@page "{eventId:long}"
+@model Randevoo.AdminPanel.Pages.Events.SurveyRatingsModel
+@{
+    ViewData["Title"] = "نظرسنجی های رویداد";
+}
+
+<section class="page-header">
+    <div>
+        <h1>نظرسنجی های رویداد</h1>
+        <p>@Model.EventTitle</p>
+    </div>
+    <a asp-page="/Events/Index" class="btn btn-outline-secondary"><i class="bi bi-arrow-right"></i>بازگشت به رویدادها</a>
+</section>
+
+<div class="stats-grid mb-4">
+    @foreach (var summary in Model.Summaries)
+    {
+        <div class="stat-card">
+            <span>@summary.Factor</span>
+            <strong>@DisplayFormatter.ToPersianDigits(summary.AverageScore.ToString("0.0")) / ۵</strong>
+            <small>@DisplayFormatter.Count(summary.Count) رای</small>
+        </div>
+    }
+</div>
+
+<div class="glass-panel p-4">
+    <h2 class="section-title">بازخورد کاربران</h2>
+    <div class="survey-response-list">
+        @foreach (var response in Model.Responses)
+        {
+            <article class="survey-response-card">
+                <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+                    <div>
+                        <h3>@response.UserName</h3>
+                        <p class="text-muted small mb-0">میانگین: @DisplayFormatter.ToPersianDigits(response.AverageScore.ToString("0.0")) از ۵</p>
+                    </div>
+                    <span class="status-badge status-approved">@PersianDateFormatter.Format(response.SubmittedAtUtc, true)</span>
+                </div>
+                <div class="event-chip-list mb-3">
+                    @foreach (var rating in response.Ratings)
+                    {
+                        <span class="event-chip">@rating.Factor: @DisplayFormatter.Count(rating.Score)</span>
+                    }
+                </div>
+                @if (!string.IsNullOrWhiteSpace(response.Comment))
+                {
+                    <p class="mb-0">@response.Comment</p>
+                }
+            </article>
+        }
+    </div>
+    @if (Model.Responses.Count == 0)
+    {
+        <div class="empty-state">هنوز بازخوردی برای این رویداد ثبت نشده است.</div>
+    }
+</div>

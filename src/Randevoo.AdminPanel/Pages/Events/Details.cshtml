@@ -7,7 +7,7 @@
 <section class="page-header">
     <div>
         <h1>@Model.Event.DisplayTitle</h1>
-        <p>@Model.Event.ActiveDraft.City، @Model.Event.ActiveDraft.Country</p>
+        <p>@(Model.Event.ActiveDraft.IsOnline ? "رویداد آنلاین" : $"{Model.Event.ActiveDraft.City}، {Model.Event.ActiveDraft.Country}")</p>
         @if (Model.Event.ActiveDraft.Tags.Count > 0)
         {
             <div class="event-chip-list mt-3">
@@ -46,11 +46,24 @@
         <div class="glass-panel p-4 mb-4">
             <h2 class="section-title">مشخصات رویداد</h2>
             <div class="row g-3">
-                <div class="col-md-6"><div class="detail-block"><span>محل برگزاری</span><strong>@Model.Event.ActiveDraft.VenueName</strong></div></div>
-                <div class="col-md-6"><div class="detail-block"><span>آدرس</span><strong>@Model.Event.ActiveDraft.Address</strong></div></div>
-                <div class="col-md-4"><div class="detail-block"><span>کشور</span><strong>@Model.Event.ActiveDraft.Country</strong></div></div>
-                <div class="col-md-4"><div class="detail-block"><span>شهر</span><strong>@Model.Event.ActiveDraft.City</strong></div></div>
-                <div class="col-md-4"><div class="detail-block"><span>منطقه</span><strong>@Model.Event.ActiveDraft.Region</strong></div></div>
+                <div class="col-md-4"><div class="detail-block"><span>نحوه برگزاری</span><strong>@Model.Event.ActiveDraft.EventModeName</strong></div></div>
+                @if (Model.Event.ActiveDraft.IsOnline)
+                {
+                    <div class="col-md-4"><div class="detail-block"><span>پلتفرم</span><strong>@Model.Event.ActiveDraft.OnlinePlatformName</strong></div></div>
+                    <div class="col-md-4"><div class="detail-block"><span>لینک ورود</span><strong dir="ltr">@Model.Event.ActiveDraft.OnlineJoinUrl</strong></div></div>
+                    @if (!string.IsNullOrWhiteSpace(Model.Event.ActiveDraft.OnlineAccessInstructions))
+                    {
+                        <div class="col-md-12"><div class="detail-block"><span>راهنمای ورود</span><strong>@Model.Event.ActiveDraft.OnlineAccessInstructions</strong></div></div>
+                    }
+                }
+                else
+                {
+                    <div class="col-md-6"><div class="detail-block"><span>محل برگزاری</span><strong>@Model.Event.ActiveDraft.VenueName</strong></div></div>
+                    <div class="col-md-6"><div class="detail-block"><span>آدرس</span><strong>@Model.Event.ActiveDraft.Address</strong></div></div>
+                    <div class="col-md-4"><div class="detail-block"><span>کشور</span><strong>@Model.Event.ActiveDraft.Country</strong></div></div>
+                    <div class="col-md-4"><div class="detail-block"><span>شهر</span><strong>@Model.Event.ActiveDraft.City</strong></div></div>
+                    <div class="col-md-4"><div class="detail-block"><span>منطقه</span><strong>@Model.Event.ActiveDraft.Region</strong></div></div>
+                }
                 <div class="col-md-4"><div class="detail-block"><span>نوع رویداد</span><strong>@DisplayFormatter.EventTypeLabel(Model.Event.ActiveDraft.EventTypeName)</strong></div></div>
                 <div class="col-md-8">
                     <div class="detail-block">
@@ -81,6 +94,22 @@
                 </div>
             </div>
         </div>
+
+        @if (Model.Event.ActiveDraft.Faqs.Any(item => !string.IsNullOrWhiteSpace(item.Question) && !string.IsNullOrWhiteSpace(item.Answer)))
+        {
+            <div class="glass-panel p-4 mb-4">
+                <h2 class="section-title">سوالات متداول</h2>
+                <div class="faq-list">
+                    @foreach (var faq in Model.Event.ActiveDraft.Faqs.Where(item => !string.IsNullOrWhiteSpace(item.Question) && !string.IsNullOrWhiteSpace(item.Answer)))
+                    {
+                        <article class="faq-card">
+                            <h3>@faq.Question</h3>
+                            <p>@faq.Answer</p>
+                        </article>
+                    }
+                </div>
+            </div>
+        }
 
         @if (Model.PlannerProfile is not null)
         {

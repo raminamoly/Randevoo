@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Randevoo.AdminPanel.Models.Auth;
 using Randevoo.AdminPanel.Models.Common;
+using Randevoo.AdminPanel.Models.Finance;
 using Randevoo.AdminPanel.Models.Users;
 using Randevoo.AdminPanel.Services.ApiClients;
 using Randevoo.AdminPanel.Services.Auth;
@@ -14,12 +15,14 @@ namespace Randevoo.AdminPanel.Pages.Planner;
 public class ProfileModel : PageModel
 {
     private readonly IPlannerProfilesApiClient _profilesApi;
+    private readonly IFinanceApiClient _financeApi;
     private readonly CurrentSessionState _session;
     private readonly MockAuthService _authService;
 
-    public ProfileModel(IPlannerProfilesApiClient profilesApi, CurrentSessionState session, MockAuthService authService)
+    public ProfileModel(IPlannerProfilesApiClient profilesApi, IFinanceApiClient financeApi, CurrentSessionState session, MockAuthService authService)
     {
         _profilesApi = profilesApi;
+        _financeApi = financeApi;
         _session = session;
         _authService = authService;
     }
@@ -32,6 +35,8 @@ public class ProfileModel : PageModel
 
     public PlannerProfileViewModel? Profile { get; private set; }
 
+    public IReadOnlyList<PlannerBankAccountItem> BankAccounts { get; private set; } = Array.Empty<PlannerBankAccountItem>();
+
     public async Task<IActionResult> OnGetAsync()
     {
         var current = _session.CurrentUser ?? throw new InvalidOperationException("کاربر جاری شناسایی نشد.");
@@ -43,6 +48,7 @@ public class ProfileModel : PageModel
         Profile = await _profilesApi.GetCurrentAsync(current);
         if (Profile is not null)
         {
+            BankAccounts = await _financeApi.GetPlannerBankAccountsAsync(current, Profile.UserId);
             Input = new PlannerProfileInput
             {
                 FullName = Profile.FullName,

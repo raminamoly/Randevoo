@@ -12,7 +12,74 @@
     <a asp-page="/Events/Edit" class="btn btn-primary">ساخت رویداد</a>
 </section>
 
+<form method="get" class="glass-panel p-4 mb-4 filter-panel admin-filter-panel">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
+        <div>
+            <h2 class="section-title mb-1">فیلتر رویدادها</h2>
+            <p class="text-muted small mb-0">فیلترها در ورود اولیه بسته هستند؛ در صورت نیاز باز کنید و مقدارها هنگام صفحه بندی حفظ می شوند.</p>
+        </div>
+        <button class="btn btn-outline-secondary btn-sm filter-toggle-button" type="button" data-bs-toggle="collapse" data-bs-target="#eventFilterPanel" aria-expanded="@(Model.HasActiveFilters.ToString().ToLowerInvariant())" aria-controls="eventFilterPanel">
+            <i class="bi bi-funnel"></i>فیلترها
+        </button>
+    </div>
+    <div id="eventFilterPanel" class="collapse @(Model.HasActiveFilters ? "show" : string.Empty)">
+        <input type="hidden" name="PageNumber" value="1" />
+        <div class="row g-3 align-items-end">
+            <div class="col-xl-3 col-md-6">
+                <label asp-for="Search" class="form-label">عنوان یا برگزارکننده</label>
+                <input asp-for="Search" class="form-control" placeholder="جستجو..." />
+            </div>
+            <div class="col-xl-2 col-md-6">
+                <label asp-for="TagId" class="form-label">تگ</label>
+                <select asp-for="TagId" asp-items="Model.TagOptions" class="form-select">
+                    <option value="">همه تگ ها</option>
+                </select>
+            </div>
+            <div class="col-xl-2 col-md-6">
+                <label asp-for="City" class="form-label">شهر</label>
+                <select asp-for="City" asp-items="Model.CityOptions" class="form-select">
+                    <option value="">همه شهرها</option>
+                </select>
+            </div>
+            <div class="col-xl-2 col-md-6">
+                <label asp-for="EventModeId" class="form-label">نحوه برگزاری</label>
+                <select asp-for="EventModeId" asp-items="Model.EventModeOptions" class="form-select">
+                    <option value="">همه</option>
+                </select>
+            </div>
+            <div class="col-xl-3 col-md-6">
+                <label asp-for="Status" class="form-label">وضعیت</label>
+                <select asp-for="Status" asp-items="Model.StatusOptions" class="form-select">
+                    <option value="">همه وضعیت ها</option>
+                </select>
+            </div>
+            <div class="col-xl-2 col-md-6">
+                <label asp-for="FromDate" class="form-label">از تاریخ</label>
+                <input asp-for="FromDate" class="form-control jalali-date-picker" placeholder="۱۴۰۵/۰۳/۱۵" autocomplete="off" />
+            </div>
+            <div class="col-xl-2 col-md-6">
+                <label asp-for="ToDate" class="form-label">تا تاریخ</label>
+                <input asp-for="ToDate" class="form-control jalali-date-picker" placeholder="۱۴۰۵/۰۳/۳۰" autocomplete="off" />
+            </div>
+            <div class="col-xl-3 col-md-6">
+                <label asp-for="Sort" class="form-label">مرتب سازی</label>
+                <select asp-for="Sort" asp-items="Model.SortOptions" class="form-select"></select>
+            </div>
+            <div class="col-xl-2 col-md-6 d-grid">
+                <button class="btn btn-primary" type="submit"><i class="bi bi-search"></i>اعمال فیلتر</button>
+            </div>
+            <div class="col-xl-2 col-md-6 d-grid">
+                <a asp-page="/Events/Index" class="btn btn-outline-secondary"><i class="bi bi-x-circle"></i>پاک کردن</a>
+            </div>
+        </div>
+    </div>
+</form>
+
 <div class="glass-panel p-4">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
+        <div class="text-muted small">نمایش @DisplayFormatter.Count(Model.Events.Count) مورد از @DisplayFormatter.Count(Model.TotalCount) رویداد</div>
+        <div class="text-muted small">صفحه @DisplayFormatter.Count(Model.PageNumber) از @DisplayFormatter.Count(Model.TotalPages)</div>
+    </div>
     <div class="table-responsive">
         <table class="table align-middle">
             <thead>
@@ -31,7 +98,7 @@
                     <tr>
                         <td>
                             <div class="fw-semibold">@item.DisplayTitle</div>
-                            <div class="text-muted small">@item.ActiveDraft.City، @item.ActiveDraft.Country</div>
+                            <div class="text-muted small">@(item.ActiveDraft.IsOnline ? "آنلاین" : $"{item.ActiveDraft.City}، {item.ActiveDraft.Country}")</div>
                             <div class="text-muted small">@DisplayFormatter.EducationRestriction(item.ActiveDraft.EducationLevelRestriction)</div>
                             @if (item.ActiveDraft.Tags.Count > 0)
                             {
@@ -53,10 +120,14 @@
                                     اقدام ها
                                 </button>
                                 <div class="dropdown-menu dropdown-menu-end action-menu shadow-sm border-0">
-                                    <a asp-page="/Events/Details" asp-route-id="@item.Id" class="dropdown-item">بررسی رویداد</a>
-                                    <a asp-page="/Events/Edit" asp-route-id="@item.Id" class="dropdown-item">ویرایش رویداد</a>
-                                    <a asp-page="/Events/Buyers" asp-route-eventId="@item.Id" class="dropdown-item">خریداران بلیت</a>
-                                    <a asp-page="/Events/Sms" asp-route-eventId="@item.Id" class="dropdown-item">پیام به شرکت کنندگان</a>
+                                    <a asp-page="/Events/Details" asp-route-id="@item.Id" class="dropdown-item"><i class="bi bi-eye"></i>بررسی رویداد</a>
+                                    <a asp-page="/Events/Edit" asp-route-id="@item.Id" class="dropdown-item"><i class="bi bi-pencil-square"></i>ویرایش رویداد</a>
+                                    <a asp-page="/Events/Faqs" asp-route-eventId="@item.Id" class="dropdown-item"><i class="bi bi-question-circle"></i>سوالات متداول</a>
+                                    <a asp-page="/Events/Buyers" asp-route-eventId="@item.Id" class="dropdown-item"><i class="bi bi-ticket-perforated"></i>خریداران بلیت</a>
+                                    <a asp-page="/Events/Sms" asp-route-eventId="@item.Id" class="dropdown-item"><i class="bi bi-chat-dots"></i>پیام به شرکت کنندگان</a>
+                                    <div class="dropdown-divider"></div>
+                                    <a asp-page="/Events/SurveyRatings" asp-route-eventId="@item.Id" class="dropdown-item"><i class="bi bi-star-half"></i>نظرسنجی ها</a>
+                                    <a asp-page="/Events/Conversations" asp-route-eventId="@item.Id" class="dropdown-item"><i class="bi bi-chat-square-text"></i>مانیتور گفتگوها</a>
                                 </div>
                             </div>
                         </td>
@@ -65,4 +136,33 @@
             </tbody>
         </table>
     </div>
+    <nav class="d-flex justify-content-between align-items-center flex-wrap gap-3 mt-4" aria-label="صفحه بندی رویدادها">
+        <a class="btn btn-outline-secondary @(Model.HasPreviousPage ? string.Empty : "disabled")"
+           asp-page="/Events/Index"
+           asp-route-Search="@Model.Search"
+           asp-route-TagId="@Model.TagId"
+           asp-route-City="@Model.City"
+           asp-route-EventModeId="@Model.EventModeId"
+           asp-route-Status="@Model.Status"
+           asp-route-FromDate="@Model.FromDate"
+           asp-route-ToDate="@Model.ToDate"
+           asp-route-Sort="@Model.Sort"
+           asp-route-PageNumber="@(Model.PageNumber - 1)">
+            <i class="bi bi-chevron-right"></i>قبلی
+        </a>
+        <span class="text-muted small">صفحه @DisplayFormatter.Count(Model.PageNumber) از @DisplayFormatter.Count(Model.TotalPages)</span>
+        <a class="btn btn-outline-secondary @(Model.HasNextPage ? string.Empty : "disabled")"
+           asp-page="/Events/Index"
+           asp-route-Search="@Model.Search"
+           asp-route-TagId="@Model.TagId"
+           asp-route-City="@Model.City"
+           asp-route-EventModeId="@Model.EventModeId"
+           asp-route-Status="@Model.Status"
+           asp-route-FromDate="@Model.FromDate"
+           asp-route-ToDate="@Model.ToDate"
+           asp-route-Sort="@Model.Sort"
+           asp-route-PageNumber="@(Model.PageNumber + 1)">
+            بعدی<i class="bi bi-chevron-left"></i>
+        </a>
+    </nav>
 </div>

@@ -253,6 +253,141 @@ public sealed class DatabaseFinanceApiClient : IFinanceApiClient
             .ToList();
     }
 
+    public async Task<UserFinanceOverview> GetUserFinanceAsync(MockUser currentUser, long userId, CancellationToken cancellationToken = default)
+    {
+        EnsureAdmin(currentUser);
+
+        var user = await _db.Users
+            .Include(item => item.Profile)
+            .FirstOrDefaultAsync(item => item.Id == userId, cancellationToken)
+            ?? throw new InvalidOperationException("کاربر پیدا نشد.");
+
+        var account = await _db.BalanceAccounts
+            .Include(item => item.Transactions)
+            .FirstOrDefaultAsync(item => item.UserId == userId, cancellationToken);
+
+        var eventIds = (account?.Transactions.Select(item => item.DatingEventId) ?? Array.Empty<long?>())
+            .Where(item => item.HasValue)
+            .Select(item => item!.Value)
+            .Distinct()
+            .ToList();
+
+        var payments = await _db.OnlinePayments
+            .Where(payment => payment.UserId == userId)
+            .OrderByDescending(payment => payment.CreatedAt)
+            .Select(payment => new UserOnlinePaymentItem
+            {
+                Id = payment.Id,
+                Amount = payment.Amount,
+                GatewayName = payment.GatewayName,
+                TrackingCode = payment.TrackingCode,
+                Status = payment.Status,
+                EventId = payment.DatingEventId,
+                EventTitle = payment.DatingEvent == null ? "بدون رویداد" : payment.DatingEvent.Title,
+                TicketId = payment.EventTicketId,
+                BalanceTransactionId = payment.BalanceTransactionId,
+                CreatedAtUtc = payment.CreatedAt,
+                PaidAtUtc = payment.PaidAtUtc
+            })
+            .ToListAsync(cancellationToken);
+
+        eventIds.AddRange(payments.Where(item => item.EventId.HasValue).Select(item => item.EventId!.Value));
+        var eventTitles = await _db.DatingEvents
+            .Where(item => eventIds.Contains(item.Id))
+            .ToDictionaryAsync(item => item.Id, item => item.Title, cancellationToken);
+
+        var transactions = (account?.Transactions ?? Array.Empty<BalanceTransaction>())
+            .OrderByDescending(item => item.CreatedAt)
+            .Select(item => new UserFinanceTransactionItem
+            {
+                Id = item.Id,
+                Amount = item.Amount,
+                Type = item.Type,
+                Description = item.Description,
+                EventId = item.DatingEventId,
+                EventTitle = item.DatingEventId is long eventId && eventTitles.TryGetValue(eventId, out var eventTitle) ? eventTitle : "بدون رویداد",
+                CreatedAtUtc = item.CreatedAt
+            })
+            .ToList();
+
+        foreach (var payment in payments)
+        {
+            if (payment.EventId is long eventId && eventTitles.TryGetValue(eventId, out var eventTitle))
+                payment.EventTitle = eventTitle;
+        }
+
+        return new UserFinanceOverview
+        {
+            UserId = user.Id,
+            DisplayName = DatabaseModelMapper.ResolveUserDisplayName(user),
+            MobileNumber = user.MobileNumber,
+            IsActive = user.IsActive,
+            Balance = account?.Balance ?? 0m,
+            Transactions = transactions,
+            OnlinePayments = payments
+        };
+    }
+
+    public async Task<IReadOnlyList<PlannerBankAccountItem>> GetPlannerBankAccountsAsync(MockUser currentUser, long plannerUserId, CancellationToken cancellationToken = default)
+    {
+        EnsureAdminOrOwner(currentUser, plannerUserId);
+
+        return await _db.PlannerBankAccounts
+            .Where(item => item.UserId == plannerUserId)
+            .OrderByDescending(item => item.IsActive)
+            .ThenByDescending(item => item.CreatedAt)
+            .Select(item => new PlannerBankAccountItem
+            {
+                Id = item.Id,
+                UserId = item.UserId,
+                CardNumber = item.CardNumber,
+                Iban = item.Iban,
+                BankName = item.BankName,
+                IsActive = item.IsActive,
+                CreatedAtUtc = item.CreatedAt
+            })
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task SavePlannerBankAccountAsync(MockUser currentUser, long plannerUserId, PlannerBankAccountInput input, CancellationToken cancellationToken = default)
+    {
+        EnsureAdminOrOwner(currentUser, plannerUserId);
+
+        var planner = await _db.Users.FirstOrDefaultAsync(item => item.Id == plannerUserId, cancellationToken)
+            ?? throw new InvalidOperationException("برگزارکننده پیدا نشد.");
+
+        if (input.Id is long id)
+        {
+            var bankAccount = await _db.PlannerBankAccounts
+                .FirstOrDefaultAsync(item => item.Id == id && item.UserId == plannerUserId, cancellationToken)
+                ?? throw new InvalidOperationException("حساب بانکی پیدا نشد.");
+
+            bankAccount.Update(input.CardNumber, input.Iban, input.BankName, input.IsActive);
+        }
+        else
+        {
+            _db.PlannerBankAccounts.Add(new PlannerBankAccount(planner, input.CardNumber, input.Iban, input.BankName, input.IsActive));
+        }
+
+        await _db.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task TogglePlannerBankAccountAsync(MockUser currentUser, long plannerUserId, long bankAccountId, bool isActive, CancellationToken cancellationToken = default)
+    {
+        EnsureAdminOrOwner(currentUser, plannerUserId);
+
+        var bankAccount = await _db.PlannerBankAccounts
+            .FirstOrDefaultAsync(item => item.Id == bankAccountId && item.UserId == plannerUserId, cancellationToken)
+            ?? throw new InvalidOperationException("حساب بانکی پیدا نشد.");
+
+        if (isActive)
+            bankAccount.Activate();
+        else
+            bankAccount.Deactivate();
+
+        await _db.SaveChangesAsync(cancellationToken);
+    }
+
     private async Task<IReadOnlyList<PlannerWithdrawalRequestItem>> GetPlannerWithdrawalsAsync(long plannerUserId, CancellationToken cancellationToken)
     {
         return await MapWithdrawalRequests(_db.PlannerWithdrawalRequests.Where(item => item.UserId == plannerUserId))
@@ -286,5 +421,16 @@ public sealed class DatabaseFinanceApiClient : IFinanceApiClient
     {
         if (currentUser.Role != AdminRole.Admin)
             throw new InvalidOperationException("این بخش فقط برای مدیر سیستم فعال است.");
+    }
+
+    private static void EnsureAdminOrOwner(MockUser currentUser, long ownerUserId)
+    {
+        if (currentUser.Role == AdminRole.Admin)
+            return;
+
+        if (currentUser.Role == AdminRole.EventPlanner && currentUser.Id == ownerUserId)
+            return;
+
+        throw new InvalidOperationException("دسترسی به اطلاعات بانکی این برگزارکننده مجاز نیست.");
     }
 }

@@ -1,0 +1,126 @@
+@page
+@model Randevoo.AdminPanel.Pages.Finance.TicketTransactionsModel
+@{
+    ViewData["Title"] = "تراکنش های خرید بلیت";
+}
+
+<section class="page-header">
+    <div>
+        <h1>تراکنش های خرید بلیت به تفکیک رویداد</h1>
+        <p>گزارش خریدهای کاربران نهایی، گروه بندی شده بر اساس رویداد.</p>
+    </div>
+</section>
+
+<form method="get" class="glass-panel p-4 mb-4 filter-panel">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
+        <div>
+            <h2 class="section-title mb-1">فیلتر تراکنش ها</h2>
+            <p class="text-muted small mb-0">برای گزارش های بزرگ، فقط هنگام نیاز فیلترها را باز کنید.</p>
+        </div>
+        <button class="btn btn-outline-secondary btn-sm filter-toggle-button" type="button" data-bs-toggle="collapse" data-bs-target="#ticketTransactionFilterPanel" aria-expanded="@(Model.HasActiveFilters.ToString().ToLowerInvariant())" aria-controls="ticketTransactionFilterPanel">
+            <i class="bi bi-funnel"></i>فیلترها
+        </button>
+    </div>
+    <div id="ticketTransactionFilterPanel" class="collapse @(Model.HasActiveFilters ? "show" : string.Empty)">
+        <input type="hidden" name="PageNumber" value="1" />
+        <div class="row g-3 align-items-end">
+            <div class="col-lg-4">
+                <label asp-for="Search" class="form-label">جستجو</label>
+                <input asp-for="Search" class="form-control" placeholder="رویداد، برگزارکننده، خریدار یا موبایل" />
+            </div>
+            <div class="col-md-2">
+                <label asp-for="FromDate" class="form-label">از تاریخ رویداد</label>
+                <input asp-for="FromDate" class="form-control jalali-date-picker" placeholder="۱۴۰۵/۰۳/۱۵" autocomplete="off" />
+            </div>
+            <div class="col-md-2">
+                <label asp-for="ToDate" class="form-label">تا تاریخ رویداد</label>
+                <input asp-for="ToDate" class="form-control jalali-date-picker" placeholder="۱۴۰۵/۰۳/۳۰" autocomplete="off" />
+            </div>
+            <div class="col-md-2">
+                <label asp-for="Sort" class="form-label">مرتب سازی</label>
+                <select asp-for="Sort" class="form-select">
+                    <option value="start-desc">شروع جدیدتر</option>
+                    <option value="start-asc">شروع قدیمی تر</option>
+                    <option value="amount-desc">مبلغ بیشتر</option>
+                    <option value="tickets-desc">بلیت بیشتر</option>
+                </select>
+            </div>
+            <div class="col-md-2 d-grid">
+                <button type="submit" class="btn btn-primary"><i class="bi bi-search"></i>اعمال</button>
+            </div>
+        </div>
+    </div>
+</form>
+
+<div class="glass-panel p-4">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+        <h2 class="section-title mb-0">گروه های تراکنش</h2>
+        <span class="text-muted small">@DisplayFormatter.Count(Model.TotalCount) رویداد</span>
+    </div>
+    <div class="finance-event-groups">
+        @foreach (var group in Model.EventTransactions)
+        {
+            <article class="finance-event-group">
+                <header class="finance-event-head">
+                    <div>
+                        <h3>@group.EventTitle</h3>
+                        <div class="text-muted small">برگزارکننده: @group.PlannerName | شروع: @PersianDateFormatter.Format(group.StartAtUtc, Model.IsRtl)</div>
+                    </div>
+                    <div class="finance-event-total">
+                        <span>@DisplayFormatter.Count(group.TicketCount) بلیت</span>
+                        <strong>@DisplayFormatter.Money(group.TotalTicketAmount, Model.IsRtl)</strong>
+                    </div>
+                </header>
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>خریدار</th>
+                                <th>موبایل</th>
+                                <th>مبلغ</th>
+                                <th>زمان خرید</th>
+                                <th>شرح</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in group.Transactions)
+                            {
+                                <tr>
+                                    <td>@item.BuyerName</td>
+                                    <td>@DisplayFormatter.ToPersianDigits(item.BuyerMobile)</td>
+                                    <td>@DisplayFormatter.Money(item.Amount, Model.IsRtl)</td>
+                                    <td>@PersianDateFormatter.FormatDateTime(item.PurchasedAtUtc, Model.IsRtl)</td>
+                                    <td class="table-wrap-cell">@item.Description</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </article>
+        }
+    </div>
+    @if (Model.EventTransactions.Count == 0)
+    {
+        <div class="empty-state">تراکنشی برای فیلتر فعلی پیدا نشد.</div>
+    }
+
+    <nav class="d-flex justify-content-between align-items-center flex-wrap gap-3 mt-4">
+        <a class="btn btn-outline-secondary @(Model.HasPreviousPage ? string.Empty : "disabled")"
+           asp-page="/Finance/TicketTransactions"
+           asp-route-Search="@Model.Search"
+           asp-route-EventId="@Model.EventId"
+           asp-route-FromDate="@Model.FromDate"
+           asp-route-ToDate="@Model.ToDate"
+           asp-route-Sort="@Model.Sort"
+           asp-route-PageNumber="@(Model.PageNumber - 1)">قبلی</a>
+        <span class="text-muted small">صفحه @DisplayFormatter.Count(Model.PageNumber) از @DisplayFormatter.Count(Model.TotalPages)</span>
+        <a class="btn btn-outline-secondary @(Model.HasNextPage ? string.Empty : "disabled")"
+           asp-page="/Finance/TicketTransactions"
+           asp-route-Search="@Model.Search"
+           asp-route-EventId="@Model.EventId"
+           asp-route-FromDate="@Model.FromDate"
+           asp-route-ToDate="@Model.ToDate"
+           asp-route-Sort="@Model.Sort"
+           asp-route-PageNumber="@(Model.PageNumber + 1)">بعدی</a>
+    </nav>
+</div>

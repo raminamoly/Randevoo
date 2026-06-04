@@ -93,6 +93,10 @@ public class EditModel : PageModel
 
     public SelectList EventTypeOptions { get; private set; } = new(Array.Empty<object>());
 
+    public SelectList EventModeOptions { get; private set; } = new(Array.Empty<object>());
+
+    public SelectList OnlinePlatformOptions { get; private set; } = new(Array.Empty<object>());
+
     public SelectList MinimumEducationLevelOptions { get; private set; } = new(Array.Empty<object>());
 
     public MultiSelectList TagOptions { get; private set; } = new(Array.Empty<object>());
@@ -143,7 +147,6 @@ public class EditModel : PageModel
 
         await LoadLookupOptionsAsync();
         SyncFormTextFromInput();
-
         return Page();
     }
 
@@ -193,7 +196,16 @@ public class EditModel : PageModel
             if (existing is not null)
             {
                 Input.OrganizerCommissionPercent = existing.ActiveDraft.OrganizerCommissionPercent;
+                Input.Faqs = existing.ActiveDraft.Faqs;
                 AssignedPlannerId = existing.PlannerUserId;
+            }
+        }
+        else if (ExistingEventId is long adminEditId)
+        {
+            var existing = await _eventsApi.GetEventAsync(adminEditId);
+            if (existing is not null)
+            {
+                Input.Faqs = existing.ActiveDraft.Faqs;
             }
         }
 
@@ -245,6 +257,10 @@ public class EditModel : PageModel
 
         var eventTypes = await _eventsApi.GetEventTypesAsync();
         EventTypeOptions = new SelectList(eventTypes, "Id", "Name");
+        var eventModes = await _eventsApi.GetEventModesAsync();
+        EventModeOptions = new SelectList(eventModes, "Id", "Name", Input.EventModeId <= 0 ? 2L : Input.EventModeId);
+        var onlinePlatforms = await _eventsApi.GetOnlineEventPlatformsAsync();
+        OnlinePlatformOptions = new SelectList(onlinePlatforms, "Id", "Name", Input.OnlineEventPlatformId);
         var tagOptions = await _eventTagsApi.GetActiveTagsAsync();
         TagOptions = new MultiSelectList(tagOptions, "Id", "Name", Input.TagIds);
 
@@ -321,22 +337,40 @@ public class EditModel : PageModel
     private void ValidateEventInput()
     {
         ValidateRequiredText(nameof(Input.Title), Input.Title, "عنوان رویداد", 2, 150);
-        ValidateRequiredText(nameof(Input.Address), Input.Address, "آدرس", 5, 300);
         ValidateRequiredText(nameof(Input.DescriptionHtml), StripHtml(Input.DescriptionHtml), "توضیحات رویداد", 10, 10000);
 
         if (Input.EventTypeId <= 0)
             ModelState.AddModelError(nameof(Input.EventTypeId), "نوع رویداد را انتخاب کنید.");
+
+        if (Input.EventModeId <= 0)
+            ModelState.AddModelError(nameof(Input.EventModeId), "نحوه برگزاری را انتخاب کنید.");
+
+        if (Input.IsOnline)
+        {
+            if (Input.OnlineEventPlatformId is null or <= 0)
+                ModelState.AddModelError(nameof(Input.OnlineEventPlatformId), "پلتفرم آنلاین را انتخاب کنید.");
+
+            if (string.IsNullOrWhiteSpace(Input.OnlineJoinUrl))
+                ModelState.AddModelError(nameof(Input.OnlineJoinUrl), "لینک ورود رویداد آنلاین را وارد کنید.");
+        }
+        else
+        {
+            ValidateRequiredText(nameof(Input.Address), Input.Address, "آدرس", 5, 300);
+        }
 
         Input.EducationLevelRestriction = MapEducationLevelIdToRestriction(Input.MinimumEducationLevelId);
 
         if (Input.MinimumEducationLevelId is long educationLevelId && EducationLevels.All(level => level.Id != educationLevelId || level.Rank <= 0))
             ModelState.AddModelError(nameof(Input.MinimumEducationLevelId), "حداقل سطح تحصیل معتبر نیست.");
 
-        if (Countries.All(country => country.Name != Input.Country))
-            ModelState.AddModelError(nameof(Input.Country), "کشور انتخاب شده معتبر نیست.");
+        if (!Input.IsOnline)
+        {
+            if (Countries.All(country => country.Name != Input.Country))
+                ModelState.AddModelError(nameof(Input.Country), "کشور انتخاب شده معتبر نیست.");
 
-        if (Cities.All(city => city.CountryName != Input.Country || city.Name != Input.City))
-            ModelState.AddModelError(nameof(Input.City), "شهر انتخاب شده برای این کشور معتبر نیست.");
+            if (Cities.All(city => city.CountryName != Input.Country || city.Name != Input.City))
+                ModelState.AddModelError(nameof(Input.City), "شهر انتخاب شده برای این کشور معتبر نیست.");
+        }
 
         if (Input.StartAtUtc != default
             && Input.EndAtUtc != default
@@ -367,6 +401,39 @@ public class EditModel : PageModel
             ModelState.AddModelError(nameof(Input.TagIds), "برای هر رویداد حداکثر 10 تگ می توانید انتخاب کنید.");
 
         Input.TagIds = Input.TagIds.Distinct().ToList();
+        ValidateFaqs();
+    }
+
+    private void ValidateFaqs()
+    {
+        var filledFaqs = Input.Faqs
+            .Where(item => !string.IsNullOrWhiteSpace(item.Question) || !string.IsNullOrWhiteSpace(item.Answer))
+            .ToList();
+
+        if (filledFaqs.Count > 10)
+            ModelState.AddModelError(nameof(Input.Faqs), "برای هر رویداد حداکثر 10 سوال متداول می توانید ثبت کنید.");
+
+        for (var index = 0; index < Input.Faqs.Count; index++)
+        {
+            var item = Input.Faqs[index];
+            var hasQuestion = !string.IsNullOrWhiteSpace(item.Question);
+            var hasAnswer = !string.IsNullOrWhiteSpace(item.Answer);
+            if (hasQuestion != hasAnswer)
+                ModelState.AddModelError($"Input.Faqs[{index}].Question", "برای هر سوال متداول، سوال و پاسخ را با هم وارد کنید.");
+        }
+    }
+
+    private void EnsureFaqRows()
+    {
+        Input.Faqs = Input.Faqs
+            .Where(item => !string.IsNullOrWhiteSpace(item.Question) || !string.IsNullOrWhiteSpace(item.Answer))
+            .Take(10)
+            .ToList();
+
+        while (Input.Faqs.Count < 5)
+        {
+            Input.Faqs.Add(new EventFaqInput());
+        }
     }
 
     private void ValidateRequiredText(string key, string? value, string label, int minLength, int maxLength)

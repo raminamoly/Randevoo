@@ -34,6 +34,9 @@ public class BuyersModel : PageModel
     [BindProperty(SupportsGet = true)]
     public string? Gender { get; set; }
 
+    [BindProperty(SupportsGet = true)]
+    public string View { get; set; } = "grid";
+
     [BindProperty]
     public EmergencyRefundInput Input { get; set; } = new();
 
@@ -43,6 +46,10 @@ public class BuyersModel : PageModel
     public bool IsAdmin => _session.CurrentUser?.Role == AdminRole.Admin;
 
     public bool IsRtl => _session.IsRtl;
+
+    public bool HasActiveFilters => !string.IsNullOrWhiteSpace(Search)
+        || !string.IsNullOrWhiteSpace(Status)
+        || !string.IsNullOrWhiteSpace(Gender);
 
     public async Task OnGetAsync(long eventId)
     {

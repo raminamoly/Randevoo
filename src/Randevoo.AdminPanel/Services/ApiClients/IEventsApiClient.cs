@@ -7,6 +7,10 @@ public interface IEventsApiClient
 {
     Task<IReadOnlyList<EventTypeOption>> GetEventTypesAsync(CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<EventModeOption>> GetEventModesAsync(CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<OnlineEventPlatformOption>> GetOnlineEventPlatformsAsync(CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<DatingEvent>> GetEventsAsync(MockUser currentUser, CancellationToken cancellationToken = default);
 
     Task<DatingEvent?> GetEventAsync(long id, CancellationToken cancellationToken = default);

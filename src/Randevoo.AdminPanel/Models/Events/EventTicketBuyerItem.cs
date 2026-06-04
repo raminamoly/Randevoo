@@ -8,6 +8,7 @@ public sealed class EventTicketBuyerItem
     public long EventId { get; init; }
     public long UserId { get; init; }
     public string DisplayName { get; init; } = string.Empty;
+    public string? ProfileImageUrl { get; init; }
     public string? MobileNumber { get; init; }
     public Gender Gender { get; init; }
     public string GenderTitle { get; init; } = string.Empty;

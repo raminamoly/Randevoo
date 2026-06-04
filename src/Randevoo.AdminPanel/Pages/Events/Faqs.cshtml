@@ -1,0 +1,63 @@
+@page "{eventId:long}"
+@model Randevoo.AdminPanel.Pages.Events.FaqsModel
+@{
+    ViewData["Title"] = "سوالات متداول رویداد";
+}
+
+<section class="page-header">
+    <div>
+        <h1>سوالات متداول</h1>
+        <p>@Model.Event.DisplayTitle</p>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+        <a asp-page="/Events/Details" asp-route-id="@Model.Event.Id" class="btn btn-outline-primary">
+            <i class="bi bi-eye"></i>پروفایل رویداد
+        </a>
+        <a asp-page="/Events/Edit" asp-route-id="@Model.Event.Id" class="btn btn-outline-secondary">
+            <i class="bi bi-pencil-square"></i>ویرایش رویداد
+        </a>
+    </div>
+</section>
+
+@if (!string.IsNullOrWhiteSpace(Model.StatusMessage))
+{
+    <div class="alert alert-success border-0 mb-4">@Model.StatusMessage</div>
+}
+
+<form method="post" class="glass-panel p-4">
+    <input type="hidden" asp-for="EventId" />
+    <div class="form-section-head">
+        <div>
+            <h2 class="section-title mb-1">مدیریت سوال و پاسخ</h2>
+            <p class="text-muted mb-0">اگر سوالی کامل ثبت نشود، در پروفایل رویداد نمایش داده نمی شود.</p>
+        </div>
+        <span class="status-badge status-draft">حداکثر ۱۰ سوال</span>
+    </div>
+
+    <div class="faq-editor mt-3">
+        @for (var index = 0; index < Model.Faqs.Count; index++)
+        {
+            <div class="faq-editor-row">
+                <div>
+                    <label class="form-label" for="Faqs_@(index)__Question">سوال @(DisplayFormatter.Count(index + 1))</label>
+                    <input class="form-control" id="Faqs_@(index)__Question" name="Faqs[@index].Question" value="@Model.Faqs[index].Question" placeholder="مثلاً چه زمانی لینک ورود ارسال می شود؟" />
+                    <span asp-validation-for="Faqs[index].Question" class="text-danger small"></span>
+                </div>
+                <div>
+                    <label class="form-label" for="Faqs_@(index)__Answer">پاسخ</label>
+                    <textarea class="form-control" id="Faqs_@(index)__Answer" name="Faqs[@index].Answer" rows="2" placeholder="پاسخ کوتاه و شفاف">@Model.Faqs[index].Answer</textarea>
+                </div>
+            </div>
+        }
+    </div>
+    <span asp-validation-for="Faqs" class="text-danger small"></span>
+
+    <div class="d-flex justify-content-end flex-wrap gap-2 mt-4">
+        <a asp-page="/Events/Index" class="btn btn-outline-secondary">بازگشت به رویدادها</a>
+        <button type="submit" class="btn btn-primary">
+            <i class="bi bi-save"></i>ذخیره سوالات متداول
+        </button>
+    </div>
+</form>
+
+<partial name="_ValidationScriptsPartial" />

@@ -1,0 +1,132 @@
+@page
+@model Randevoo.AdminPanel.Pages.Finance.WithdrawalsModel
+@{
+    ViewData["Title"] = "درخواست های تسویه";
+}
+
+<section class="page-header">
+    <div>
+        <h1>بررسی درخواست های تسویه برگزارکنندگان</h1>
+        <p>هر پرداخت فقط بعد از تایید مدیر از موجودی برگزارکننده کسر می شود.</p>
+    </div>
+</section>
+
+@if (!string.IsNullOrWhiteSpace(Model.StatusMessage))
+{
+    <div class="alert alert-info border-0 mb-4">@Model.StatusMessage</div>
+}
+
+<form method="get" class="glass-panel p-4 mb-4 filter-panel">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
+        <div>
+            <h2 class="section-title mb-1">فیلتر درخواست ها</h2>
+            <p class="text-muted small mb-0">فیلترها در ورود اولیه بسته هستند تا تمرکز روی جدول بماند.</p>
+        </div>
+        <button class="btn btn-outline-secondary btn-sm filter-toggle-button" type="button" data-bs-toggle="collapse" data-bs-target="#withdrawalFilterPanel" aria-expanded="@(Model.HasActiveFilters.ToString().ToLowerInvariant())" aria-controls="withdrawalFilterPanel">
+            <i class="bi bi-funnel"></i>فیلترها
+        </button>
+    </div>
+    <div id="withdrawalFilterPanel" class="collapse @(Model.HasActiveFilters ? "show" : string.Empty)">
+        <input type="hidden" name="PageNumber" value="1" />
+        <div class="row g-3 align-items-end">
+            <div class="col-lg-5">
+                <label asp-for="Search" class="form-label">برگزارکننده یا موبایل</label>
+                <input asp-for="Search" class="form-control" placeholder="جستجو..." />
+            </div>
+            <div class="col-lg-3">
+                <label asp-for="Status" class="form-label">وضعیت</label>
+                <select asp-for="Status" class="form-select">
+                    <option value="">همه وضعیت ها</option>
+                    <option value="@Randevoo.Domain.Enums.PlannerWithdrawalRequestStatus.Pending">در انتظار بررسی</option>
+                    <option value="@Randevoo.Domain.Enums.PlannerWithdrawalRequestStatus.Confirmed">تایید شده</option>
+                    <option value="@Randevoo.Domain.Enums.PlannerWithdrawalRequestStatus.Rejected">رد شده</option>
+                </select>
+            </div>
+            <div class="col-lg-2 d-grid">
+                <button class="btn btn-primary" type="submit"><i class="bi bi-search"></i>اعمال</button>
+            </div>
+            <div class="col-lg-2 d-grid">
+                <a asp-page="/Finance/Withdrawals" class="btn btn-outline-secondary"><i class="bi bi-x-circle"></i>پاک کردن</a>
+            </div>
+        </div>
+    </div>
+</form>
+
+<div class="glass-panel p-4">
+    <div class="table-responsive">
+        <table class="table align-middle">
+            <thead>
+                <tr>
+                    <th>برگزارکننده</th>
+                    <th>مبلغ</th>
+                    <th>وضعیت</th>
+                    <th>زمان درخواست</th>
+                    <th>یادداشت</th>
+                    <th>اقدام ها</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model.WithdrawalRequests)
+                {
+                    <tr>
+                        <td>
+                            <div class="fw-semibold">@item.PlannerName</div>
+                            <div class="text-muted small">@item.PlannerMobile</div>
+                        </td>
+                        <td>@DisplayFormatter.Money(item.Amount, Model.IsRtl)</td>
+                        <td><span class="status-badge @Model.WithdrawalStatusClass(item.Status)">@DisplayFormatter.WithdrawalStatus(item.Status)</span></td>
+                        <td>@PersianDateFormatter.FormatDateTime(item.RequestedAtUtc, Model.IsRtl)</td>
+                        <td class="table-wrap-cell">@(string.IsNullOrWhiteSpace(item.ReviewNote) ? "بدون یادداشت" : item.ReviewNote)</td>
+                        <td class="text-end table-action-cell">
+                            @if (item.Status == Randevoo.Domain.Enums.PlannerWithdrawalRequestStatus.Pending)
+                            {
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle table-action-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        اقدام ها
+                                    </button>
+                                    <div class="dropdown-menu dropdown-menu-end action-menu shadow-sm border-0 finance-review-menu">
+                                        <form method="post" asp-page-handler="ConfirmWithdrawal">
+                                            <input type="hidden" name="ReviewInput.RequestId" value="@item.Id" />
+                                            <label class="form-label small">یادداشت تایید</label>
+                                            <textarea name="ReviewInput.ReviewNote" class="form-control form-control-sm mb-2" rows="2"></textarea>
+                                            <button type="submit" class="dropdown-item text-success"><i class="bi bi-check2-circle"></i>تایید پرداخت</button>
+                                        </form>
+                                        <div class="dropdown-divider"></div>
+                                        <form method="post" asp-page-handler="RejectWithdrawal">
+                                            <input type="hidden" name="ReviewInput.RequestId" value="@item.Id" />
+                                            <label class="form-label small">علت رد</label>
+                                            <textarea name="ReviewInput.ReviewNote" class="form-control form-control-sm mb-2" rows="2"></textarea>
+                                            <button type="submit" class="dropdown-item text-danger"><i class="bi bi-x-circle"></i>رد درخواست</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            }
+                            else
+                            {
+                                <span class="text-muted small">بررسی شده</span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    @if (Model.WithdrawalRequests.Count == 0)
+    {
+        <div class="empty-state">درخواست تسویه ای برای فیلتر فعلی پیدا نشد.</div>
+    }
+
+    <nav class="d-flex justify-content-between align-items-center flex-wrap gap-3 mt-4">
+        <a class="btn btn-outline-secondary @(Model.HasPreviousPage ? string.Empty : "disabled")"
+           asp-page="/Finance/Withdrawals"
+           asp-route-Search="@Model.Search"
+           asp-route-Status="@Model.Status"
+           asp-route-PageNumber="@(Model.PageNumber - 1)">قبلی</a>
+        <span class="text-muted small">صفحه @DisplayFormatter.Count(Model.PageNumber) از @DisplayFormatter.Count(Model.TotalPages)</span>
+        <a class="btn btn-outline-secondary @(Model.HasNextPage ? string.Empty : "disabled")"
+           asp-page="/Finance/Withdrawals"
+           asp-route-Search="@Model.Search"
+           asp-route-Status="@Model.Status"
+           asp-route-PageNumber="@(Model.PageNumber + 1)">بعدی</a>
+    </nav>
+</div>

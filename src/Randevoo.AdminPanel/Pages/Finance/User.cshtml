@@ -1,0 +1,125 @@
+@page "{userId:long}"
+@model Randevoo.AdminPanel.Pages.Finance.UserModel
+@{
+    ViewData["Title"] = "مالی کاربر";
+    var showPayments = Model.ViewMode == "payments";
+}
+
+<section class="page-header">
+    <div>
+        <h1>مالی کاربر</h1>
+        <p>نمای کامل موجودی، تراکنش ها و پرداخت های آنلاین کاربر برای بررسی مدیر.</p>
+    </div>
+    <a asp-page="/Users/Index" class="btn btn-outline-secondary"><i class="bi bi-arrow-right"></i>بازگشت به کاربران</a>
+</section>
+
+<div class="stats-grid mb-4">
+    <article class="stat-card">
+        <span>کاربر</span>
+        <strong>@Model.Overview.DisplayName</strong>
+        <small dir="ltr">@Model.Overview.MobileNumber</small>
+    </article>
+    <article class="stat-card">
+        <span>موجودی فعلی</span>
+        <strong>@DisplayFormatter.Money(Model.Overview.Balance, Model.IsRtl)</strong>
+        <small>@(Model.Overview.IsActive ? "فعال" : "غیرفعال")</small>
+    </article>
+    <article class="stat-card">
+        <span>تعداد تراکنش ها</span>
+        <strong>@DisplayFormatter.Count(Model.Overview.Transactions.Count)</strong>
+        <small>همه انواع تراکنش مالی</small>
+    </article>
+    <article class="stat-card">
+        <span>پرداخت آنلاین</span>
+        <strong>@DisplayFormatter.Count(Model.Overview.OnlinePayments.Count)</strong>
+        <small>مدل شده، بدون درگاه واقعی</small>
+    </article>
+</div>
+
+<div class="glass-panel p-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <h2 class="section-title mb-1">سوابق مالی</h2>
+            <p class="text-muted small mb-0">پرداخت های آنلاین فعلا فقط برای ردیابی و اتصال به تراکنش های فروش بلیت مدل شده اند.</p>
+        </div>
+        <div class="btn-group">
+            <a asp-page="/Finance/User" asp-route-userId="@Model.Overview.UserId" asp-route-view="balance" class="btn btn-sm @(showPayments ? "btn-outline-primary" : "btn-primary")">
+                <i class="bi bi-wallet2"></i>تراکنش ها
+            </a>
+            <a asp-page="/Finance/User" asp-route-userId="@Model.Overview.UserId" asp-route-view="payments" class="btn btn-sm @(showPayments ? "btn-primary" : "btn-outline-primary")">
+                <i class="bi bi-credit-card"></i>پرداخت ها
+            </a>
+        </div>
+    </div>
+
+    @if (!showPayments)
+    {
+        <div class="table-responsive">
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th>شناسه</th>
+                        <th>نوع</th>
+                        <th>رویداد</th>
+                        <th>شرح</th>
+                        <th>مبلغ</th>
+                        <th>زمان</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.Overview.Transactions)
+                    {
+                        <tr>
+                            <td>@DisplayFormatter.Count((int)item.Id)</td>
+                            <td>@Model.TransactionTypeTitle(item.Type)</td>
+                            <td>@item.EventTitle</td>
+                            <td class="table-wrap-cell">@item.Description</td>
+                            <td class="@(item.Amount < 0 ? "text-danger" : "text-success")">@DisplayFormatter.Money(item.Amount, Model.IsRtl)</td>
+                            <td>@PersianDateFormatter.FormatDateTime(item.CreatedAtUtc, Model.IsRtl)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        @if (Model.Overview.Transactions.Count == 0)
+        {
+            <div class="empty-state">تراکنشی برای این کاربر ثبت نشده است.</div>
+        }
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th>درگاه</th>
+                        <th>کد پیگیری</th>
+                        <th>رویداد</th>
+                        <th>بلیت</th>
+                        <th>مبلغ</th>
+                        <th>وضعیت</th>
+                        <th>زمان</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var payment in Model.Overview.OnlinePayments)
+                    {
+                        <tr>
+                            <td>@payment.GatewayName</td>
+                            <td dir="ltr">@payment.TrackingCode</td>
+                            <td>@payment.EventTitle</td>
+                            <td>@(payment.TicketId is null ? "بدون بلیت" : DisplayFormatter.Count((int)payment.TicketId.Value))</td>
+                            <td>@DisplayFormatter.Money(payment.Amount, Model.IsRtl)</td>
+                            <td><span class="status-badge @Model.PaymentStatusClass(payment.Status)">@Model.PaymentStatusTitle(payment.Status)</span></td>
+                            <td>@PersianDateFormatter.FormatDateTime(payment.CreatedAtUtc, Model.IsRtl)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        @if (Model.Overview.OnlinePayments.Count == 0)
+        {
+            <div class="empty-state">پرداخت آنلاینی برای این کاربر ثبت نشده است.</div>
+        }
+    }
+</div>

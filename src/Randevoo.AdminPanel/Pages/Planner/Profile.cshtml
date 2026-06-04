@@ -65,6 +65,9 @@
             <div class="mt-4 d-flex flex-wrap gap-2">
                 <button type="submit" class="btn btn-primary">ثبت برای تایید مدیر</button>
                 <a asp-page="/Planner/Details" asp-route-id="@Model.Profile?.UserId" class="btn btn-outline-secondary">مشاهده صفحه عمومی</a>
+                <a asp-page="/Planner/BankAccounts" class="btn btn-outline-primary">
+                    <i class="bi bi-bank2"></i>مدیریت حساب های بانکی
+                </a>
             </div>
         </form>
     </div>
@@ -97,6 +100,53 @@
                         <div class="detail-block mt-2"><span>شهر</span><strong>@(Model.Profile.PendingCity ?? Model.Profile.City)</strong></div>
                         <div class="detail-block mt-2"><span>عنوان</span><strong>@(Model.Profile.PendingTitle ?? Model.Profile.Title)</strong></div>
                     </div>
+                }
+            </div>
+
+            <div class="glass-panel p-4 mt-4">
+                <div class="form-section-head">
+                    <div>
+                        <h2 class="section-title mb-1">حساب های بانکی من</h2>
+                        <p class="text-muted mb-0">شماره کارت، شماره شبا، بانک و وضعیت فعال/غیرفعال فقط برای شما و مدیر دیده می شود.</p>
+                    </div>
+                    <a asp-page="/Planner/BankAccounts" class="btn btn-sm btn-primary">
+                        <i class="bi bi-plus-circle"></i>ثبت/ویرایش
+                    </a>
+                </div>
+
+                @if (Model.BankAccounts.Count > 0)
+                {
+                    <div class="table-responsive mt-3">
+                        <table class="table align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>بانک</th>
+                                    <th>شماره کارت</th>
+                                    <th>شماره شبا</th>
+                                    <th>فعال/غیرفعال</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var account in Model.BankAccounts)
+                                {
+                                    <tr>
+                                        <td>@account.BankName</td>
+                                        <td dir="ltr">@account.CardNumber</td>
+                                        <td dir="ltr">@account.Iban</td>
+                                        <td>
+                                            <span class="status-badge @(account.IsActive ? "status-approved" : "status-closed")">
+                                                @(account.IsActive ? "فعال" : "غیرفعال")
+                                            </span>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="empty-state mt-3">هنوز حساب بانکی ثبت نشده است. از دکمه ثبت/ویرایش برای افزودن شماره کارت و شبا استفاده کنید.</div>
                 }
             </div>
         }

@@ -28,7 +28,7 @@ public static class RandevooSampleDataSeeder
         var guestOne = await EnsureUserAsync(db, "09123334455", UserRole.EndUser, cancellationToken);
         var guestTwo = await EnsureUserAsync(db, "09124445566", UserRole.EndUser, cancellationToken);
 
-        EnsureProfile(admin, "مدیر رندوو", new DateOnly(1988, 4, 12), Gender.Male, "تهران", "ونک");
+        EnsureProfile(admin, "مدیر راندوو", new DateOnly(1988, 4, 12), Gender.Male, "تهران", "ونک");
         EnsureProfile(planner, "پویا فرهی", new DateOnly(1991, 7, 23), Gender.Male, "تهران", "ولیعصر");
         EnsureProfile(guestOne, "آرزو", new DateOnly(1997, 9, 2), Gender.Female, "تهران", "جردن");
         EnsureProfile(guestTwo, "کیان", new DateOnly(1995, 2, 14), Gender.Male, "تهران", "یوسف آباد");
@@ -44,6 +44,7 @@ public static class RandevooSampleDataSeeder
         EnsureBalance(db, guestTwo, 12000000m, "شارژ نمونه کاربر");
 
         await db.SaveChangesAsync(cancellationToken);
+        await EnsurePlannerBankAccountsAsync(db, planner, cancellationToken);
 
         var eventTypes = await EnsureEventTypesAsync(db, cancellationToken);
         var tags = await EnsureTagsAsync(db, cancellationToken);
@@ -123,6 +124,10 @@ public static class RandevooSampleDataSeeder
 
         await db.SaveChangesAsync(cancellationToken);
         await EnsureSampleTicketsAsync(db, planner, sampleUsers.Append(guestOne).Append(guestTwo).ToList(), cancellationToken);
+        await db.SaveChangesAsync(cancellationToken);
+        await EnsureSampleSurveysAndConversationsAsync(db, cancellationToken);
+        await db.SaveChangesAsync(cancellationToken);
+        await EnsureSampleOnlinePaymentsAsync(db, cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
 
         await EnsureEventSmsRequestsAsync(db, admin, planner, guestOne, guestTwo, cancellationToken);
@@ -266,6 +271,100 @@ public static class RandevooSampleDataSeeder
                 db.DatingEvents.Update(datingEvent);
                 db.BalanceAccounts.UpdateRange(buyerBalance, plannerBalance);
             }
+        }
+    }
+
+    private static async Task EnsurePlannerBankAccountsAsync(RandevooDbContext db, User planner, CancellationToken cancellationToken)
+    {
+        if (await db.PlannerBankAccounts.AnyAsync(item => item.UserId == planner.Id, cancellationToken))
+            return;
+
+        db.PlannerBankAccounts.AddRange(
+            new PlannerBankAccount(planner, "6037991234567890", "IR820540102680020817909002", "بانک پارسیان", true),
+            new PlannerBankAccount(planner, "6274121234567890", "IR060120000000000123456789", "بانک اقتصاد نوین", false));
+    }
+
+    private static async Task EnsureSampleOnlinePaymentsAsync(RandevooDbContext db, CancellationToken cancellationToken)
+    {
+        var purchaseTransactions = await db.BalanceTransactions
+            .Where(item => item.Type == BalanceTransactionType.TicketPurchase && item.DatingEventId != null)
+            .OrderBy(item => item.CreatedAt)
+            .ToListAsync(cancellationToken);
+
+        foreach (var transaction in purchaseTransactions)
+        {
+            var trackingCode = $"SIM-{transaction.Id:000000}";
+            if (await db.OnlinePayments.AnyAsync(item => item.BalanceTransactionId == transaction.Id || item.TrackingCode == trackingCode, cancellationToken))
+                continue;
+
+            var user = await db.Users.SingleAsync(item => item.Id == transaction.UserId, cancellationToken);
+            var datingEvent = await db.DatingEvents
+                .Include(item => item.Tickets)
+                .SingleAsync(item => item.Id == transaction.DatingEventId!.Value, cancellationToken);
+            var ticket = datingEvent.Tickets.FirstOrDefault(item => item.UserId == transaction.UserId);
+
+            db.OnlinePayments.Add(new OnlinePayment(
+                user,
+                Math.Abs(transaction.Amount),
+                "درگاه نمونه زرین پال",
+                trackingCode,
+                OnlinePaymentStatus.Succeeded,
+                datingEvent,
+                ticket,
+                transaction));
+        }
+    }
+
+    private static async Task EnsureSampleSurveysAndConversationsAsync(RandevooDbContext db, CancellationToken cancellationToken)
+    {
+        var socialEvent = await db.DatingEvents
+            .Include(item => item.Tickets)
+            .SingleOrDefaultAsync(item => item.Title == "شب اجتماعی تهران", cancellationToken);
+        if (socialEvent is null)
+            return;
+
+        var participantIds = socialEvent.Tickets
+            .Where(item => !item.IsRefunded && !item.IsRemoved)
+            .Select(item => item.UserId)
+            .Distinct()
+            .Take(4)
+            .ToList();
+        if (participantIds.Count < 2)
+            return;
+
+        var participants = await db.Users
+            .Include(item => item.Profile)
+            .Where(item => participantIds.Contains(item.Id))
+            .ToListAsync(cancellationToken);
+
+        foreach (var participant in participants.Take(3))
+        {
+            if (await db.EventSurveyResponses.AnyAsync(item => item.DatingEventId == socialEvent.Id && item.UserId == participant.Id, cancellationToken))
+                continue;
+
+            db.EventSurveyResponses.Add(new EventSurveyResponse(
+                socialEvent,
+                participant,
+                new[]
+                {
+                    new EventSurveyRatingInput(SurveyFactor.OverallExperience, 5),
+                    new EventSurveyRatingInput(SurveyFactor.EventOrganization, 4),
+                    new EventSurveyRatingInput(SurveyFactor.VenueAndLocation, 5),
+                    new EventSurveyRatingInput(SurveyFactor.ParticipantQuality, 4),
+                    new EventSurveyRatingInput(SurveyFactor.SafetyAndComfort, 5)
+                },
+                "فضا صمیمی و کنترل ورود خیلی منظم بود. برای رویداد بعدی زمان گفتگوها کمی بیشتر باشد بهتر است."));
+        }
+
+        var first = participants[0];
+        var second = participants[1];
+        if (!await db.EventConversations.AnyAsync(item => item.DatingEventId == socialEvent.Id && item.StarterUserId == first.Id && item.ParticipantUserId == second.Id, cancellationToken))
+        {
+            var conversation = new EventConversation(socialEvent, first, second);
+            conversation.SendMessage(first.Id, "سلام، از گفتگوی دیشب خوشحال شدم. امیدوارم رویداد خوبی گذشته باشد.");
+            conversation.SendMessage(second.Id, "سلام، من هم همینطور. اجرای برنامه منظم و جالب بود.");
+            conversation.SendMessage(first.Id, "اگر رویداد کافه بعدی برگزار شد شاید دوباره شرکت کنم.");
+            db.EventConversations.Add(conversation);
         }
     }
 

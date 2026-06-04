@@ -1,0 +1,155 @@
+@page "{userId:long}"
+@model Randevoo.AdminPanel.Pages.UserProfiles.AdminEditModel
+@{
+    ViewData["Title"] = "ویرایش کامل پروفایل کاربر";
+}
+
+<section class="page-header">
+    <div>
+        <h1>ویرایش کامل پروفایل کاربر</h1>
+        <p>مدیر می تواند وضعیت کاربر، اطلاعات اصلی، تصاویر، علایق و پیامک فوری را مدیریت کند.</p>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+        <a asp-page="/UserProfiles/Details" asp-route-userId="@Model.Editor.UserId" class="btn btn-outline-primary">
+            <i class="bi bi-person-bounding-box"></i>نمایش پروفایل
+        </a>
+        <a asp-page="/Finance/User" asp-route-userId="@Model.Editor.UserId" class="btn btn-outline-secondary">
+            <i class="bi bi-wallet2"></i>مالی کاربر
+        </a>
+    </div>
+</section>
+
+@if (!string.IsNullOrWhiteSpace(Model.StatusMessage))
+{
+    <div class="alert alert-success border-0 mb-4">@Model.StatusMessage</div>
+}
+
+<div asp-validation-summary="ModelOnly" class="alert alert-danger border-0 mb-4"></div>
+
+<div class="row g-4">
+    <div class="col-xl-7">
+        <form method="post" asp-page-handler="Save" asp-route-userId="@Model.Editor.UserId" class="glass-panel p-4 stacked-form">
+            <h2 class="section-title">اطلاعات اصلی</h2>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label asp-for="ProfileInput.DisplayName" class="form-label">نام نمایشی</label>
+                    <input asp-for="ProfileInput.DisplayName" class="form-control" />
+                    <span asp-validation-for="ProfileInput.DisplayName" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="ProfileInput.MobileNumber" class="form-label">موبایل</label>
+                    <input asp-for="ProfileInput.MobileNumber" class="form-control" dir="ltr" />
+                    <span asp-validation-for="ProfileInput.MobileNumber" class="text-danger small"></span>
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="DateOfBirthText" class="form-label">تاریخ تولد</label>
+                    <input asp-for="DateOfBirthText" class="form-control jalali-date-picker" placeholder="۱۳۶۹/۰۱/۱۵" autocomplete="off" />
+                    <span asp-validation-for="DateOfBirthText" class="text-danger small"></span>
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="ProfileInput.Gender" class="form-label">جنسیت</label>
+                    <select asp-for="ProfileInput.Gender" asp-items="Model.GenderOptions" class="form-select"></select>
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="ProfileInput.HeightCentimeters" class="form-label">قد</label>
+                    <input asp-for="ProfileInput.HeightCentimeters" class="form-control" />
+                    <span asp-validation-for="ProfileInput.HeightCentimeters" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="ProfileInput.CountryId" class="form-label">کشور</label>
+                    <select asp-for="ProfileInput.CountryId" asp-items="Model.CountryOptions" class="form-select">
+                        <option value="">ثبت نشده</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="ProfileInput.CityId" class="form-label">شهر</label>
+                    <select asp-for="ProfileInput.CityId" asp-items="Model.CityOptions" class="form-select">
+                        <option value="">ثبت نشده</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="ProfileInput.EducationLevelId" class="form-label">تحصیلات</label>
+                    <select asp-for="ProfileInput.EducationLevelId" asp-items="Model.EducationOptions" class="form-select">
+                        <option value="">ثبت نشده</option>
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <div class="form-check form-switch">
+                        <input asp-for="ProfileInput.Smoking" class="form-check-input" />
+                        <label asp-for="ProfileInput.Smoking" class="form-check-label">سیگار</label>
+                    </div>
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <div class="form-check form-switch">
+                        <input asp-for="ProfileInput.IsActive" class="form-check-input" />
+                        <label asp-for="ProfileInput.IsActive" class="form-check-label">کاربر فعال</label>
+                    </div>
+                </div>
+            </div>
+            <div class="d-flex justify-content-end mt-4">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-save"></i>ذخیره تغییرات
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <div class="col-xl-5">
+        <div class="glass-panel p-4 mb-4">
+            <h2 class="section-title">تصاویر پروفایل</h2>
+            <div class="admin-profile-image-grid mb-3">
+                @foreach (var image in Model.Editor.Images)
+                {
+                    <figure>
+                        <img src="@image.ImageUrl" alt="@Model.Editor.Input.DisplayName" />
+                        <figcaption>@(image.IsPrimary ? "اصلی" : $"تصویر {DisplayFormatter.Count(image.DisplayOrder)}")</figcaption>
+                        <form method="post" asp-page-handler="RemoveImage" asp-route-userId="@Model.Editor.UserId">
+                            <input type="hidden" name="imageUrl" value="@image.ImageUrl" />
+                            <button type="submit" class="btn btn-sm btn-light text-danger"><i class="bi bi-x-lg"></i>حذف</button>
+                        </form>
+                    </figure>
+                }
+            </div>
+            <form method="post" asp-page-handler="AddImage" asp-route-userId="@Model.Editor.UserId" class="stacked-form">
+                <label class="form-label" for="imageInput_ImageUrl">آدرس تصویر جدید</label>
+                <input class="form-control" id="imageInput_ImageUrl" name="imageInput.ImageUrl" placeholder="/images/sample-profiles/name.jpg" />
+                <button type="submit" class="btn btn-outline-primary w-100"><i class="bi bi-image"></i>افزودن تصویر</button>
+            </form>
+        </div>
+
+        <div class="glass-panel p-4 mb-4">
+            <h2 class="section-title">علایق</h2>
+            <div class="event-chip-list mb-3">
+                @foreach (var interest in Model.Editor.Interests)
+                {
+                    <form method="post" asp-page-handler="RemoveInterest" asp-route-userId="@Model.Editor.UserId" class="d-inline">
+                        <input type="hidden" name="interestName" value="@interest" />
+                        <button type="submit" class="event-chip chip-remove">@interest <i class="bi bi-x"></i></button>
+                    </form>
+                }
+            </div>
+            <form method="post" asp-page-handler="AddInterest" asp-route-userId="@Model.Editor.UserId" class="stacked-form">
+                <label class="form-label" for="interestInput_InterestName">افزودن علاقه</label>
+                <input class="form-control" id="interestInput_InterestName" name="interestInput.InterestName" list="interestOptions" placeholder="مثلا کافه" />
+                <datalist id="interestOptions">
+                    @foreach (var interest in Model.Editor.AvailableInterests)
+                    {
+                        <option value="@interest"></option>
+                    }
+                </datalist>
+                <button type="submit" class="btn btn-outline-primary w-100"><i class="bi bi-plus-circle"></i>افزودن علاقه</button>
+            </form>
+        </div>
+
+        <div class="glass-panel p-4">
+            <h2 class="section-title">پیامک فوری</h2>
+            <p class="text-muted small">پیام در صف پیامک ثبت می شود و برای ردگیری عملیاتی در سیستم باقی می ماند.</p>
+            <form method="post" asp-page-handler="SendSms" asp-route-userId="@Model.Editor.UserId" class="stacked-form">
+                <textarea class="form-control" name="smsInput.Message" rows="4" placeholder="متن پیامک فوری"></textarea>
+                <button type="submit" class="btn btn-primary w-100"><i class="bi bi-send"></i>ثبت پیامک فوری</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<partial name="_ValidationScriptsPartial" />

@@ -67,7 +67,18 @@
                                             اقدام ها
                                         </button>
                                         <div class="dropdown-menu dropdown-menu-end action-menu shadow-sm border-0">
-                                            <a asp-page="/Users/Index" asp-route-id="@user.Id" class="dropdown-item">ویرایش کاربر</a>
+                                            <a asp-page="/Users/Index" asp-route-id="@user.Id" class="dropdown-item">
+                                                <i class="bi bi-pencil-square"></i>ویرایش کاربر
+                                            </a>
+                                            @if (user.Role == Randevoo.AdminPanel.Models.Auth.AdminRole.EventPlanner)
+                                            {
+                                                <a asp-page="/Planner/BankAccounts" asp-route-plannerUserId="@user.Id" class="dropdown-item">
+                                                    <i class="bi bi-bank2"></i>حساب های بانکی
+                                                </a>
+                                                <a asp-page="/Planner/Details" asp-route-id="@user.Id" class="dropdown-item">
+                                                    <i class="bi bi-person-vcard"></i>پروفایل برگزارکننده
+                                                </a>
+                                            }
                                         </div>
                                     </div>
                                 </td>

@@ -191,7 +191,7 @@ public sealed class DatabasePlannerProfilesApiClient : IPlannerProfilesApiClient
         => string.IsNullOrWhiteSpace(city) ? "تهران" : city.Trim();
 
     private static string NormalizeTitle(string title)
-        => string.IsNullOrWhiteSpace(title) ? "برگزارکننده رندوو" : title.Trim();
+        => string.IsNullOrWhiteSpace(title) ? "برگزارکننده راندوو" : title.Trim();
 
     private static string NormalizeResume(string resume)
         => string.IsNullOrWhiteSpace(resume)

@@ -21,8 +21,13 @@ public class RandevooDbContext : DbContext
     public DbSet<GenderLookup> Genders => Set<GenderLookup>();
     public DbSet<BalanceAccount> BalanceAccounts => Set<BalanceAccount>();
     public DbSet<BalanceTransaction> BalanceTransactions => Set<BalanceTransaction>();
+    public DbSet<OnlinePayment> OnlinePayments => Set<OnlinePayment>();
     public DbSet<PlannerWithdrawalRequest> PlannerWithdrawalRequests => Set<PlannerWithdrawalRequest>();
+    public DbSet<PlannerBankAccount> PlannerBankAccounts => Set<PlannerBankAccount>();
     public DbSet<DatingEvent> DatingEvents => Set<DatingEvent>();
+    public DbSet<EventModeLookup> EventModes => Set<EventModeLookup>();
+    public DbSet<OnlineEventPlatform> OnlineEventPlatforms => Set<OnlineEventPlatform>();
+    public DbSet<EventFaq> EventFaqs => Set<EventFaq>();
     public DbSet<Tag> Tags => Set<Tag>();
     public DbSet<EventTag> EventTags => Set<EventTag>();
     public DbSet<EventTicket> EventTickets => Set<EventTicket>();
@@ -188,6 +193,38 @@ public class RandevooDbContext : DbContext
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
+        modelBuilder.Entity<EventModeLookup>(b =>
+        {
+            b.ToTable("EventModes");
+            b.HasKey(mode => mode.Id);
+            b.Property(mode => mode.Name).IsRequired().HasMaxLength(80);
+            b.Property(mode => mode.IsOnline).IsRequired();
+            b.Property(mode => mode.IsActive).IsRequired();
+            b.Property(mode => mode.DisplayOrder).IsRequired();
+            b.HasIndex(mode => mode.Name).IsUnique();
+            b.HasQueryFilter(mode => !mode.IsDeleted);
+            b.HasData(
+                new { Id = 1L, Name = "آنلاین", IsOnline = true, IsActive = true, DisplayOrder = 1, CreatedAt = new DateTime(2026, 6, 4, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 2L, Name = "حضوری", IsOnline = false, IsActive = true, DisplayOrder = 2, CreatedAt = new DateTime(2026, 6, 4, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false });
+        });
+
+        modelBuilder.Entity<OnlineEventPlatform>(b =>
+        {
+            b.ToTable("OnlineEventPlatforms");
+            b.HasKey(platform => platform.Id);
+            b.Property(platform => platform.Name).IsRequired().HasMaxLength(80);
+            b.Property(platform => platform.IsActive).IsRequired();
+            b.Property(platform => platform.DisplayOrder).IsRequired();
+            b.HasIndex(platform => platform.Name).IsUnique();
+            b.HasQueryFilter(platform => !platform.IsDeleted);
+            b.HasData(
+                new { Id = 1L, Name = "Google Meet", IsActive = true, DisplayOrder = 1, CreatedAt = new DateTime(2026, 6, 4, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 2L, Name = "Zoom", IsActive = true, DisplayOrder = 2, CreatedAt = new DateTime(2026, 6, 4, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 3L, Name = "اسکای روم", IsActive = true, DisplayOrder = 3, CreatedAt = new DateTime(2026, 6, 4, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 4L, Name = "ادوبی کانکت", IsActive = true, DisplayOrder = 4, CreatedAt = new DateTime(2026, 6, 4, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 5L, Name = "سایر", IsActive = true, DisplayOrder = 5, CreatedAt = new DateTime(2026, 6, 4, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false });
+        });
+
         modelBuilder.Entity<BalanceAccount>(b =>
         {
             b.HasKey(a => a.Id);
@@ -215,6 +252,38 @@ public class RandevooDbContext : DbContext
             b.HasQueryFilter(t => !t.BalanceAccount.IsDeleted);
         });
 
+        modelBuilder.Entity<OnlinePayment>(b =>
+        {
+            b.HasKey(payment => payment.Id);
+            b.Property(payment => payment.Amount).HasPrecision(18, 2).IsRequired();
+            b.Property(payment => payment.GatewayName).IsRequired().HasMaxLength(80);
+            b.Property(payment => payment.TrackingCode).IsRequired().HasMaxLength(120);
+            b.Property(payment => payment.Status).IsRequired();
+            b.Property(payment => payment.FailureReason).HasMaxLength(500);
+            b.HasIndex(payment => payment.UserId);
+            b.HasIndex(payment => payment.DatingEventId);
+            b.HasIndex(payment => payment.EventTicketId);
+            b.HasIndex(payment => payment.BalanceTransactionId);
+            b.HasIndex(payment => payment.TrackingCode).IsUnique();
+            b.HasQueryFilter(payment => !payment.IsDeleted && !payment.User.IsDeleted);
+            b.HasOne(payment => payment.User)
+                .WithMany()
+                .HasForeignKey(payment => payment.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            b.HasOne(payment => payment.DatingEvent)
+                .WithMany()
+                .HasForeignKey(payment => payment.DatingEventId)
+                .OnDelete(DeleteBehavior.Restrict);
+            b.HasOne(payment => payment.EventTicket)
+                .WithMany()
+                .HasForeignKey(payment => payment.EventTicketId)
+                .OnDelete(DeleteBehavior.Restrict);
+            b.HasOne(payment => payment.BalanceTransaction)
+                .WithMany()
+                .HasForeignKey(payment => payment.BalanceTransactionId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
         modelBuilder.Entity<PlannerWithdrawalRequest>(b =>
         {
             b.HasKey(request => request.Id);
@@ -232,6 +301,22 @@ public class RandevooDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(request => request.ReviewedByAdminUserId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<PlannerBankAccount>(b =>
+        {
+            b.HasKey(account => account.Id);
+            b.Property(account => account.CardNumber).IsRequired().HasMaxLength(19);
+            b.Property(account => account.Iban).IsRequired().HasMaxLength(34);
+            b.Property(account => account.BankName).IsRequired().HasMaxLength(80);
+            b.Property(account => account.IsActive).IsRequired();
+            b.HasIndex(account => account.UserId);
+            b.HasIndex(account => account.Iban).IsUnique();
+            b.HasQueryFilter(account => !account.IsDeleted && !account.User.IsDeleted);
+            b.HasOne(account => account.User)
+                .WithMany()
+                .HasForeignKey(account => account.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         // UserProfile
@@ -330,6 +415,11 @@ public class RandevooDbContext : DbContext
             b.Property(e => e.Title).IsRequired().HasMaxLength(150);
             b.Property(e => e.Address).IsRequired().HasMaxLength(300);
             b.HasIndex(e => e.EventTypeId);
+            b.Property(e => e.EventModeId).HasDefaultValue(2L).IsRequired();
+            b.Property(e => e.OnlineJoinUrl).HasMaxLength(500);
+            b.Property(e => e.OnlineAccessInstructions).HasMaxLength(1200);
+            b.HasIndex(e => e.EventModeId);
+            b.HasIndex(e => e.OnlineEventPlatformId);
             b.HasIndex(e => e.CountryId);
             b.HasIndex(e => e.CityId);
             b.HasIndex(e => e.MinimumEducationLevelId);
@@ -349,6 +439,14 @@ public class RandevooDbContext : DbContext
             b.HasOne(e => e.EventType)
                 .WithMany()
                 .HasForeignKey(e => e.EventTypeId)
+                .OnDelete(DeleteBehavior.Restrict);
+            b.HasOne(e => e.EventMode)
+                .WithMany()
+                .HasForeignKey(e => e.EventModeId)
+                .OnDelete(DeleteBehavior.Restrict);
+            b.HasOne(e => e.OnlineEventPlatform)
+                .WithMany()
+                .HasForeignKey(e => e.OnlineEventPlatformId)
                 .OnDelete(DeleteBehavior.Restrict);
             b.HasOne(e => e.Country)
                 .WithMany()
@@ -394,6 +492,22 @@ public class RandevooDbContext : DbContext
                 .HasForeignKey(eventTag => eventTag.DatingEventId)
                 .OnDelete(DeleteBehavior.Cascade);
             b.Navigation(e => e.EventTags).UsePropertyAccessMode(PropertyAccessMode.Field);
+            b.HasMany(e => e.Faqs)
+                .WithOne(faq => faq.DatingEvent)
+                .HasForeignKey(faq => faq.DatingEventId)
+                .OnDelete(DeleteBehavior.Cascade);
+            b.Navigation(e => e.Faqs).UsePropertyAccessMode(PropertyAccessMode.Field);
+        });
+
+        modelBuilder.Entity<EventFaq>(b =>
+        {
+            b.ToTable("EventFaqs");
+            b.HasKey(faq => faq.Id);
+            b.Property(faq => faq.Question).IsRequired().HasMaxLength(250);
+            b.Property(faq => faq.Answer).IsRequired().HasMaxLength(1200);
+            b.Property(faq => faq.DisplayOrder).IsRequired();
+            b.HasIndex(faq => new { faq.DatingEventId, faq.DisplayOrder }).IsUnique();
+            b.HasQueryFilter(faq => !faq.DatingEvent.IsDeleted);
         });
 
         modelBuilder.Entity<Tag>(b =>

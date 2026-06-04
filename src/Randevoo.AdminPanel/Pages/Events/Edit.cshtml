@@ -42,6 +42,45 @@
                     <div class="form-section-head">
                         <div>
                             <div class="heading-with-help">
+                                <h2 class="section-title mb-1">نحوه برگزاری</h2>
+                                <button type="button"
+                                        class="help-icon-button"
+                                        data-bs-toggle="tooltip"
+                                        data-bs-placement="bottom"
+                                        data-bs-custom-class="rv-tooltip"
+                                        data-bs-title="اول مشخص کنید رویداد آنلاین است یا حضوری؛ فرم محل برگزاری بر اساس همین انتخاب نمایش داده می شود."
+                                        aria-label="راهنمای نحوه برگزاری">
+                                    <i class="bi bi-info-circle"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="Input.EventModeId" class="form-label">نحوه برگزاری</label>
+                    <select asp-for="Input.EventModeId" class="form-select" asp-items="Model.EventModeOptions" data-event-mode-selector="true"></select>
+                    <span asp-validation-for="Input.EventModeId" class="text-danger small"></span>
+                </div>
+                <div class="col-md-4" data-online-section="true">
+                    <label asp-for="Input.OnlineEventPlatformId" class="form-label">پلتفرم آنلاین</label>
+                    <select asp-for="Input.OnlineEventPlatformId" class="form-select" asp-items="Model.OnlinePlatformOptions">
+                        <option value="">انتخاب پلتفرم</option>
+                    </select>
+                    <span asp-validation-for="Input.OnlineEventPlatformId" class="text-danger small"></span>
+                </div>
+                <div class="col-md-8" data-online-section="true">
+                    <label asp-for="Input.OnlineJoinUrl" class="form-label">لینک ورود</label>
+                    <input asp-for="Input.OnlineJoinUrl" class="form-control" dir="ltr" placeholder="https://meet.google.com/..." />
+                    <span asp-validation-for="Input.OnlineJoinUrl" class="text-danger small"></span>
+                </div>
+                <div class="col-12" data-online-section="true">
+                    <label asp-for="Input.OnlineAccessInstructions" class="form-label">راهنمای ورود آنلاین</label>
+                    <textarea asp-for="Input.OnlineAccessInstructions" class="form-control" rows="3" placeholder="مثلاً لینک ۳۰ دقیقه قبل از شروع فعال می شود یا ورود با نام واقعی انجام شود."></textarea>
+                </div>
+                <div class="col-12">
+                    <div class="form-section-head">
+                        <div>
+                            <div class="heading-with-help">
                                 <h2 class="section-title mb-1">مشخصات اصلی رویداد</h2>
                                 <button type="button"
                                         class="help-icon-button"
@@ -61,10 +100,6 @@
                     <input asp-for="Input.Title" class="form-control" placeholder="مثلاً شب اجتماعی تهران" />
                     <span asp-validation-for="Input.Title" class="text-danger small"></span>
                 </div>
-                <div class="col-md-6">
-                    <label asp-for="Input.VenueName" class="form-label">نام محل برگزاری</label>
-                    <input asp-for="Input.VenueName" class="form-control" placeholder="مثلاً سالن شمال" />
-                </div>
                 @if (Model.IsAdmin)
                 {
                     <div class="col-md-6">
@@ -76,34 +111,9 @@
                     </div>
                 }
                 <div class="col-md-6">
-                    <label asp-for="Input.Country" class="form-label">کشور</label>
-                    <select asp-for="Input.Country" class="form-select" asp-items="Model.CountryOptions" data-country-cascade="true"></select>
-                    <span asp-validation-for="Input.Country" class="text-danger small"></span>
-                </div>
-                <div class="col-md-6">
-                    <label asp-for="Input.City" class="form-label">شهر</label>
-                    <select asp-for="Input.City" class="form-select" asp-items="Model.CityOptions" data-city-cascade="true"></select>
-                    <span asp-validation-for="Input.City" class="text-danger small"></span>
-                </div>
-                <div class="col-md-6">
-                    <label asp-for="Input.Region" class="form-label">منطقه</label>
-                    <input asp-for="Input.Region" class="form-control" />
-                </div>
-                <div class="col-md-6">
-                    <label asp-for="Input.Address" class="form-label form-label-with-help">
-                        <span>آدرس</span>
-                        <button type="button"
-                                class="help-icon-button"
-                                data-bs-toggle="tooltip"
-                                data-bs-placement="bottom"
-                                data-bs-custom-class="rv-tooltip"
-                                data-bs-title="آدرس کامل را برای کاهش سوال های پشتیبانی و شرکت کننده ها وارد کنید."
-                                aria-label="راهنمای آدرس">
-                            <i class="bi bi-info-circle"></i>
-                        </button>
-                    </label>
-                    <input asp-for="Input.Address" class="form-control" placeholder="آدرس کامل برای نمایش در پروفایل رویداد" />
-                    <span asp-validation-for="Input.Address" class="text-danger small"></span>
+                    <label asp-for="Input.EventTypeId" class="form-label">نوع رویداد</label>
+                    <select asp-for="Input.EventTypeId" class="form-select" asp-items="Model.EventTypeOptions"></select>
+                    <span asp-validation-for="Input.EventTypeId" class="text-danger small"></span>
                 </div>
                 <div class="col-12 mt-2">
                     <div class="form-section-head">
@@ -132,11 +142,6 @@
                     <label asp-for="Input.AgeRangeForFemale" class="form-label">بازه سنی بانوان</label>
                     <select asp-for="Input.AgeRangeForFemale" class="form-select" asp-items="Model.AgeRangeOptions"></select>
                     <span asp-validation-for="Input.AgeRangeForFemale" class="text-danger small"></span>
-                </div>
-                <div class="col-md-4">
-                    <label asp-for="Input.EventTypeId" class="form-label">نوع رویداد</label>
-                    <select asp-for="Input.EventTypeId" class="form-select" asp-items="Model.EventTypeOptions"></select>
-                    <span asp-validation-for="Input.EventTypeId" class="text-danger small"></span>
                 </div>
                 <div class="col-md-4">
                     <label asp-for="Input.MinimumEducationLevelId" class="form-label">حداقل سطح تحصیل برای خرید بلیت</label>
@@ -190,7 +195,7 @@
                     <label class="form-label">تاریخ شروع</label>
                     @if (Model.IsRtl)
                     {
-                        <input asp-for="StartDateText" class="form-control jalali-date-picker" />
+                        <input asp-for="StartDateText" class="form-control jalali-date-picker" placeholder="۱۴۰۵/۰۳/۱۵" autocomplete="off" />
                     }
                     else
                     {
@@ -207,7 +212,7 @@
                     <label class="form-label">تاریخ پایان</label>
                     @if (Model.IsRtl)
                     {
-                        <input asp-for="EndDateText" class="form-control jalali-date-picker" />
+                        <input asp-for="EndDateText" class="form-control jalali-date-picker" placeholder="۱۴۰۵/۰۳/۱۵" autocomplete="off" />
                     }
                     else
                     {
@@ -255,26 +260,60 @@
                     <div class="form-section-head">
                         <div>
                             <div class="heading-with-help">
-                                <h2 class="section-title mb-1">محل دقیق رویداد</h2>
+                                <h2 class="section-title mb-1">محل و آدرس رویداد</h2>
                                 <button type="button"
                                         class="help-icon-button"
                                         data-bs-toggle="tooltip"
                                         data-bs-placement="bottom"
                                         data-bs-custom-class="rv-tooltip"
-                                        data-bs-title="فقط با پین روی نقشه محل دقیق را مشخص کنید. مختصات در پشت صحنه ذخیره می شوند و به کاربر نمایش داده نمی شوند."
-                                        aria-label="راهنمای محل دقیق">
+                                        data-bs-title="برای رویداد حضوری، کشور، شهر، آدرس و پین نقشه را در انتهای فرم تکمیل کنید."
+                                        aria-label="راهنمای محل و آدرس">
                                     <i class="bi bi-info-circle"></i>
                                 </button>
                             </div>
                         </div>
                     </div>
                 </div>
-                <div class="col-12">
+                <div class="col-md-6" data-location-section="true">
+                    <label asp-for="Input.VenueName" class="form-label">نام محل برگزاری</label>
+                    <input asp-for="Input.VenueName" class="form-control" placeholder="مثلاً سالن شمال" />
+                </div>
+                <div class="col-md-6" data-location-section="true">
+                    <label asp-for="Input.Country" class="form-label">کشور</label>
+                    <select asp-for="Input.Country" class="form-select" asp-items="Model.CountryOptions" data-country-cascade="true"></select>
+                    <span asp-validation-for="Input.Country" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6" data-location-section="true">
+                    <label asp-for="Input.City" class="form-label">شهر</label>
+                    <select asp-for="Input.City" class="form-select" asp-items="Model.CityOptions" data-city-cascade="true"></select>
+                    <span asp-validation-for="Input.City" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6" data-location-section="true">
+                    <label asp-for="Input.Region" class="form-label">منطقه</label>
+                    <input asp-for="Input.Region" class="form-control" />
+                </div>
+                <div class="col-12" data-location-section="true">
+                    <label asp-for="Input.Address" class="form-label form-label-with-help">
+                        <span>آدرس</span>
+                        <button type="button"
+                                class="help-icon-button"
+                                data-bs-toggle="tooltip"
+                                data-bs-placement="bottom"
+                                data-bs-custom-class="rv-tooltip"
+                                data-bs-title="آدرس کامل را برای کاهش سوال های پشتیبانی و شرکت کننده ها وارد کنید."
+                                aria-label="راهنمای آدرس">
+                            <i class="bi bi-info-circle"></i>
+                        </button>
+                    </label>
+                    <input asp-for="Input.Address" class="form-control" placeholder="آدرس کامل برای نمایش در پروفایل رویداد" />
+                    <span asp-validation-for="Input.Address" class="text-danger small"></span>
+                </div>
+                <div class="col-12" data-location-section="true">
                     <label class="form-label">محل دقیق روی نقشه</label>
                     <div id="eventMap" class="event-map"></div>
                     <div class="map-hint">شهر را انتخاب کنید، سپس نشانگر را روی محل دقیق رویداد قرار دهید. با جابه جایی پین، محل نهایی ثبت می شود.</div>
                 </div>
-                <div class="col-12">
+                <div class="col-12" data-location-section="true">
                     <div class="map-selection-banner">
                         <i class="bi bi-geo-alt-fill"></i>
                         <span>محل دقیق رویداد از روی پین نقشه ثبت می شود.</span>
@@ -449,6 +488,8 @@
             isRtl: @(Model.IsRtl.ToString().ToLowerInvariant()),
             countrySelector: '#Input_Country',
             citySelector: '#Input_City',
+            eventModeSelector: '#Input_EventModeId',
+            onlineModeId: '1',
             cityOptions: @Html.Raw(Model.CityOptionsJson),
             latitudeSelector: '#Input_Latitude',
             longitudeSelector: '#Input_Longitude'

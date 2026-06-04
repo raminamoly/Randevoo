@@ -57,6 +57,7 @@
                                 <div class="dropdown-menu dropdown-menu-end action-menu shadow-sm border-0">
                                     <a asp-page="/Events/Details" asp-route-id="@item.Id" class="dropdown-item">پروفایل رویداد</a>
                                     <a asp-page="/Events/Edit" asp-route-id="@item.Id" class="dropdown-item">ویرایش رویداد</a>
+                                    <a asp-page="/Events/Faqs" asp-route-eventId="@item.Id" class="dropdown-item">سوالات متداول</a>
                                     <a asp-page="/Events/Buyers" asp-route-eventId="@item.Id" class="dropdown-item">خریداران بلیت</a>
                                     <a asp-page="/Events/Sms" asp-route-eventId="@item.Id" class="dropdown-item">پیام به شرکت کنندگان</a>
                                     <a asp-page="/Public/Event" asp-route-id="@item.Id" class="dropdown-item">نمایش عمومی</a>

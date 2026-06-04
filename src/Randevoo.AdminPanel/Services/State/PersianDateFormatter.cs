@@ -4,6 +4,46 @@ namespace Randevoo.AdminPanel.Services.State;
 
 public static class PersianDateFormatter
 {
+    public static bool TryParseDate(string? text, bool useShamsi, out DateTimeOffset date)
+    {
+        date = default;
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return false;
+        }
+
+        var normalizedText = NormalizeDigits(text).Trim();
+        if (!useShamsi)
+        {
+            return DateTimeOffset.TryParse(
+                normalizedText,
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.AssumeLocal,
+                out date);
+        }
+
+        var dateBits = normalizedText.Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (dateBits.Length != 3
+            || !int.TryParse(dateBits[0], NumberStyles.None, CultureInfo.InvariantCulture, out var year)
+            || !int.TryParse(dateBits[1], NumberStyles.None, CultureInfo.InvariantCulture, out var month)
+            || !int.TryParse(dateBits[2], NumberStyles.None, CultureInfo.InvariantCulture, out var day))
+        {
+            return false;
+        }
+
+        try
+        {
+            var calendar = new PersianCalendar();
+            var gregorian = calendar.ToDateTime(year, month, day, 0, 0, 0, 0);
+            date = new DateTimeOffset(gregorian, TimeSpan.FromHours(3.5));
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
     public static string FormatDate(DateTimeOffset? utcDateTime, bool useShamsi)
     {
         if (utcDateTime is null)

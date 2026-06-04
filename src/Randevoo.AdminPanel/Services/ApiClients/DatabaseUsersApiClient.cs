@@ -106,7 +106,7 @@ public sealed class DatabaseUsersApiClient : IUsersApiClient
 
         _db.EventPlannerProfiles.Add(new EventPlannerProfile(
             user,
-            "برگزارکننده رندوو",
+            "برگزارکننده راندوو",
             "/images/logo.png",
             "این پروفایل توسط مدیر ساخته شده و جزئیات کامل تر آن بعداً تکمیل می شود."));
     }

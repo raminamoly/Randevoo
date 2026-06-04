@@ -40,7 +40,7 @@ $(function () {
             menu.style.right = "auto";
             menu.style.bottom = "auto";
             menu.style.transform = "none";
-            menu.style.zIndex = "3000";
+            menu.style.zIndex = "3200";
         };
 
         const restoreFloatingActionMenu = function (toggle, menu) {
@@ -434,6 +434,32 @@ $(function () {
         const longitudeDisplay = config.longitudeDisplaySelector ? document.querySelector(config.longitudeDisplaySelector) : null;
         const citySelector = document.querySelector(config.citySelector);
         const mapElement = document.getElementById("eventMap");
+        const eventModeSelector = config.eventModeSelector ? document.querySelector(config.eventModeSelector) : null;
+        const onlineModeId = config.onlineModeId || "1";
+        const locationSections = document.querySelectorAll("[data-location-section='true']");
+        const onlineSections = document.querySelectorAll("[data-online-section='true']");
+        let eventMap = null;
+
+        const syncDeliverySections = function () {
+            const isOnline = eventModeSelector && eventModeSelector.value === onlineModeId;
+            locationSections.forEach(function (section) {
+                section.classList.toggle("d-none", isOnline);
+            });
+            onlineSections.forEach(function (section) {
+                section.classList.toggle("d-none", !isOnline);
+            });
+
+            if (!isOnline && eventMap) {
+                window.setTimeout(function () {
+                    eventMap.invalidateSize();
+                }, 50);
+            }
+        };
+
+        if (eventModeSelector) {
+            eventModeSelector.addEventListener("change", syncDeliverySections);
+            syncDeliverySections();
+        }
 
         if (mapElement && latitudeInput && longitudeInput && citySelector) {
             const cityOptions = Array.isArray(config.cityOptions) ? config.cityOptions : [];
@@ -488,6 +514,7 @@ $(function () {
             const startLat = parseFloat(latitudeInput.value || "35.7219");
             const startLng = parseFloat(longitudeInput.value || "51.3347");
             const map = L.map(mapElement, { scrollWheelZoom: false }).setView([startLat, startLng], 13);
+            eventMap = map;
 
             L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
                 maxZoom: 19,

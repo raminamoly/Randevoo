@@ -1,0 +1,56 @@
+@page "{eventId:long}"
+@model Randevoo.AdminPanel.Pages.Events.ConversationsModel
+@{
+    ViewData["Title"] = "مانیتور گفتگوهای رویداد";
+}
+
+<section class="page-header">
+    <div>
+        <h1>مانیتور گفتگوهای رویداد</h1>
+        <p>@Model.EventTitle</p>
+    </div>
+    <a asp-page="/Events/Index" class="btn btn-outline-secondary"><i class="bi bi-arrow-right"></i>بازگشت به رویدادها</a>
+</section>
+
+<div class="glass-panel p-4">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+        <div>
+            <h2 class="section-title mb-1">گفتگوها</h2>
+            <p class="text-muted small mb-0">این صفحه فقط برای مدیر است و برای بررسی وضعیت گفتگوها استفاده می شود.</p>
+        </div>
+        <span class="status-badge status-draft">@DisplayFormatter.Count(Model.Conversations.Count) گفتگو</span>
+    </div>
+
+    <div class="conversation-monitor-list">
+        @foreach (var conversation in Model.Conversations)
+        {
+            <article class="conversation-monitor-card">
+                <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+                    <div>
+                        <h3>@conversation.StarterName و @conversation.ParticipantName</h3>
+                        <p class="text-muted small mb-0">@DisplayFormatter.Count(conversation.MessageCount) پیام، شروع در @PersianDateFormatter.Format(conversation.CreatedAtUtc, true)</p>
+                    </div>
+                    <span class="status-badge @(conversation.IsDisabled ? "status-rejected" : "status-approved")">@(conversation.IsDisabled ? "غیرفعال" : "فعال")</span>
+                </div>
+                @if (!string.IsNullOrWhiteSpace(conversation.DisabledReason))
+                {
+                    <div class="alert alert-warning border-0 py-2">@conversation.DisabledReason</div>
+                }
+                <div class="conversation-message-list">
+                    @foreach (var message in conversation.Messages.TakeLast(6))
+                    {
+                        <div class="conversation-message">
+                            <strong>@message.SenderName</strong>
+                            <span>@message.Body</span>
+                            <small>@PersianDateFormatter.Format(message.SentAtUtc, true)</small>
+                        </div>
+                    }
+                </div>
+            </article>
+        }
+    </div>
+    @if (Model.Conversations.Count == 0)
+    {
+        <div class="empty-state">برای این رویداد گفتگویی ثبت نشده است.</div>
+    }
+</div>

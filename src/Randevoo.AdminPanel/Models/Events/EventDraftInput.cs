@@ -25,6 +25,20 @@ public sealed class EventDraftInput
 
     public string EventTypeName { get; set; } = string.Empty;
 
+    public long EventModeId { get; set; } = 2L;
+
+    public string EventModeName { get; set; } = "حضوری";
+
+    public bool IsOnline => EventModeId == 1L;
+
+    public long? OnlineEventPlatformId { get; set; }
+
+    public string? OnlinePlatformName { get; set; }
+
+    public string? OnlineJoinUrl { get; set; }
+
+    public string? OnlineAccessInstructions { get; set; }
+
     public string AgeRangeForMale { get; set; } = "25-35";
 
     public string AgeRangeForFemale { get; set; } = "25-35";
@@ -57,6 +71,13 @@ public sealed class EventDraftInput
     public string? Image2 { get; set; }
 
     public string? Image3 { get; set; }
+
+    public List<EventFaqInput> Faqs { get; set; } = new()
+    {
+        new EventFaqInput(),
+        new EventFaqInput(),
+        new EventFaqInput()
+    };
 
     public DateTimeOffset StartAtUtc { get; set; } = DateTimeOffset.UtcNow.AddDays(14);
 

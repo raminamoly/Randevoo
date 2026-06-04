@@ -1,0 +1,114 @@
+@page "{plannerUserId:long?}"
+@model Randevoo.AdminPanel.Pages.Planner.BankAccountsModel
+@{
+    ViewData["Title"] = "حساب های بانکی برگزارکننده";
+}
+
+<section class="page-header">
+    <div>
+        <h1>حساب های بانکی برگزارکننده</h1>
+        <p>شماره کارت و شبا فقط برای مدیر و خود برگزارکننده قابل مشاهده است.</p>
+    </div>
+    <a asp-page="/Planner/Details" asp-route-id="@Model.PlannerUserId" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-right"></i>بازگشت به پروفایل
+    </a>
+</section>
+
+@if (!string.IsNullOrWhiteSpace(Model.StatusMessage))
+{
+    <div class="alert alert-success border-0 mb-4">@Model.StatusMessage</div>
+}
+
+<div class="row g-4">
+    <div class="col-xl-5">
+        <form method="post" asp-page-handler="Save" asp-route-plannerUserId="@Model.PlannerUserId" class="glass-panel p-4 stacked-form">
+            <input type="hidden" asp-for="Input.Id" />
+            <h2 class="section-title">@(Model.Input.Id is null ? "ثبت حساب بانکی" : "ویرایش حساب بانکی")</h2>
+            <div>
+                <label asp-for="Input.CardNumber" class="form-label">شماره کارت</label>
+                <input asp-for="Input.CardNumber" class="form-control" dir="ltr" placeholder="603799..." />
+                <span asp-validation-for="Input.CardNumber" class="text-danger small"></span>
+            </div>
+            <div>
+                <label asp-for="Input.Iban" class="form-label">شماره شبا</label>
+                <input asp-for="Input.Iban" class="form-control" dir="ltr" placeholder="IR..." />
+                <span asp-validation-for="Input.Iban" class="text-danger small"></span>
+            </div>
+            <div>
+                <label asp-for="Input.BankName" class="form-label">بانک</label>
+                <input asp-for="Input.BankName" class="form-control" placeholder="نام بانک" />
+                <span asp-validation-for="Input.BankName" class="text-danger small"></span>
+            </div>
+            <div class="form-check form-switch">
+                <input asp-for="Input.IsActive" class="form-check-input" />
+                <label asp-for="Input.IsActive" class="form-check-label">فعال</label>
+            </div>
+            <button type="submit" class="btn btn-primary"><i class="bi bi-save"></i>@(Model.Input.Id is null ? "ذخیره حساب" : "ذخیره ویرایش")</button>
+            @if (Model.Input.Id is not null)
+            {
+                <a asp-page="/Planner/BankAccounts" asp-route-plannerUserId="@Model.PlannerUserId" class="btn btn-outline-secondary">
+                    <i class="bi bi-plus-circle"></i>ثبت حساب جدید
+                </a>
+            }
+        </form>
+    </div>
+
+    <div class="col-xl-7">
+        <div class="glass-panel p-4">
+            <h2 class="section-title">حساب های ثبت شده</h2>
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead>
+                        <tr>
+                            <th>بانک</th>
+                            <th>شماره کارت</th>
+                            <th>شماره شبا</th>
+                            <th>وضعیت</th>
+                            <th>اقدام ها</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var account in Model.Accounts)
+                        {
+                            <tr>
+                                <td>@account.BankName</td>
+                                <td dir="ltr">@account.CardNumber</td>
+                                <td dir="ltr">@account.Iban</td>
+                                <td><span class="status-badge @(account.IsActive ? "status-approved" : "status-closed")">@(account.IsActive ? "فعال" : "غیرفعال")</span></td>
+                                <td class="table-action-cell">
+                                    <div class="dropdown">
+                                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle table-action-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                            اقدام ها
+                                        </button>
+                                        <div class="dropdown-menu dropdown-menu-end action-menu shadow-sm border-0">
+                                            <a asp-page="/Planner/BankAccounts"
+                                               asp-route-plannerUserId="@Model.PlannerUserId"
+                                               asp-route-EditAccountId="@account.Id"
+                                               class="dropdown-item">
+                                                <i class="bi bi-pencil-square"></i>ویرایش
+                                            </a>
+                                            <div class="dropdown-divider"></div>
+                                            <form method="post" asp-page-handler="Toggle" asp-route-plannerUserId="@Model.PlannerUserId">
+                                                <input type="hidden" name="bankAccountId" value="@account.Id" />
+                                                <input type="hidden" name="isActive" value="@(!account.IsActive)" />
+                                                <button type="submit" class="dropdown-item">
+                                                    <i class="bi @(account.IsActive ? "bi-pause-circle" : "bi-play-circle")"></i>@(account.IsActive ? "غیرفعال کردن" : "فعال کردن")
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            @if (Model.Accounts.Count == 0)
+            {
+                <div class="empty-state">هنوز حساب بانکی ثبت نشده است.</div>
+            }
+        </div>
+    </div>
+</div>
+
+<partial name="_ValidationScriptsPartial" />
