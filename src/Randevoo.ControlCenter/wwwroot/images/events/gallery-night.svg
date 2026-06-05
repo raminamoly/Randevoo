@@ -1,7 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360" role="img" aria-label="Gallery night">
-  <rect width="640" height="360" fill="#fffaf0"/>
-  <rect x="84" y="62" width="156" height="206" fill="#1f4e79"/>
-  <rect x="264" y="62" width="156" height="206" fill="#f2b705"/>
-  <rect x="444" y="62" width="96" height="206" fill="#0f172a"/>
-  <text x="84" y="316" fill="#162033" font-family="Arial" font-size="24" font-weight="700">Gallery Evening</text>
-</svg>

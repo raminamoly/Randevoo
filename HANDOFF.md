@@ -20,11 +20,12 @@ This workspace contains the admin-panel/database feature batch for:
 - Event education restrictions linked to user profile education.
 - Country/city, gender, and education lookup tables linked to profiles/events.
 - Event tag normalization with `Tags` and `EventTags`.
-- Iranian Rial display across admin/control-center pricing and finance UI.
+- Iranian Rial display across admin-panel pricing and finance UI.
 - `/Events/Buyers/{eventId}` with filterable buyer grid, emergency refund for admins, planner-safe mobile privacy, and profile links.
 - Reusable `/UserProfiles/Details/{userId}` page with profile gallery, facts, interests, tickets, and admin-only mobile visibility.
 - `UserProfileImages` aggregate/table with max 3 profile images.
 - Sample profiles for `رامین`, `آرین`, `بهاره`, `علی رضا`, `شایان`, and `یاسمن` using images from `wwwroot/images/sample-profiles`.
+- Removed the retired `Randevoo.ControlCenter` Blazor project from `Randevoo.sln` and deleted `src/Randevoo.ControlCenter`; admin operations now live in `Randevoo.AdminPanel`.
 
 ## Verification
 
@@ -65,6 +66,7 @@ Use `curl.exe --noproxy "*"` for localhost HTTP smoke tests.
 ## Important Implementation Notes
 
 - `src/Randevoo.AdminPanel/appsettings.Development.json` now contains the local Development SQL Server connection and enables sample data.
+- `src/Randevoo.ControlCenter` has been removed from the repository and solution; do not target it in follow-up work.
 - `Location_Country`, `Location_City`, and `EventTagsSerialized` were removed from mapped usage in favor of lookup IDs and normalized tags.
 - DTO mappings include lookup-ID fallbacks so API responses remain stable even when lookup navigation properties are not explicitly included.
 - The published `artifacts/` folder and local `*.log` files are ignored and should not be committed.

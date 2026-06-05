@@ -1,8 +1,0 @@
-@inject LanguageState Language
-
-<span title="@Value.ToString("u")">@PersianDateFormatter.Format(Value, Language.IsRtl)</span>
-
-@code {
-    [Parameter]
-    public DateTimeOffset Value { get; set; }
-}

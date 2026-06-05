@@ -1,7 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360" role="img" aria-label="Tehran rooftop event">
-  <rect width="640" height="360" fill="#0f172a"/>
-  <rect y="242" width="640" height="118" fill="#f2b705"/>
-  <circle cx="520" cy="88" r="46" fill="#fff2b8"/>
-  <path d="M84 242h52v-64h42v64h42v-96h58v96h44v-52h54v52h54v-82h62v82h56" fill="#1f4e79"/>
-  <text x="42" y="64" fill="#fff" font-family="Arial" font-size="28" font-weight="700">Tehran Event</text>
-</svg>
