@@ -1,0 +1,95 @@
+@page "/Events/Conversations/{eventId:long}/{conversationId:long}"
+@model Randevoo.AdminPanel.Pages.Events.ConversationModel
+@{
+    ViewData["Title"] = "جزئیات گفتگوی رویداد";
+}
+
+<section class="page-header">
+    <div>
+        <h1>جزئیات گفتگوی رویداد</h1>
+        <p>@Model.EventTitle</p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <a asp-page="/Events/Conversations" asp-route-eventId="@Model.EventId" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-right"></i>
+            بازگشت به گفتگوها
+        </a>
+        <a asp-page="/Events/Details" asp-route-id="@Model.EventId" class="btn btn-outline-primary">
+            <i class="bi bi-calendar-event"></i>
+            پروفایل رویداد
+        </a>
+    </div>
+</section>
+
+<div class="conversation-thread-layout">
+    <aside class="glass-panel p-4 conversation-thread-summary">
+        <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+            <div>
+                <h2 class="section-title mb-1">@Model.Conversation.StarterName و @Model.Conversation.ParticipantName</h2>
+                <div class="help-tip mb-0">شناسه گفتگو: <span dir="ltr">@Model.Conversation.Id</span></div>
+            </div>
+            <span class="status-badge @(Model.Conversation.IsDisabled ? "status-rejected" : "status-approved")">@(Model.Conversation.IsDisabled ? "غیرفعال" : "فعال")</span>
+        </div>
+
+        <div class="conversation-summary-grid">
+            <div class="detail-block">
+                <span>تعداد پیام</span>
+                <strong>@DisplayFormatter.Count(Model.Conversation.Messages.Count)</strong>
+            </div>
+            <div class="detail-block">
+                <span>شروع گفتگو</span>
+                <strong>@PersianDateFormatter.Format(Model.Conversation.CreatedAtUtc, true)</strong>
+            </div>
+            <div class="detail-block">
+                <span>آخرین فعالیت</span>
+                <strong>@PersianDateFormatter.Format(Model.Conversation.UpdatedAtUtc, true)</strong>
+            </div>
+            <div class="detail-block">
+                <span>بلاک فعال</span>
+                <strong>@DisplayFormatter.Count(Model.Conversation.ActiveBlockCount)</strong>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(Model.Conversation.DisabledReason))
+        {
+            <div class="alert alert-warning border-0 mt-3 mb-0">
+                <div class="fw-semibold mb-1">علت غیرفعال سازی</div>
+                <div>@Model.Conversation.DisabledReason</div>
+                @if (Model.Conversation.DisabledAtUtc.HasValue)
+                {
+                    <div class="small text-muted mt-2">@PersianDateFormatter.Format(Model.Conversation.DisabledAtUtc.Value, true)</div>
+                }
+            </div>
+        }
+    </aside>
+
+    <section class="glass-panel p-4 conversation-thread-panel">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+            <div>
+                <h2 class="section-title mb-1">پیام های گفتگو</h2>
+                <div class="help-tip mb-0">نمایش فقط برای مانیتورینگ مدیریتی است.</div>
+            </div>
+            <span class="status-badge status-draft">@DisplayFormatter.Count(Model.Conversation.Messages.Count) پیام</span>
+        </div>
+
+        @if (Model.Conversation.Messages.Count == 0)
+        {
+            <div class="empty-state">هنوز پیامی در این گفتگو ثبت نشده است.</div>
+        }
+        else
+        {
+            <div class="conversation-thread-list">
+                @foreach (var message in Model.Conversation.Messages)
+                {
+                    <article class="conversation-bubble @(message.IsStarterSender ? "is-starter" : "is-participant")">
+                        <div class="conversation-bubble-meta">
+                            <strong>@message.SenderName</strong>
+                            <span>@PersianDateFormatter.Format(message.SentAtUtc, true)</span>
+                        </div>
+                        <p>@message.Body</p>
+                    </article>
+                }
+            </div>
+        }
+    </section>
+</div>

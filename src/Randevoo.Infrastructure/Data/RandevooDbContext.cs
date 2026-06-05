@@ -28,6 +28,7 @@ public class RandevooDbContext : DbContext
     public DbSet<EventModeLookup> EventModes => Set<EventModeLookup>();
     public DbSet<OnlineEventPlatform> OnlineEventPlatforms => Set<OnlineEventPlatform>();
     public DbSet<EventFaq> EventFaqs => Set<EventFaq>();
+    public DbSet<EventDiscountCode> EventDiscountCodes => Set<EventDiscountCode>();
     public DbSet<Tag> Tags => Set<Tag>();
     public DbSet<EventTag> EventTags => Set<EventTag>();
     public DbSet<EventTicket> EventTickets => Set<EventTicket>();
@@ -83,15 +84,27 @@ public class RandevooDbContext : DbContext
         modelBuilder.Entity<AuditLog>(b =>
         {
             b.HasKey(log => log.Id);
+            b.Property(log => log.ActorDisplayName).HasMaxLength(200);
+            b.Property(log => log.ActorRole).HasMaxLength(80);
             b.Property(log => log.Action).IsRequired().HasMaxLength(120);
+            b.Property(log => log.LogType).IsRequired().HasMaxLength(80);
+            b.Property(log => log.Module).HasMaxLength(120);
+            b.Property(log => log.Description).HasMaxLength(1000);
             b.Property(log => log.TargetType).IsRequired().HasMaxLength(120);
             b.Property(log => log.TargetId).IsRequired().HasMaxLength(120);
             b.Property(log => log.BeforeJson).HasMaxLength(8000);
             b.Property(log => log.AfterJson).HasMaxLength(8000);
             b.Property(log => log.Reason).HasMaxLength(1000);
             b.Property(log => log.IpAddress).HasMaxLength(64);
+            b.Property(log => log.RequestPath).HasMaxLength(500);
+            b.Property(log => log.UserAgent).HasMaxLength(1000);
+            b.Property(log => log.Status).IsRequired().HasMaxLength(40);
+            b.Property(log => log.MetadataJson).HasMaxLength(8000);
             b.Property(log => log.CorrelationId).HasMaxLength(100);
             b.HasIndex(log => log.ActorUserId);
+            b.HasIndex(log => new { log.LogType, log.CreatedAt });
+            b.HasIndex(log => new { log.Module, log.CreatedAt });
+            b.HasIndex(log => new { log.Status, log.CreatedAt });
             b.HasIndex(log => new { log.TargetType, log.TargetId });
             b.HasIndex(log => log.CreatedAt);
         });
@@ -424,7 +437,10 @@ public class RandevooDbContext : DbContext
             b.HasIndex(e => e.CityId);
             b.HasIndex(e => e.MinimumEducationLevelId);
             b.Property(e => e.EventPlannerCommissionPercent).HasPrecision(5, 2).IsRequired();
-            b.Property(e => e.TicketPrice).HasPrecision(18, 2).IsRequired();
+            b.Property(e => e.NumberOfLikesAllowed).HasColumnName("NumberOfLikesAllowed").IsRequired();
+            b.Property(e => e.ReviewStatus).IsRequired();
+            b.Property(e => e.MaleTicketPrice).HasPrecision(18, 2).IsRequired();
+            b.Property(e => e.FemaleTicketPrice).HasPrecision(18, 2).IsRequired();
             b.Property(e => e.EducationLevelRestriction).IsRequired();
             b.Property(e => e.EventImage1).HasMaxLength(500);
             b.Property(e => e.EventImage2).HasMaxLength(500);
@@ -497,6 +513,11 @@ public class RandevooDbContext : DbContext
                 .HasForeignKey(faq => faq.DatingEventId)
                 .OnDelete(DeleteBehavior.Cascade);
             b.Navigation(e => e.Faqs).UsePropertyAccessMode(PropertyAccessMode.Field);
+            b.HasMany(e => e.DiscountCodes)
+                .WithOne(discountCode => discountCode.DatingEvent)
+                .HasForeignKey(discountCode => discountCode.DatingEventId)
+                .OnDelete(DeleteBehavior.Restrict);
+            b.Navigation(e => e.DiscountCodes).UsePropertyAccessMode(PropertyAccessMode.Field);
         });
 
         modelBuilder.Entity<EventFaq>(b =>
@@ -508,6 +529,34 @@ public class RandevooDbContext : DbContext
             b.Property(faq => faq.DisplayOrder).IsRequired();
             b.HasIndex(faq => new { faq.DatingEventId, faq.DisplayOrder }).IsUnique();
             b.HasQueryFilter(faq => !faq.DatingEvent.IsDeleted);
+        });
+
+        modelBuilder.Entity<EventDiscountCode>(b =>
+        {
+            b.ToTable("EventDiscountCodes");
+            b.HasKey(discountCode => discountCode.Id);
+            b.Property(discountCode => discountCode.Code).IsRequired().HasMaxLength(50);
+            b.Property(discountCode => discountCode.Title).HasMaxLength(120);
+            b.Property(discountCode => discountCode.Description).HasMaxLength(500);
+            b.Property(discountCode => discountCode.Value).HasPrecision(18, 2).IsRequired();
+            b.Property(discountCode => discountCode.GenderScope).IsRequired();
+            b.Property(discountCode => discountCode.DiscountType).IsRequired();
+            b.Property(discountCode => discountCode.StartsAtUtc).IsRequired();
+            b.Property(discountCode => discountCode.EndsAtUtc).IsRequired();
+            b.Property(discountCode => discountCode.MaxUsageCount).IsRequired();
+            b.Property(discountCode => discountCode.UsedCount).IsRequired();
+            b.Property(discountCode => discountCode.IsActive).IsRequired();
+            b.HasIndex(discountCode => new { discountCode.DatingEventId, discountCode.Code }).IsUnique();
+            b.HasIndex(discountCode => discountCode.Code)
+                .IsUnique()
+                .HasDatabaseName("IX_EventDiscountCodes_Global_Code")
+                .HasFilter("[DatingEventId] IS NULL");
+            b.HasIndex(discountCode => new { discountCode.IsActive, discountCode.StartsAtUtc, discountCode.EndsAtUtc });
+            b.HasOne(discountCode => discountCode.DatingEvent)
+                .WithMany(datingEvent => datingEvent.DiscountCodes)
+                .HasForeignKey(discountCode => discountCode.DatingEventId)
+                .OnDelete(DeleteBehavior.Restrict);
+            b.HasQueryFilter(discountCode => !discountCode.IsDeleted && (discountCode.DatingEvent == null || !discountCode.DatingEvent.IsDeleted));
         });
 
         modelBuilder.Entity<Tag>(b =>
@@ -545,13 +594,21 @@ public class RandevooDbContext : DbContext
         modelBuilder.Entity<EventTicket>(b =>
         {
             b.HasKey(t => t.Id);
+            b.Property(t => t.OriginalPrice).HasPrecision(18, 2).IsRequired();
+            b.Property(t => t.DiscountAmount).HasPrecision(18, 2).IsRequired();
+            b.Property(t => t.DiscountCode).HasMaxLength(50);
             b.Property(t => t.Price).HasPrecision(18, 2).IsRequired();
             b.Property(t => t.RemovalReason).HasMaxLength(500);
             b.HasIndex(t => new { t.DatingEventId, t.UserId }).IsUnique();
+            b.HasIndex(t => t.EventDiscountCodeId);
             b.HasQueryFilter(t => !t.DatingEvent.IsDeleted);
             b.HasOne(t => t.User)
                 .WithMany()
                 .HasForeignKey(t => t.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            b.HasOne(t => t.EventDiscountCode)
+                .WithMany()
+                .HasForeignKey(t => t.EventDiscountCodeId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
 

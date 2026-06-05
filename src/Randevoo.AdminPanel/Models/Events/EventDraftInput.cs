@@ -45,7 +45,9 @@ public sealed class EventDraftInput
 
     public bool IsOpenForSell { get; set; } = false;
 
-    public decimal TicketPrice { get; set; } = 950000m;
+    public decimal MaleTicketPrice { get; set; } = 950000m;
+
+    public decimal FemaleTicketPrice { get; set; } = 850000m;
 
     public EventEducationLevelRestriction EducationLevelRestriction { get; set; } = EventEducationLevelRestriction.WithoutLimit;
 
@@ -57,7 +59,7 @@ public sealed class EventDraftInput
 
     public int CapacityFemale { get; set; } = 40;
 
-    public int ChatLimit { get; set; } = 80;
+    public int LikeLimit { get; set; } = 2;
 
     public List<string> Tags { get; set; } = new();
 

@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.Extensions.Logging;
 using Randevoo.Application.Features.Auth.Common;
+using Randevoo.Application.Interfaces.Auditing;
 using Randevoo.Application.Interfaces.Auth;
 using Randevoo.Domain.Entities;
 using Randevoo.Domain.Exceptions;
@@ -18,6 +19,7 @@ public class VerifyMobileLoginCodeHandler : IRequestHandler<VerifyMobileLoginCod
     private readonly IJwtTokenService _jwtTokenService;
     private readonly IRefreshTokenRepository _refreshTokens;
     private readonly IAuthTokenPolicy _authTokenPolicy;
+    private readonly IAuditLogger _auditLogger;
     private readonly ILogger<VerifyMobileLoginCodeHandler> _logger;
 
     public VerifyMobileLoginCodeHandler(
@@ -28,6 +30,7 @@ public class VerifyMobileLoginCodeHandler : IRequestHandler<VerifyMobileLoginCod
         IJwtTokenService jwtTokenService,
         IRefreshTokenRepository refreshTokens,
         IAuthTokenPolicy authTokenPolicy,
+        IAuditLogger auditLogger,
         ILogger<VerifyMobileLoginCodeHandler> logger)
     {
         _users = users;
@@ -37,6 +40,7 @@ public class VerifyMobileLoginCodeHandler : IRequestHandler<VerifyMobileLoginCod
         _jwtTokenService = jwtTokenService;
         _refreshTokens = refreshTokens;
         _authTokenPolicy = authTokenPolicy;
+        _auditLogger = auditLogger;
         _logger = logger;
     }
 
@@ -54,6 +58,16 @@ public class VerifyMobileLoginCodeHandler : IRequestHandler<VerifyMobileLoginCod
         {
             await _users.UpdateAsync(user, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
+            await _auditLogger.TryLogAsync(new AuditLogEntry(
+                ActorUserId: user.Id,
+                Action: "MobileLoginFailed",
+                TargetType: "User",
+                TargetId: user.Id.ToString(),
+                LogType: "failed_login",
+                Module: "auth",
+                Description: "User entered an invalid mobile verification code.",
+                Status: "failed",
+                MetadataJson: $"{{\"failedAttempts\":{user.MobileLoginFailedAttemptCount}}}"), cancellationToken);
             _logger.LogWarning("Mobile login failed for user {UserId}; failed attempts: {FailedAttemptCount}; locked until: {LockedUntil}", user.Id, user.MobileLoginFailedAttemptCount, user.MobileLoginLockedUntil);
             throw;
         }
@@ -64,6 +78,15 @@ public class VerifyMobileLoginCodeHandler : IRequestHandler<VerifyMobileLoginCod
         var refreshTokenExpiresAt = nowUtc.AddDays(_authTokenPolicy.RefreshTokenExpiresDays);
         await _refreshTokens.AddAsync(new RefreshToken(user.Id, _codeHasher.Hash(refreshToken), refreshTokenExpiresAt), cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+        await _auditLogger.TryLogAsync(new AuditLogEntry(
+            ActorUserId: user.Id,
+            Action: "MobileLoginSucceeded",
+            TargetType: "User",
+            TargetId: user.Id.ToString(),
+            LogType: "login",
+            Module: "auth",
+            Description: "User completed mobile login.",
+            Status: "success"), cancellationToken);
 
         var accessToken = _jwtTokenService.CreateToken(user);
         _logger.LogInformation("Mobile login completed for user {UserId}; access token expires at {AccessTokenExpiresAtUtc}", user.Id, accessToken.ExpiresAtUtc);

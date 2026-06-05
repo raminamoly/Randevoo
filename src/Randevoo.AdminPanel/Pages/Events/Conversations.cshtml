@@ -16,35 +16,57 @@
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
         <div>
             <h2 class="section-title mb-1">گفتگوها</h2>
-            <p class="text-muted small mb-0">این صفحه فقط برای مدیر است و برای بررسی وضعیت گفتگوها استفاده می شود.</p>
+            <p class="text-muted small mb-0">ابتدا گفتگو را انتخاب کنید؛ متن کامل پیام ها در صفحه جداگانه نمایش داده می شود.</p>
         </div>
         <span class="status-badge status-draft">@DisplayFormatter.Count(Model.Conversations.Count) گفتگو</span>
     </div>
 
-    <div class="conversation-monitor-list">
+    <div class="conversation-inbox-list">
         @foreach (var conversation in Model.Conversations)
         {
-            <article class="conversation-monitor-card">
-                <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
-                    <div>
-                        <h3>@conversation.StarterName و @conversation.ParticipantName</h3>
-                        <p class="text-muted small mb-0">@DisplayFormatter.Count(conversation.MessageCount) پیام، شروع در @PersianDateFormatter.Format(conversation.CreatedAtUtc, true)</p>
+            <article class="conversation-inbox-card">
+                <div class="conversation-inbox-main">
+                    <div class="conversation-inbox-avatar" aria-hidden="true">
+                        <i class="bi bi-chat-square-text"></i>
                     </div>
-                    <span class="status-badge @(conversation.IsDisabled ? "status-rejected" : "status-approved")">@(conversation.IsDisabled ? "غیرفعال" : "فعال")</span>
+                    <div class="conversation-inbox-content">
+                        <div class="conversation-inbox-title-row">
+                            <h3>@conversation.StarterName و @conversation.ParticipantName</h3>
+                            <span class="status-badge @(conversation.IsDisabled ? "status-rejected" : "status-approved")">@(conversation.IsDisabled ? "غیرفعال" : "فعال")</span>
+                        </div>
+                        <div class="conversation-inbox-meta">
+                            <span>@DisplayFormatter.Count(conversation.MessageCount) پیام</span>
+                            <span>شروع: @PersianDateFormatter.Format(conversation.CreatedAtUtc, true)</span>
+                            @if (conversation.LastMessageAtUtc.HasValue)
+                            {
+                                <span>آخرین پیام: @PersianDateFormatter.Format(conversation.LastMessageAtUtc.Value, true)</span>
+                            }
+                        </div>
+                        @if (!string.IsNullOrWhiteSpace(conversation.LastMessageBody))
+                        {
+                            <p class="conversation-inbox-preview">
+                                <strong>@conversation.LastMessageSenderName:</strong>
+                                <span>@conversation.LastMessageBody</span>
+                            </p>
+                        }
+                        else
+                        {
+                            <p class="conversation-inbox-preview text-muted">هنوز پیامی در این گفتگو ثبت نشده است.</p>
+                        }
+                    </div>
                 </div>
                 @if (!string.IsNullOrWhiteSpace(conversation.DisabledReason))
                 {
-                    <div class="alert alert-warning border-0 py-2">@conversation.DisabledReason</div>
+                    <div class="alert alert-warning border-0 py-2 mb-0">@conversation.DisabledReason</div>
                 }
-                <div class="conversation-message-list">
-                    @foreach (var message in conversation.Messages.TakeLast(6))
-                    {
-                        <div class="conversation-message">
-                            <strong>@message.SenderName</strong>
-                            <span>@message.Body</span>
-                            <small>@PersianDateFormatter.Format(message.SentAtUtc, true)</small>
-                        </div>
-                    }
+                <div class="conversation-inbox-actions">
+                    <a asp-page="/Events/Conversation"
+                       asp-route-eventId="@Model.EventId"
+                       asp-route-conversationId="@conversation.Id"
+                       class="btn btn-primary">
+                        <i class="bi bi-eye"></i>
+                        مشاهده چت
+                    </a>
                 </div>
             </article>
         }

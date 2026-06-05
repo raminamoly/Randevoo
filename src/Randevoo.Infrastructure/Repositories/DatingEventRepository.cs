@@ -23,6 +23,7 @@ public class DatingEventRepository : IDatingEventRepository
             .Include(e => e.City)
             .Include(e => e.EventTags)
             .ThenInclude(eventTag => eventTag.Tag)
+            .Include(e => e.DiscountCodes)
             .FirstOrDefaultAsync(e => e.Id == id, cancellationToken);
     }
 
@@ -36,6 +37,7 @@ public class DatingEventRepository : IDatingEventRepository
             .Include(e => e.EventTags)
             .ThenInclude(eventTag => eventTag.Tag)
             .Include(e => e.Tickets)
+            .Include(e => e.DiscountCodes)
             .FirstOrDefaultAsync(e => e.Id == id, cancellationToken);
     }
 
@@ -71,10 +73,14 @@ public class DatingEventRepository : IDatingEventRepository
             query = query.Where(e => e.DateTimeStart <= dateTo);
         if (eventTypeId is not null)
             query = query.Where(e => e.EventTypeId == eventTypeId);
-        if (priceMin is not null)
-            query = query.Where(e => e.TicketPrice >= priceMin);
-        if (priceMax is not null)
-            query = query.Where(e => e.TicketPrice <= priceMax);
+        if (priceMin is not null && priceMax is not null)
+            query = query.Where(e =>
+                (e.MaleTicketPrice >= priceMin && e.MaleTicketPrice <= priceMax)
+                || (e.FemaleTicketPrice >= priceMin && e.FemaleTicketPrice <= priceMax));
+        else if (priceMin is not null)
+            query = query.Where(e => e.MaleTicketPrice >= priceMin || e.FemaleTicketPrice >= priceMin);
+        else if (priceMax is not null)
+            query = query.Where(e => e.MaleTicketPrice <= priceMax || e.FemaleTicketPrice <= priceMax);
 
         var events = await query
             .OrderBy(e => e.Id)

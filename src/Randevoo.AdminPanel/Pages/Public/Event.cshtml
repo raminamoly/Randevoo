@@ -3,117 +3,152 @@
 @{
     ViewData["Title"] = Model.Event.DisplayTitle;
     ViewData["UseShell"] = false;
+    var draft = Model.Event.Live;
 }
 
-<section class="auth-card glass-panel auth-card-premium public-event-page">
-    <div class="auth-orb auth-orb-pink"></div>
-    <div class="auth-orb auth-orb-blue"></div>
+<main class="public-event-shell">
+    <nav class="public-event-nav">
+        <a asp-page="/Index" class="public-event-brand">
+            <img src="~/images/logo.png" alt="راندوو" />
+            <span>راندوو</span>
+        </a>
+        <div class="public-event-nav-meta">
+            <span>@DisplayFormatter.EventTypeLabel(draft.EventTypeName)</span>
+            <span>@(draft.IsOnline ? "آنلاین" : draft.City)</span>
+        </div>
+    </nav>
 
-    <div class="page-header mb-4">
-        <div>
+    <section class="public-event-hero">
+        <div class="public-event-hero-copy">
             <div class="auth-kicker">پروفایل رویداد</div>
             <h1>@Model.Event.DisplayTitle</h1>
-            <p>@(Model.Event.Live.IsOnline ? "رویداد آنلاین" : $"{Model.Event.Live.City}، {Model.Event.Live.Country}")</p>
-            @if (Model.Event.Live.Tags.Count > 0)
+            <p>@(draft.IsOnline ? "رویداد آنلاین با ظرفیت کنترل شده" : $"{draft.VenueName}، {draft.City}")</p>
+            @if (draft.Tags.Count > 0)
             {
-                <div class="event-chip-list mt-3">
-                    @foreach (var tag in Model.Event.Live.Tags)
+                <div class="event-chip-list">
+                    @foreach (var tag in draft.Tags)
                     {
                         <span class="event-chip">@tag</span>
                     }
                 </div>
             }
-        </div>
-    </div>
-
-    <div class="mb-4">
-        <partial name="_EventImageSlider" model="Model.EventImageCarousel" />
-    </div>
-
-    <div class="row g-4">
-        <div class="col-lg-8">
-            <div class="glass-panel p-4 h-100">
-                <h2 class="section-title">جزئیات رویداد</h2>
-                <div class="row g-3">
-                    <div class="col-md-4"><div class="detail-block"><span>نحوه برگزاری</span><strong>@Model.Event.Live.EventModeName</strong></div></div>
-                    @if (Model.Event.Live.IsOnline)
-                    {
-                        <div class="col-md-4"><div class="detail-block"><span>پلتفرم</span><strong>@Model.Event.Live.OnlinePlatformName</strong></div></div>
-                        @if (!string.IsNullOrWhiteSpace(Model.Event.Live.OnlineAccessInstructions))
-                        {
-                            <div class="col-md-12"><div class="detail-block"><span>راهنمای ورود</span><strong>@Model.Event.Live.OnlineAccessInstructions</strong></div></div>
-                        }
-                    }
-                    else
-                    {
-                        <div class="col-md-6"><div class="detail-block"><span>محل برگزاری</span><strong>@Model.Event.Live.VenueName</strong></div></div>
-                        <div class="col-md-6"><div class="detail-block"><span>آدرس</span><strong>@Model.Event.Live.Address</strong></div></div>
-                    }
-                    <div class="col-md-4"><div class="detail-block"><span>نوع رویداد</span><strong>@DisplayFormatter.EventTypeLabel(Model.Event.Live.EventTypeName)</strong></div></div>
-                    <div class="col-md-4"><div class="detail-block"><span>حداقل تحصیلات خرید بلیت</span><strong>@DisplayFormatter.EducationRestriction(Model.Event.Live.EducationLevelRestriction)</strong></div></div>
-                    <div class="col-md-8">
-                        <div class="detail-block">
-                            <span>تگ های رویداد</span>
-                            <div class="event-chip-list">
-                                @foreach (var tag in Model.Event.Live.Tags)
-                                {
-                                    <span class="event-chip">@tag</span>
-                                }
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-4"><div class="detail-block"><span>تاریخ شروع</span><strong>@PersianDateFormatter.Format(Model.Event.Live.StartAtUtc, true)</strong></div></div>
-                    <div class="col-md-4"><div class="detail-block"><span>تاریخ پایان</span><strong>@PersianDateFormatter.Format(Model.Event.Live.EndAtUtc, true)</strong></div></div>
-                    <div class="col-md-4"><div class="detail-block"><span>بلیت</span><strong>@DisplayFormatter.Money(Model.Event.Live.TicketPrice, true)</strong></div></div>
-                    <div class="col-md-4"><div class="detail-block"><span>ظرفیت آقایان</span><strong>@DisplayFormatter.Count(Model.Event.Live.CapacityMale)</strong></div></div>
-                    <div class="col-md-4"><div class="detail-block"><span>ظرفیت بانوان</span><strong>@DisplayFormatter.Count(Model.Event.Live.CapacityFemale)</strong></div></div>
-                    <div class="col-md-12">
-                        <div class="detail-block">
-                            <span>توضیحات</span>
-                            <div class="rich-text-preview">@Html.Raw(Model.Event.Live.DescriptionHtml)</div>
-                        </div>
-                    </div>
-                </div>
-                @if (Model.Event.Live.Faqs.Any(item => !string.IsNullOrWhiteSpace(item.Question) && !string.IsNullOrWhiteSpace(item.Answer)))
-                {
-                    <div class="mt-4">
-                        <h2 class="section-title">سوالات متداول</h2>
-                        <div class="faq-list">
-                            @foreach (var faq in Model.Event.Live.Faqs.Where(item => !string.IsNullOrWhiteSpace(item.Question) && !string.IsNullOrWhiteSpace(item.Answer)))
-                            {
-                                <article class="faq-card">
-                                    <h3>@faq.Question</h3>
-                                    <p>@faq.Answer</p>
-                                </article>
-                            }
-                        </div>
-                    </div>
-                }
+            <div class="public-event-hero-actions">
+                <a href="#tickets" class="btn btn-primary btn-lg">مشاهده بلیت و ظرفیت</a>
+                <a href="#details" class="btn btn-outline-secondary btn-lg">جزئیات رویداد</a>
             </div>
         </div>
-
-        <div class="col-lg-4">
-            @if (Model.PlannerProfile is not null)
+        <div class="public-event-hero-media">
+            @if (Model.EventImages.Count > 0)
             {
-                <div class="glass-panel p-4 planner-card">
-                    <div class="d-flex align-items-center gap-3">
-                        <img src="@Model.PlannerProfile.PictureUrl" alt="@Model.PlannerProfile.FullName" class="planner-avatar" />
-                        <div>
-                            <h2 class="section-title mb-1">@Model.PlannerProfile.FullName</h2>
-                            <div class="planner-title">@Model.PlannerProfile.Title</div>
-                        </div>
-                    </div>
+                <partial name="_EventImageSlider" model="Model.EventImageCarousel" />
+            }
+            else
+            {
+                <div class="public-event-image-placeholder">
+                    <i class="bi bi-calendar-heart"></i>
+                    <span>@Model.Event.DisplayTitle</span>
+                </div>
+            }
+        </div>
+    </section>
 
-                    <p class="text-muted mt-3">@Model.PlannerProfile.Resume</p>
+    <section class="public-event-summary" aria-label="خلاصه رویداد">
+        <div class="detail-block"><span>شروع</span><strong>@PersianDateFormatter.Format(draft.StartAtUtc, true)</strong></div>
+        <div class="detail-block"><span>پایان</span><strong>@PersianDateFormatter.Format(draft.EndAtUtc, true)</strong></div>
+        <div class="detail-block"><span>نحوه برگزاری</span><strong>@draft.EventModeName</strong></div>
+        <div class="detail-block"><span>حداقل تحصیلات</span><strong>@DisplayFormatter.EducationRestriction(draft.EducationLevelRestriction)</strong></div>
+    </section>
 
+    <section id="tickets" class="public-event-section">
+        <div class="public-section-head">
+            <h2>بلیت و مخاطبان</h2>
+        </div>
+        <div class="gender-field-grid">
+            <article class="gender-field-panel public-ticket-panel">
+                <h3>آقایان</h3>
+                <div class="public-ticket-price">@DisplayFormatter.Money(draft.MaleTicketPrice, true)</div>
+                <div class="row g-3">
+                    <div class="col-md-6"><div class="detail-block"><span>ظرفیت</span><strong>@DisplayFormatter.Count(draft.CapacityMale)</strong></div></div>
+                    <div class="col-md-6"><div class="detail-block"><span>بازه سنی</span><strong>@draft.AgeRangeForMale</strong></div></div>
+                </div>
+            </article>
+            <article class="gender-field-panel public-ticket-panel">
+                <h3>خانم ها</h3>
+                <div class="public-ticket-price">@DisplayFormatter.Money(draft.FemaleTicketPrice, true)</div>
+                <div class="row g-3">
+                    <div class="col-md-6"><div class="detail-block"><span>ظرفیت</span><strong>@DisplayFormatter.Count(draft.CapacityFemale)</strong></div></div>
+                    <div class="col-md-6"><div class="detail-block"><span>بازه سنی</span><strong>@draft.AgeRangeForFemale</strong></div></div>
+                </div>
+            </article>
+        </div>
+    </section>
+
+    <section id="details" class="public-event-section">
+        <div class="public-section-head">
+            <h2>محل و دسترسی</h2>
+        </div>
+        <div class="row g-3">
+            @if (draft.IsOnline)
+            {
+                <div class="col-md-4"><div class="detail-block"><span>پلتفرم</span><strong>@draft.OnlinePlatformName</strong></div></div>
+                @if (!string.IsNullOrWhiteSpace(draft.OnlineAccessInstructions))
+                {
+                    <div class="col-md-8"><div class="detail-block"><span>راهنمای ورود</span><strong>@draft.OnlineAccessInstructions</strong></div></div>
+                }
+            }
+            else
+            {
+                <div class="col-md-4"><div class="detail-block"><span>محل برگزاری</span><strong>@draft.VenueName</strong></div></div>
+                <div class="col-md-4"><div class="detail-block"><span>شهر</span><strong>@draft.City، @draft.Country</strong></div></div>
+                <div class="col-md-4"><div class="detail-block"><span>منطقه</span><strong>@draft.Region</strong></div></div>
+                <div class="col-12"><div class="detail-block"><span>آدرس</span><strong>@draft.Address</strong></div></div>
+            }
+        </div>
+    </section>
+
+    <section class="public-event-section">
+        <div class="public-section-head">
+            <h2>درباره رویداد</h2>
+        </div>
+        <div class="rich-text-preview public-event-description">@Html.Raw(draft.DescriptionHtml)</div>
+    </section>
+
+    @if (Model.PlannerProfile is not null)
+    {
+        <section class="public-event-section public-planner-section">
+            <div class="public-section-head">
+                <h2>برگزارکننده</h2>
+            </div>
+            <div class="public-planner-card">
+                <img src="@Model.PlannerProfile.PictureUrl" alt="@Model.PlannerProfile.FullName" class="planner-avatar" />
+                <div>
+                    <h3>@Model.PlannerProfile.FullName</h3>
+                    <div class="planner-title">@Model.PlannerProfile.Title</div>
+                    <p>@Model.PlannerProfile.Resume</p>
                     <div class="planner-metrics">
                         <div class="detail-block"><span>میانگین امتیاز</span><strong>@DisplayFormatter.ToPersianDigits(Model.PlannerProfile.AverageRating.ToString("0.0"))</strong></div>
                         <div class="detail-block"><span>رویداد برگزارشده</span><strong>@DisplayFormatter.Count(Model.PlannerProfile.HostedEventCount)</strong></div>
                     </div>
-
-                    <a asp-page="/Planner/Details" asp-route-id="@Model.PlannerProfile.UserId" class="btn btn-outline-primary w-100 mt-3">مشاهده پروفایل کامل برگزارکننده</a>
                 </div>
-            }
-        </div>
-    </div>
-</section>
+            </div>
+        </section>
+    }
+
+    @if (draft.Faqs.Any(item => !string.IsNullOrWhiteSpace(item.Question) && !string.IsNullOrWhiteSpace(item.Answer)))
+    {
+        <section class="public-event-section">
+            <div class="public-section-head">
+                <h2>سوالات متداول</h2>
+            </div>
+            <div class="faq-list">
+                @foreach (var faq in draft.Faqs.Where(item => !string.IsNullOrWhiteSpace(item.Question) && !string.IsNullOrWhiteSpace(item.Answer)))
+                {
+                    <article class="faq-card">
+                        <h3>@faq.Question</h3>
+                        <p>@faq.Answer</p>
+                    </article>
+                }
+            </div>
+        </section>
+    }
+</main>

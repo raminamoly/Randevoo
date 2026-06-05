@@ -27,6 +27,7 @@ public static class DependencyInjection
         services.AddScoped<IEventPlannerProfileRepository, EventPlannerProfileRepository>();
         services.AddScoped<IBalanceAccountRepository, BalanceAccountRepository>();
         services.AddScoped<IDatingEventRepository, DatingEventRepository>();
+        services.AddScoped<IEventDiscountCodeRepository, EventDiscountCodeRepository>();
         services.AddScoped<IEventTicketRepository, EventTicketRepository>();
         services.AddScoped<IEventConversationRepository, EventConversationRepository>();
         services.AddScoped<IEventSurveyRepository, EventSurveyRepository>();

@@ -24,7 +24,7 @@
             </div>
             <div class="mb-3">
                 <label asp-for="Input.Mobile" class="form-label">موبایل</label>
-                <input asp-for="Input.Mobile" class="form-control" />
+                <input asp-for="Input.Mobile" class="form-control" type="tel" inputmode="tel" autocomplete="tel" dir="ltr" />
                 <div class="help-tip">شماره موبایل برای ورود و پیگیری اعلان های کاربر استفاده می شود.</div>
             </div>
             <div class="mb-3">
@@ -58,13 +58,13 @@
                         {
                             <tr>
                                 <td>@user.FullName</td>
-                                <td>@user.Mobile</td>
+                                <td dir="ltr">@user.Mobile</td>
                                 <td>@DisplayFormatter.Role(user.Role)</td>
                                 <td><span class="status-badge @(user.IsActive ? "status-approved" : "status-rejected")">@(user.IsActive ? "فعال" : "غیرفعال")</span></td>
                                 <td class="text-end table-action-cell">
                                     <div class="dropdown">
                                         <button class="btn btn-sm btn-outline-secondary dropdown-toggle table-action-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                            اقدام ها
+                                            عملیات
                                         </button>
                                         <div class="dropdown-menu dropdown-menu-end action-menu shadow-sm border-0">
                                             <a asp-page="/Users/Index" asp-route-id="@user.Id" class="dropdown-item">

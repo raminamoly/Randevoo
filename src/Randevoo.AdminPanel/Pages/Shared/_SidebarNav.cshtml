@@ -8,12 +8,18 @@
     var usersActive = path.StartsWith("/Users", StringComparison.OrdinalIgnoreCase) || path.StartsWith("/UserProfiles", StringComparison.OrdinalIgnoreCase);
     var plannerOpsActive = path.StartsWith("/Planner", StringComparison.OrdinalIgnoreCase);
     var financeActive = path.StartsWith("/Finance", StringComparison.OrdinalIgnoreCase);
+    var logsActive = path.StartsWith("/Logs", StringComparison.OrdinalIgnoreCase);
+    var analyticsActive = path.Equals("/Dashboard/Users", StringComparison.OrdinalIgnoreCase)
+        || path.Equals("/Dashboard/Sales", StringComparison.OrdinalIgnoreCase)
+        || path.Equals("/Dashboard/Events", StringComparison.OrdinalIgnoreCase)
+        || path.Equals("/Dashboard/Money", StringComparison.OrdinalIgnoreCase);
     var settingsActive = path.StartsWith("/Settings", StringComparison.OrdinalIgnoreCase)
+        || path.StartsWith("/DiscountCodes", StringComparison.OrdinalIgnoreCase)
         || path.StartsWith("/EventTypes", StringComparison.OrdinalIgnoreCase)
         || path.StartsWith("/Tags", StringComparison.OrdinalIgnoreCase);
 }
 
-<nav class="nav flex-column sidebar-nav sidebar-tree">
+<nav class="nav flex-column sidebar-nav sidebar-tree" aria-label="منوی اصلی پنل مدیریت">
     <a class="nav-link nav-link-root @(dashboardActive ? "active" : string.Empty)"
        asp-page="@(isPlanner ? "/Dashboard/My" : "/Dashboard/Index")">
         <i class="bi bi-grid-1x2-fill"></i><span>داشبورد</span>
@@ -89,7 +95,7 @@
                 <a class="nav-link" asp-page="/Events/Index">
                     <i class="bi bi-archive"></i><span>آرشیو و تمام شده</span>
                 </a>
-                <a class="nav-link @(dashboardActive ? "active" : string.Empty)" asp-page="/Dashboard/Index">
+                <a class="nav-link @(path.Equals("/Dashboard/Events", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/Dashboard/Events">
                     <i class="bi bi-speedometer2"></i><span>داشبورد رویدادها</span>
                 </a>
             </div>
@@ -109,7 +115,7 @@
                 <a class="nav-link @(usersActive ? "active" : string.Empty)" asp-page="/Users/Index">
                     <i class="bi bi-person-lines-fill"></i><span>لیست شرکت کنندگان</span>
                 </a>
-                <a class="nav-link @(dashboardActive ? "active" : string.Empty)" asp-page="/Dashboard/Index">
+                <a class="nav-link @(path.Equals("/Dashboard/Users", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/Dashboard/Users">
                     <i class="bi bi-bar-chart-line"></i><span>داشبورد شرکت کنندگان</span>
                 </a>
             </div>
@@ -132,6 +138,41 @@
                 <a class="nav-link @(path.StartsWith("/Finance/Withdrawals", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/Finance/Withdrawals">
                     <i class="bi bi-credit-card-2-back"></i><span>بررسی درخواست های تسویه</span>
                 </a>
+                <a class="nav-link @(path.Equals("/Dashboard/Sales", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/Dashboard/Sales">
+                    <i class="bi bi-pie-chart-fill"></i><span>داشبورد فروش</span>
+                </a>
+                <a class="nav-link @(path.Equals("/Dashboard/Money", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/Dashboard/Money">
+                    <i class="bi bi-currency-exchange"></i><span>داشبورد مالی</span>
+                </a>
+            </div>
+        </div>
+
+        <div class="nav-section @(analyticsActive || logsActive ? "active" : string.Empty)">
+            <button class="nav-tree-toggle @(analyticsActive || logsActive ? "active" : string.Empty)"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#analyticsTree"
+                    aria-expanded="@((analyticsActive || logsActive).ToString().ToLowerInvariant())"
+                    aria-controls="analyticsTree">
+                <span><i class="bi bi-graph-up-arrow"></i>تحلیل و لاگ</span>
+                <i class="bi bi-chevron-down nav-tree-chevron"></i>
+            </button>
+            <div id="analyticsTree" class="collapse nav-subnav @(analyticsActive || logsActive ? "show" : string.Empty)">
+                <a class="nav-link @(path.Equals("/Dashboard/Users", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/Dashboard/Users">
+                    <i class="bi bi-people"></i><span>داشبورد کاربران</span>
+                </a>
+                <a class="nav-link @(path.Equals("/Dashboard/Sales", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/Dashboard/Sales">
+                    <i class="bi bi-bag-check"></i><span>داشبورد فروش</span>
+                </a>
+                <a class="nav-link @(path.Equals("/Dashboard/Events", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/Dashboard/Events">
+                    <i class="bi bi-calendar4-event"></i><span>داشبورد رویدادها</span>
+                </a>
+                <a class="nav-link @(path.Equals("/Dashboard/Money", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/Dashboard/Money">
+                    <i class="bi bi-cash-coin"></i><span>داشبورد مالی</span>
+                </a>
+                <a class="nav-link @(logsActive ? "active" : string.Empty)" asp-page="/Logs/Index">
+                    <i class="bi bi-journal-text"></i><span>مرکز لاگ</span>
+                </a>
             </div>
         </div>
 
@@ -148,6 +189,9 @@
             <div id="settingsTree" class="collapse nav-subnav @(settingsActive ? "show" : string.Empty)">
                 <a class="nav-link @(path.StartsWith("/EventTypes", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/EventTypes/Index">
                     <i class="bi bi-tags-fill"></i><span>نوع رویدادها</span>
+                </a>
+                <a class="nav-link @(path.StartsWith("/DiscountCodes", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/DiscountCodes/Index">
+                    <i class="bi bi-percent"></i><span>کدهای تخفیف</span>
                 </a>
                 <a class="nav-link @(path.StartsWith("/Tags", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/Tags/Index">
                     <i class="bi bi-bookmarks-fill"></i><span>تگ های رویداد</span>

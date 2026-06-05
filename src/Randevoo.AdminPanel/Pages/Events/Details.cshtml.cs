@@ -35,13 +35,12 @@ public class DetailsModel : PageModel
 
     public bool IsRtl => _session.IsRtl;
 
-    public string StatusClass => EditModel.GetStatusClass(Event.Status);
+    public string OperationalStatusClass => EditModel.GetOperationalStatusClass(Event.OperationalStatus);
 
-    public IReadOnlyList<EventSmsRequest> SmsRequests => Event.SmsRequests
-        .OrderByDescending(item => item.RequestedAtUtc)
-        .ToList();
+    public string ReviewStatusClass => EditModel.GetReviewStatusClass(Event.ReviewStatus);
 
     public IReadOnlyList<EventChangeLogEntry> ChangeLogEntries => Event.ChangeLog
+        .Where(item => !string.Equals(item.Category, "communication", StringComparison.OrdinalIgnoreCase))
         .OrderByDescending(item => item.CreatedAtUtc)
         .ToList();
 
@@ -71,6 +70,14 @@ public class DetailsModel : PageModel
     {
         var current = _session.CurrentUser ?? throw new InvalidOperationException("کاربر جاری شناسایی نشد.");
         await _eventsApi.ApproveAsync(id, current, commissionPercent, note);
+        return RedirectToPage(new { id });
+    }
+
+    public async Task<IActionResult> OnPostApproveAndOpenAsync(long id, decimal commissionPercent, string? note)
+    {
+        var current = _session.CurrentUser ?? throw new InvalidOperationException("کاربر جاری شناسایی نشد.");
+        await _eventsApi.ApproveAsync(id, current, commissionPercent, note);
+        await _eventsApi.ToggleSaleAsync(id, current, true);
         return RedirectToPage(new { id });
     }
 
@@ -110,8 +117,4 @@ public class DetailsModel : PageModel
             .ToList();
     }
 
-    private static string NormalizeReviewText(string? value)
-    {
-        return string.IsNullOrWhiteSpace(value) ? "ثبت نشده" : value.Trim();
-    }
 }

@@ -48,9 +48,15 @@
                 </select>
             </div>
             <div class="col-xl-3 col-md-6">
-                <label asp-for="Status" class="form-label">وضعیت</label>
-                <select asp-for="Status" asp-items="Model.StatusOptions" class="form-select">
-                    <option value="">همه وضعیت ها</option>
+                <label asp-for="OperationalStatus" class="form-label">وضعیت رویداد</label>
+                <select asp-for="OperationalStatus" asp-items="Model.OperationalStatusOptions" class="form-select">
+                    <option value="">همه وضعیت های رویداد</option>
+                </select>
+            </div>
+            <div class="col-xl-3 col-md-6">
+                <label asp-for="ReviewStatus" class="form-label">بررسی مدیر</label>
+                <select asp-for="ReviewStatus" asp-items="Model.ReviewStatusOptions" class="form-select">
+                    <option value="">همه وضعیت های بررسی</option>
                 </select>
             </div>
             <div class="col-xl-2 col-md-6">
@@ -87,7 +93,8 @@
                     <th>رویداد</th>
                     <th>برگزارکننده</th>
                     <th>شروع</th>
-                    <th>وضعیت</th>
+                    <th>وضعیت رویداد</th>
+                    <th>بررسی مدیر</th>
                     <th>کمیسیون</th>
                     <th></th>
                 </tr>
@@ -112,12 +119,13 @@
                         </td>
                         <td>@item.PlannerName</td>
                         <td>@PersianDateFormatter.Format(item.ActiveDraft.StartAtUtc, Model.IsRtl)</td>
-                        <td><span class="status-badge @Model.GetStatusClass(item.Status)">@DisplayFormatter.Status(item.Status)</span></td>
+                        <td><span class="status-badge @Model.GetOperationalStatusClass(item.OperationalStatus)">@DisplayFormatter.OperationalStatus(item.OperationalStatus)</span></td>
+                        <td><span class="status-badge @Model.GetReviewStatusClass(item.ReviewStatus)">@DisplayFormatter.ReviewStatus(item.ReviewStatus)</span></td>
                         <td>@DisplayFormatter.Percent(item.ActiveDraft.OrganizerCommissionPercent)</td>
                         <td class="text-end table-action-cell">
                             <div class="dropdown">
                                 <button class="btn btn-sm btn-outline-secondary dropdown-toggle table-action-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                    اقدام ها
+                                    عملیات
                                 </button>
                                 <div class="dropdown-menu dropdown-menu-end action-menu shadow-sm border-0">
                                     <a asp-page="/Events/Details" asp-route-id="@item.Id" class="dropdown-item"><i class="bi bi-eye"></i>بررسی رویداد</a>
@@ -143,7 +151,8 @@
            asp-route-TagId="@Model.TagId"
            asp-route-City="@Model.City"
            asp-route-EventModeId="@Model.EventModeId"
-           asp-route-Status="@Model.Status"
+           asp-route-OperationalStatus="@Model.OperationalStatus"
+           asp-route-ReviewStatus="@Model.ReviewStatus"
            asp-route-FromDate="@Model.FromDate"
            asp-route-ToDate="@Model.ToDate"
            asp-route-Sort="@Model.Sort"
@@ -157,7 +166,8 @@
            asp-route-TagId="@Model.TagId"
            asp-route-City="@Model.City"
            asp-route-EventModeId="@Model.EventModeId"
-           asp-route-Status="@Model.Status"
+           asp-route-OperationalStatus="@Model.OperationalStatus"
+           asp-route-ReviewStatus="@Model.ReviewStatus"
            asp-route-FromDate="@Model.FromDate"
            asp-route-ToDate="@Model.ToDate"
            asp-route-Sort="@Model.Sort"

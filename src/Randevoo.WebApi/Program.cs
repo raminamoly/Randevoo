@@ -125,6 +125,7 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseMiddleware<ActivityLogMiddleware>();
 app.MapAuthEndpoints();
 app.MapDatingProfileEndpoints();
 app.MapEventPlannerProfileEndpoints();

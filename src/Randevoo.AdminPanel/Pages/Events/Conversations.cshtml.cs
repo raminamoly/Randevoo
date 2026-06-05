@@ -42,24 +42,27 @@ public class ConversationsModel : PageModel
             .OrderByDescending(item => item.UpdatedAt ?? item.CreatedAt)
             .ToListAsync();
 
-        Conversations = conversations.Select(item => new EventConversationItem
+        Conversations = conversations.Select(item =>
         {
-            Id = item.Id,
-            StarterName = item.StarterUser.Profile?.DisplayName ?? item.StarterUser.MobileNumber,
-            ParticipantName = item.ParticipantUser.Profile?.DisplayName ?? item.ParticipantUser.MobileNumber,
-            IsDisabled = item.IsDisabled,
-            DisabledReason = item.DisabledReason,
-            CreatedAtUtc = DateTime.SpecifyKind(item.CreatedAt, DateTimeKind.Utc),
-            MessageCount = item.Messages.Count,
-            Messages = item.Messages
-                .OrderBy(message => message.CreatedAt)
-                .Select(message => new EventConversationMessageItem
-                {
-                    SenderName = message.SenderUser.Profile?.DisplayName ?? message.SenderUser.MobileNumber,
-                    Body = message.Body,
-                    SentAtUtc = DateTime.SpecifyKind(message.CreatedAt, DateTimeKind.Utc)
-                })
-                .ToList()
+            var lastMessage = item.Messages
+                .OrderByDescending(message => message.CreatedAt)
+                .FirstOrDefault();
+
+            return new EventConversationItem
+            {
+                Id = item.Id,
+                StarterName = item.StarterUser.Profile?.DisplayName ?? item.StarterUser.MobileNumber,
+                ParticipantName = item.ParticipantUser.Profile?.DisplayName ?? item.ParticipantUser.MobileNumber,
+                IsDisabled = item.IsDisabled,
+                DisabledReason = item.DisabledReason,
+                CreatedAtUtc = DateTime.SpecifyKind(item.CreatedAt, DateTimeKind.Utc),
+                LastMessageAtUtc = lastMessage is null
+                    ? null
+                    : DateTime.SpecifyKind(lastMessage.CreatedAt, DateTimeKind.Utc),
+                LastMessageSenderName = lastMessage?.SenderUser.Profile?.DisplayName ?? lastMessage?.SenderUser.MobileNumber,
+                LastMessageBody = lastMessage?.Body,
+                MessageCount = item.Messages.Count
+            };
         }).ToList();
 
         return Page();
@@ -73,14 +76,9 @@ public class ConversationsModel : PageModel
         public bool IsDisabled { get; set; }
         public string? DisabledReason { get; set; }
         public DateTimeOffset CreatedAtUtc { get; set; }
+        public DateTimeOffset? LastMessageAtUtc { get; set; }
+        public string? LastMessageSenderName { get; set; }
+        public string? LastMessageBody { get; set; }
         public int MessageCount { get; set; }
-        public IReadOnlyList<EventConversationMessageItem> Messages { get; set; } = Array.Empty<EventConversationMessageItem>();
-    }
-
-    public sealed class EventConversationMessageItem
-    {
-        public string SenderName { get; set; } = string.Empty;
-        public string Body { get; set; } = string.Empty;
-        public DateTimeOffset SentAtUtc { get; set; }
     }
 }

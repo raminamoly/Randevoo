@@ -3,6 +3,10 @@ using Randevoo.AdminPanel.Models.Events;
 using Randevoo.AdminPanel.Models.Users;
 using Randevoo.Domain.Entities;
 using Randevoo.Domain.Enums;
+using AdminEventOperationalStatus = Randevoo.AdminPanel.Models.Events.EventOperationalStatus;
+using AdminEventReviewStatus = Randevoo.AdminPanel.Models.Events.EventReviewStatus;
+using DomainEventOperationalStatus = Randevoo.Domain.Enums.EventOperationalStatus;
+using DomainEventReviewStatus = Randevoo.Domain.Enums.EventReviewStatus;
 
 namespace Randevoo.AdminPanel.Services.ApiClients;
 
@@ -73,13 +77,14 @@ internal static class DatabaseModelMapper
             AgeRangeForMale = $"{datingEvent.AgeRangeForMale.Min}-{datingEvent.AgeRangeForMale.Max}",
             AgeRangeForFemale = $"{datingEvent.AgeRangeForFemale.Min}-{datingEvent.AgeRangeForFemale.Max}",
             IsOpenForSell = datingEvent.IsOpenForSell,
-            TicketPrice = datingEvent.TicketPrice,
+            MaleTicketPrice = datingEvent.MaleTicketPrice,
+            FemaleTicketPrice = datingEvent.FemaleTicketPrice,
             EducationLevelRestriction = datingEvent.EducationLevelRestriction,
             MinimumEducationLevelId = datingEvent.MinimumEducationLevelId,
             OrganizerCommissionPercent = datingEvent.EventPlannerCommissionPercent,
             CapacityMale = datingEvent.MaleCapacity,
             CapacityFemale = datingEvent.FemaleCapacity,
-            ChatLimit = datingEvent.NumberOfChatAllowed,
+            LikeLimit = datingEvent.NumberOfLikesAllowed,
             Tags = datingEvent.Tags.ToList(),
             TagIds = datingEvent.EventTags.Select(item => item.TagId).ToList(),
             DescriptionHtml = datingEvent.EventDescriptionHtml,
@@ -107,10 +112,11 @@ internal static class DatabaseModelMapper
             PlannerUserId = datingEvent.EventPlannerUserId,
             PlannerName = ResolveUserDisplayName(datingEvent.EventPlannerUser),
             Live = ToEventDraftInput(datingEvent),
-            Status = ToEventApprovalState(datingEvent),
+            OperationalStatus = ToEventOperationalStatus(datingEvent),
+            ReviewStatus = ToEventReviewStatus(datingEvent.ReviewStatus),
             CreatedAtUtc = DateTime.SpecifyKind(datingEvent.CreatedAt, DateTimeKind.Utc),
             UpdatedAtUtc = DateTime.SpecifyKind(datingEvent.UpdatedAt ?? datingEvent.CreatedAt, DateTimeKind.Utc),
-            IsVisibleToEndUsers = datingEvent.IsOpenForSell && !datingEvent.IsCancelled
+            IsVisibleToEndUsers = datingEvent.ResolveOperationalStatus(DateTime.UtcNow) == DomainEventOperationalStatus.Selling
         };
     }
 
@@ -165,19 +171,22 @@ internal static class DatabaseModelMapper
         _ => UserRole.EventPlanner
     };
 
-    public static EventApprovalState ToEventApprovalState(Randevoo.Domain.Entities.DatingEvent datingEvent)
+    public static AdminEventOperationalStatus ToEventOperationalStatus(Randevoo.Domain.Entities.DatingEvent datingEvent) =>
+        datingEvent.ResolveOperationalStatus(DateTime.UtcNow) switch
+        {
+            DomainEventOperationalStatus.Selling => AdminEventOperationalStatus.Selling,
+            DomainEventOperationalStatus.Closed => AdminEventOperationalStatus.Closed,
+            DomainEventOperationalStatus.Cancelled => AdminEventOperationalStatus.Cancelled,
+            _ => AdminEventOperationalStatus.Draft
+        };
+
+    public static AdminEventReviewStatus ToEventReviewStatus(DomainEventReviewStatus status) => status switch
     {
-        if (datingEvent.IsCancelled)
-            return EventApprovalState.Cancelled;
-
-        if (datingEvent.IsOpenForSell)
-            return EventApprovalState.Approved;
-
-        if (datingEvent.DateTimeEnd <= DateTime.UtcNow)
-            return EventApprovalState.Closed;
-
-        return EventApprovalState.Draft;
-    }
+        DomainEventReviewStatus.PendingReview => AdminEventReviewStatus.PendingReview,
+        DomainEventReviewStatus.Approved => AdminEventReviewStatus.Approved,
+        DomainEventReviewStatus.Rejected => AdminEventReviewStatus.Rejected,
+        _ => AdminEventReviewStatus.NotSubmitted
+    };
 
     public static (int Min, int Max) ParseAgeRange(string ageRange)
     {
@@ -227,6 +236,12 @@ internal static class DatabaseModelMapper
     {
         if (action.Contains("پیام", StringComparison.OrdinalIgnoreCase))
             return "communication";
+        if (action.StartsWith("EventReview", StringComparison.OrdinalIgnoreCase))
+            return "review";
+        if (action.StartsWith("EventSale", StringComparison.OrdinalIgnoreCase))
+            return "sale";
+        if (action.Equals("EventCancelled", StringComparison.OrdinalIgnoreCase))
+            return "lifecycle";
         if (action.Contains("برگزارکننده", StringComparison.OrdinalIgnoreCase))
             return "assignment";
         if (action.Contains("فروش", StringComparison.OrdinalIgnoreCase))

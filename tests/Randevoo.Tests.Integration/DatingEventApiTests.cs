@@ -55,11 +55,13 @@ public class DatingEventApiTests
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", plannerAuth.Token);
 
         var createEventResponse = await client.PostAsJsonAsync("/api/dating-events", CreateEventBody());
-        Assert.Equal(HttpStatusCode.Created, createEventResponse.StatusCode);
+        var createEventBody = await createEventResponse.Content.ReadAsStringAsync();
+        Assert.True(createEventResponse.StatusCode == HttpStatusCode.Created, $"Create event failed with {(int)createEventResponse.StatusCode}: {createEventBody}");
         var createdEvent = await createEventResponse.Content.ReadFromJsonAsync<DatingEventDto>();
         Assert.NotNull(createdEvent);
         Assert.Equal(EventEducationLevelRestriction.WithoutLimit, createdEvent.EducationLevelRestriction);
 
+        await factory.ApproveEventAsync(createdEvent.Id);
         var openResponse = await client.PostAsync($"/api/dating-events/{createdEvent.Id}/open", null);
         Assert.Equal(HttpStatusCode.NoContent, openResponse.StatusCode);
 
@@ -174,10 +176,12 @@ public class DatingEventApiTests
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", plannerAuth.Token);
 
         var createEventResponse = await client.PostAsJsonAsync("/api/dating-events", CreateEventBody(EventEducationLevelRestriction.BachelorOrHigher));
-        Assert.Equal(HttpStatusCode.Created, createEventResponse.StatusCode);
+        var createEventBody = await createEventResponse.Content.ReadAsStringAsync();
+        Assert.True(createEventResponse.StatusCode == HttpStatusCode.Created, $"Create event failed with {(int)createEventResponse.StatusCode}: {createEventBody}");
         var createdEvent = await createEventResponse.Content.ReadFromJsonAsync<DatingEventDto>();
         Assert.NotNull(createdEvent);
 
+        await factory.ApproveEventAsync(createdEvent.Id);
         var openResponse = await client.PostAsync($"/api/dating-events/{createdEvent.Id}/open", null);
         Assert.Equal(HttpStatusCode.NoContent, openResponse.StatusCode);
 
@@ -189,6 +193,54 @@ public class DatingEventApiTests
         Assert.Equal(HttpStatusCode.BadRequest, buyResponse.StatusCode);
         var problem = await buyResponse.Content.ReadAsStringAsync();
         Assert.Contains("education", problem, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task TicketPurchase_AppliesDiscountCode_AndChargesDiscountedAmount()
+    {
+        await using var factory = new RandevooEventApiFactory();
+        await factory.SeedEventTypesAsync();
+        var client = factory.CreateClient();
+
+        var plannerAuth = await LoginAsync(client, "+989121111113");
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", plannerAuth.Token);
+
+        var plannerProfileResponse = await client.PutAsJsonAsync("/api/event-planner-profile/me", new
+        {
+            Title = "Discount Planner",
+            PictureUrl = "https://example.com/p.jpg",
+            Resume = "Planner for discount code tests."
+        });
+        Assert.Equal(HttpStatusCode.OK, plannerProfileResponse.StatusCode);
+
+        plannerAuth = await LoginAsync(client, "+989121111113");
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", plannerAuth.Token);
+
+        var createEventResponse = await client.PostAsJsonAsync("/api/dating-events", CreateEventBody());
+        var createEventBody = await createEventResponse.Content.ReadAsStringAsync();
+        Assert.True(createEventResponse.StatusCode == HttpStatusCode.Created, $"Create event failed with {(int)createEventResponse.StatusCode}: {createEventBody}");
+        var createdEvent = await createEventResponse.Content.ReadFromJsonAsync<DatingEventDto>();
+        Assert.NotNull(createdEvent);
+
+        await factory.ApproveEventAsync(createdEvent.Id);
+        var openResponse = await client.PostAsync($"/api/dating-events/{createdEvent.Id}/open", null);
+        Assert.Equal(HttpStatusCode.NoContent, openResponse.StatusCode);
+
+        await factory.AddDiscountCodeAsync(createdEvent.Id, "SAVE25", EventDiscountGenderScope.Male, EventDiscountType.Percentage, 25m);
+
+        var buyer = await CreateUserWithProfileAsync(factory, client, "+989126777777", "DiscountBuyer", Gender.Male, EducationLevel.Graduated);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", buyer.Token);
+
+        var buyResponse = await client.PostAsJsonAsync($"/api/dating-events/{createdEvent.Id}/tickets", new
+        {
+            DiscountCode = "save25"
+        });
+
+        Assert.Equal(HttpStatusCode.Created, buyResponse.StatusCode);
+
+        var balance = await client.GetFromJsonAsync<BalanceDto>("/api/balances/me");
+        Assert.NotNull(balance);
+        Assert.Equal(425m, balance.Balance);
     }
 
     [Fact]
@@ -213,10 +265,12 @@ public class DatingEventApiTests
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", plannerAuth.Token);
 
         var createEventResponse = await client.PostAsJsonAsync("/api/dating-events", CreateEventBody());
-        Assert.Equal(HttpStatusCode.Created, createEventResponse.StatusCode);
+        var createEventBody = await createEventResponse.Content.ReadAsStringAsync();
+        Assert.True(createEventResponse.StatusCode == HttpStatusCode.Created, $"Create event failed with {(int)createEventResponse.StatusCode}: {createEventBody}");
         var createdEvent = await createEventResponse.Content.ReadFromJsonAsync<DatingEventDto>();
         Assert.NotNull(createdEvent);
 
+        await factory.ApproveEventAsync(createdEvent.Id);
         var openResponse = await client.PostAsync($"/api/dating-events/{createdEvent.Id}/open", null);
         Assert.Equal(HttpStatusCode.NoContent, openResponse.StatusCode);
 
@@ -279,17 +333,20 @@ public class DatingEventApiTests
 
         plannerAuth = await LoginAsync(client, "+989125000000");
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", plannerAuth.Token);
-        var createEventResponse = await client.PostAsJsonAsync("/api/dating-events", CreatePastEventBody());
-        Assert.Equal(HttpStatusCode.Created, createEventResponse.StatusCode);
+        var createEventResponse = await client.PostAsJsonAsync("/api/dating-events", CreateCompletableEventBody());
+        var createEventBody = await createEventResponse.Content.ReadAsStringAsync();
+        Assert.True(createEventResponse.StatusCode == HttpStatusCode.Created, $"Create event failed with {(int)createEventResponse.StatusCode}: {createEventBody}");
         var createdEvent = await createEventResponse.Content.ReadFromJsonAsync<DatingEventDto>();
         Assert.NotNull(createdEvent);
 
+        await factory.ApproveEventAsync(createdEvent.Id);
         var openResponse = await client.PostAsync($"/api/dating-events/{createdEvent.Id}/open", null);
         Assert.Equal(HttpStatusCode.NoContent, openResponse.StatusCode);
 
         var firstUser = await CreateFundedProfileAndTicketAsync(factory, client, "+989125000001", createdEvent.Id, "ParticipantOne", Gender.Male);
         var secondUser = await CreateFundedProfileAndTicketAsync(factory, client, "+989125000002", createdEvent.Id, "ParticipantTwo", Gender.Female);
         var thirdUser = await CreateFundedProfileAndTicketAsync(factory, client, "+989125000003", createdEvent.Id, "ParticipantThree", Gender.Male);
+        await factory.MarkEventEndedAsync(createdEvent.Id);
 
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", firstUser.Token);
         var visibleProfiles = await client.GetFromJsonAsync<List<DatingProfileDto>>($"/api/event-participants/events/{createdEvent.Id}/profiles");
@@ -457,8 +514,9 @@ public class DatingEventApiTests
         FemaleMaxAge = 45,
         MaleCapacity = 10,
         FemaleCapacity = 10,
-        NumberOfChatAllowed = 3,
-        TicketPrice = 100m,
+        NumberOfLikesAllowed = 3,
+        MaleTicketPrice = 100m,
+        FemaleTicketPrice = 100m,
         EducationLevelRestriction = educationLevelRestriction,
         Tags = new[] { "Mafia", "Night", "Friendly" },
         EventImage1 = "https://example.com/1.jpg",
@@ -468,7 +526,7 @@ public class DatingEventApiTests
         EventPlannerCommissionPercent = 10m
     };
 
-    private static object CreatePastEventBody() => new
+    private static object CreateCompletableEventBody() => new
     {
         Title = "Completed Social Night",
         Country = "Iran",
@@ -477,8 +535,8 @@ public class DatingEventApiTests
         Latitude = 35.6895m,
         Longitude = 51.3890m,
         Address = "Past event address",
-        DateTimeStart = DateTime.UtcNow.AddHours(-4),
-        DateTimeEnd = DateTime.UtcNow.AddHours(-1),
+        DateTimeStart = DateTime.UtcNow.AddDays(3),
+        DateTimeEnd = DateTime.UtcNow.AddDays(3).AddHours(3),
         EventTypeId = 3L,
         MaleMinAge = 18,
         MaleMaxAge = 45,
@@ -486,8 +544,9 @@ public class DatingEventApiTests
         FemaleMaxAge = 45,
         MaleCapacity = 10,
         FemaleCapacity = 10,
-        NumberOfChatAllowed = 1,
-        TicketPrice = 100m,
+        NumberOfLikesAllowed = 1,
+        MaleTicketPrice = 100m,
+        FemaleTicketPrice = 100m,
         EducationLevelRestriction = EventEducationLevelRestriction.WithoutLimit,
         Tags = new[] { "Social", "Completed" },
         EventImage1 = "https://example.com/past1.jpg",
@@ -673,6 +732,54 @@ public class DatingEventApiTests
                 new EventType("Workshop"),
                 new EventType("Art Night"),
                 new EventType("Music Night"));
+            await db.SaveChangesAsync();
+        }
+
+        public async Task AddDiscountCodeAsync(long eventId, string code, EventDiscountGenderScope genderScope, EventDiscountType discountType, decimal value)
+        {
+            using var scope = Services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<RandevooDbContext>();
+            var datingEvent = await db.DatingEvents
+                .Include(item => item.DiscountCodes)
+                .SingleAsync(item => item.Id == eventId);
+
+            if (datingEvent.DiscountCodes.Any(item => item.Code == code))
+                return;
+
+            datingEvent.AddDiscountCode(
+                code,
+                genderScope,
+                discountType,
+                value,
+                DateTime.UtcNow.AddDays(-1),
+                DateTime.UtcNow.AddDays(7),
+                5,
+                true,
+                "Integration test discount",
+                "Created from integration test.");
+
+            await db.SaveChangesAsync();
+        }
+
+        public async Task ApproveEventAsync(long eventId)
+        {
+            using var scope = Services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<RandevooDbContext>();
+            var datingEvent = await db.DatingEvents.SingleAsync(item => item.Id == eventId);
+
+            datingEvent.ApproveByAdmin();
+            await db.SaveChangesAsync();
+        }
+
+        public async Task MarkEventEndedAsync(long eventId)
+        {
+            using var scope = Services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<RandevooDbContext>();
+            var datingEvent = await db.DatingEvents.SingleAsync(item => item.Id == eventId);
+
+            datingEvent.CloseForSell();
+            db.Entry(datingEvent).Property(item => item.DateTimeStart).CurrentValue = DateTime.UtcNow.AddHours(-4);
+            db.Entry(datingEvent).Property(item => item.DateTimeEnd).CurrentValue = DateTime.UtcNow.AddHours(-1);
             await db.SaveChangesAsync();
         }
 

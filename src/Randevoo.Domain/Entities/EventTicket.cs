@@ -11,6 +11,11 @@ public class EventTicket : BaseEntity
     public long UserId { get; private set; }
     public User User { get; private set; } = null!;
     public Gender Gender { get; private set; }
+    public decimal OriginalPrice { get; private set; }
+    public decimal DiscountAmount { get; private set; }
+    public long? EventDiscountCodeId { get; private set; }
+    public EventDiscountCode? EventDiscountCode { get; private set; }
+    public string? DiscountCode { get; private set; }
     public decimal Price { get; private set; }
     public bool IsRefunded { get; private set; }
     public bool IsRemoved { get; private set; }
@@ -21,13 +26,24 @@ public class EventTicket : BaseEntity
 
     private EventTicket() { }
 
-    internal EventTicket(DatingEvent datingEvent, User user, Gender gender, decimal price)
+    internal EventTicket(
+        DatingEvent datingEvent,
+        User user,
+        Gender gender,
+        decimal originalPrice,
+        decimal finalPrice,
+        EventDiscountCode? discountCode = null)
     {
         DatingEvent = datingEvent;
         User = user;
         UserId = user.Id;
         Gender = gender;
-        Price = price;
+        OriginalPrice = GuardAgainst.Number.OutOfRange(originalPrice, nameof(originalPrice), 0.01m, 1_000_000m);
+        Price = GuardAgainst.Number.OutOfRange(finalPrice, nameof(finalPrice), 0.01m, OriginalPrice);
+        DiscountAmount = OriginalPrice - Price;
+        EventDiscountCode = discountCode;
+        EventDiscountCodeId = discountCode?.Id;
+        DiscountCode = discountCode?.Code;
         IsRefunded = false;
         IsRemoved = false;
     }

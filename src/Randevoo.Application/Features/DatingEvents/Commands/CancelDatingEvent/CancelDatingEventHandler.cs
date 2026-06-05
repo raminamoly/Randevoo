@@ -1,3 +1,4 @@
+using System.Text.Json;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using Randevoo.Application.Interfaces.Auditing;
@@ -37,6 +38,7 @@ public class CancelDatingEventHandler : IRequestHandler<CancelDatingEventCommand
         if (datingEvent.EventPlannerUserId != actor.Id && actor.Role != UserRole.Admin)
             throw new BusinessRuleViolationException("Access denied", "Only owner or admin can cancel event");
 
+        var beforeSnapshot = CreateSnapshot(datingEvent);
         var tickets = datingEvent.Cancel();
         var refundCount = 0;
         var refundTotal = 0m;
@@ -53,15 +55,25 @@ public class CancelDatingEventHandler : IRequestHandler<CancelDatingEventCommand
 
         await _auditLogger.LogAsync(new AuditLogEntry(
             actor.Id,
-            "DatingEventCancelled",
+            "EventCancelled",
             "DatingEvent",
             datingEvent.Id.ToString(),
-            null,
-            $"{{\"refundCount\":{refundCount},\"refundTotal\":{refundTotal}}}",
-            "Event cancellation"), cancellationToken);
+            JsonSerializer.Serialize(beforeSnapshot),
+            JsonSerializer.Serialize(new { Event = CreateSnapshot(datingEvent), refundCount, refundTotal }),
+            "رویداد لغو شد و بلیت‌های معتبر برگشت خوردند."), cancellationToken);
 
         await _events.UpdateAsync(datingEvent, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         _logger.LogWarning("Actor {ActorUserId} cancelled event {EventId}; refunded {RefundCount} tickets totaling {RefundTotal}", actor.Id, datingEvent.Id, refundCount, refundTotal);
     }
+
+    private static object CreateSnapshot(Randevoo.Domain.Entities.DatingEvent datingEvent) => new
+    {
+        datingEvent.Id,
+        datingEvent.Title,
+        datingEvent.ReviewStatus,
+        datingEvent.IsOpenForSell,
+        datingEvent.IsCancelled,
+        OperationalStatus = datingEvent.ResolveOperationalStatus(DateTime.UtcNow)
+    };
 }

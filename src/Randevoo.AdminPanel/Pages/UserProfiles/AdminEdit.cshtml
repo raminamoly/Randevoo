@@ -38,7 +38,7 @@
                 </div>
                 <div class="col-md-6">
                     <label asp-for="ProfileInput.MobileNumber" class="form-label">موبایل</label>
-                    <input asp-for="ProfileInput.MobileNumber" class="form-control" dir="ltr" />
+                    <input asp-for="ProfileInput.MobileNumber" class="form-control" type="tel" inputmode="tel" autocomplete="tel" dir="ltr" />
                     <span asp-validation-for="ProfileInput.MobileNumber" class="text-danger small"></span>
                 </div>
                 <div class="col-md-4">

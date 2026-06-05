@@ -56,11 +56,15 @@
                         <td class="text-end table-action-cell">
                             <div class="dropdown">
                                 <button class="btn btn-sm btn-outline-secondary dropdown-toggle table-action-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                    اقدام ها
+                                    عملیات
                                 </button>
                                 <div class="dropdown-menu dropdown-menu-end action-menu shadow-sm border-0">
-                                    <a asp-page="/Planner/Review" asp-route-id="@item.UserId" class="dropdown-item">بررسی و تایید</a>
-                                    <a asp-page="/Planner/Details" asp-route-id="@item.UserId" class="dropdown-item">نمایش عمومی</a>
+                                    <a asp-page="/Planner/Review" asp-route-id="@item.UserId" class="dropdown-item">
+                                        <i class="bi bi-patch-check"></i>بررسی و تایید
+                                    </a>
+                                    <a asp-page="/Planner/Details" asp-route-id="@item.UserId" class="dropdown-item">
+                                        <i class="bi bi-person-vcard"></i>نمایش عمومی
+                                    </a>
                                 </div>
                             </div>
                         </td>

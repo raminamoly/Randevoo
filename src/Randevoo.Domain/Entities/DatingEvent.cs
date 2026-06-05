@@ -3,6 +3,7 @@ using Randevoo.Domain.Enums;
 using Randevoo.Domain.Events;
 using Randevoo.Domain.Exceptions;
 using Randevoo.Domain.ValueObjects;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Randevoo.Domain.Entities;
 
@@ -11,6 +12,7 @@ public class DatingEvent : BaseEntity, IAggregateRoot
     private readonly List<EventTicket> _tickets = new();
     private readonly List<EventTag> _eventTags = new();
     private readonly List<EventFaq> _faqs = new();
+    private readonly List<EventDiscountCode> _discountCodes = new();
 
     public string Title { get; private set; } = null!;
     public Location Location { get; private set; } = null!;
@@ -33,13 +35,17 @@ public class DatingEvent : BaseEntity, IAggregateRoot
     public AgeRange AgeRangeForFemale { get; private set; } = null!;
     public bool IsOpenForSell { get; private set; }
     public bool IsCancelled { get; private set; }
+    public EventReviewStatus ReviewStatus { get; private set; }
     public long EventPlannerUserId { get; private set; }
     public User EventPlannerUser { get; private set; } = null!;
     public decimal EventPlannerCommissionPercent { get; private set; }
     public int MaleCapacity { get; private set; }
     public int FemaleCapacity { get; private set; }
-    public int NumberOfChatAllowed { get; private set; }
-    public decimal TicketPrice { get; private set; }
+    public int NumberOfLikesAllowed { get; private set; }
+    public decimal MaleTicketPrice { get; private set; }
+    public decimal FemaleTicketPrice { get; private set; }
+    [NotMapped]
+    public decimal TicketPrice => Math.Min(MaleTicketPrice, FemaleTicketPrice);
     public EventEducationLevelRestriction EducationLevelRestriction { get; private set; }
     public long? MinimumEducationLevelId { get; private set; }
     public EducationLevelLookup? MinimumEducationLevel { get; private set; }
@@ -55,6 +61,9 @@ public class DatingEvent : BaseEntity, IAggregateRoot
     public IReadOnlyList<EventTicket> Tickets => _tickets.AsReadOnly();
     public IReadOnlyList<EventTag> EventTags => _eventTags.AsReadOnly();
     public IReadOnlyList<EventFaq> Faqs => _faqs.AsReadOnly();
+    public IReadOnlyList<EventDiscountCode> DiscountCodes => _discountCodes.AsReadOnly();
+    [NotMapped]
+    public EventOperationalStatus OperationalStatus => ResolveOperationalStatus(DateTime.UtcNow);
 
     private DatingEvent() { }
 
@@ -71,7 +80,8 @@ public class DatingEvent : BaseEntity, IAggregateRoot
         int maleCapacity,
         int femaleCapacity,
         int numberOfChatAllowed,
-        decimal ticketPrice,
+        decimal maleTicketPrice,
+        decimal femaleTicketPrice,
         EventEducationLevelRestriction educationLevelRestriction,
         IReadOnlyCollection<string>? tags,
         string? eventImage1,
@@ -84,14 +94,22 @@ public class DatingEvent : BaseEntity, IAggregateRoot
         if (eventPlannerUser.Role != UserRole.EventPlanner && eventPlannerUser.Role != UserRole.Admin)
             throw new BusinessRuleViolationException("Invalid event planner", "Only event planners can own dating events");
 
-        SetCoreDetails(title, location, address, dateTimeStart, dateTimeEnd, eventType, ageRangeForMale, ageRangeForFemale, maleCapacity, femaleCapacity, numberOfChatAllowed, ticketPrice, educationLevelRestriction, tags, eventImage1, eventImage2, eventImage3, eventDescriptionHtml);
+        SetCoreDetails(title, location, address, dateTimeStart, dateTimeEnd, eventType, ageRangeForMale, ageRangeForFemale, maleCapacity, femaleCapacity, numberOfChatAllowed, maleTicketPrice, femaleTicketPrice, educationLevelRestriction, tags, eventImage1, eventImage2, eventImage3, eventDescriptionHtml);
         SetCommissionPercent(eventPlannerCommissionPercent);
         IsOpenForSell = false;
         IsCancelled = false;
+        ReviewStatus = EventReviewStatus.NotSubmitted;
         AddDomainEvent(new EntityCreatedEvent<DatingEvent>(this));
     }
 
-    public EventTicket SellTicket(User buyer, UserProfile buyerProfile)
+    public decimal GetTicketPriceForGender(Gender gender) => gender switch
+    {
+        Gender.Male => MaleTicketPrice,
+        Gender.Female => FemaleTicketPrice,
+        _ => throw new BusinessRuleViolationException("Unsupported gender", "Ticket pricing is not available for this user gender.")
+    };
+
+    public EventTicket SellTicket(User buyer, UserProfile buyerProfile, decimal? finalPriceOverride = null, EventDiscountCode? discountCode = null)
     {
         if (!IsOpenForSell || IsCancelled)
             throw new BusinessRuleViolationException("Event is not open", "Tickets cannot be sold for this event");
@@ -114,7 +132,12 @@ public class DatingEvent : BaseEntity, IAggregateRoot
         if (!MeetsEducationRestriction(buyerProfile))
             throw new BusinessRuleViolationException("Education level not eligible", "User education level does not meet this event's minimum requirement");
 
-        var ticket = new EventTicket(this, buyer, buyerProfile.Gender, TicketPrice);
+        var basePrice = GetTicketPriceForGender(buyerProfile.Gender);
+        var finalPrice = finalPriceOverride.HasValue
+            ? GuardAgainst.Number.OutOfRange(finalPriceOverride.Value, nameof(finalPriceOverride), 0.01m, basePrice)
+            : basePrice;
+
+        var ticket = new EventTicket(this, buyer, buyerProfile.Gender, basePrice, finalPrice, discountCode);
         _tickets.Add(ticket);
         UpdateTimestamp();
         return ticket;
@@ -139,7 +162,8 @@ public class DatingEvent : BaseEntity, IAggregateRoot
         int maleCapacity,
         int femaleCapacity,
         int numberOfChatAllowed,
-        decimal ticketPrice,
+        decimal maleTicketPrice,
+        decimal femaleTicketPrice,
         EventEducationLevelRestriction educationLevelRestriction,
         IReadOnlyCollection<string>? tags,
         string? eventImage1,
@@ -162,14 +186,16 @@ public class DatingEvent : BaseEntity, IAggregateRoot
             maleCapacity,
             femaleCapacity,
             numberOfChatAllowed,
-            ticketPrice,
+            maleTicketPrice,
+            femaleTicketPrice,
             educationLevelRestriction,
             tags,
             eventImage1,
             eventImage2,
             eventImage3,
-            eventDescriptionHtml);
+                eventDescriptionHtml);
 
+        SubmitForReview();
         UpdateTimestamp();
     }
 
@@ -187,6 +213,12 @@ public class DatingEvent : BaseEntity, IAggregateRoot
     {
         if (IsCancelled)
             throw new BusinessRuleViolationException("Event cancelled", "Cancelled events cannot be opened");
+
+        if (ReviewStatus != EventReviewStatus.Approved)
+            throw new BusinessRuleViolationException("Event is not approved", "Only admin approved events can be opened for sale");
+
+        if (DateTimeEnd <= DateTime.UtcNow)
+            throw new BusinessRuleViolationException("Event closed", "Closed events cannot be opened for sale");
 
         IsOpenForSell = true;
         UpdateTimestamp();
@@ -208,6 +240,49 @@ public class DatingEvent : BaseEntity, IAggregateRoot
         return _tickets;
     }
 
+    public void SubmitForReview()
+    {
+        if (IsCancelled)
+            throw new BusinessRuleViolationException("Event cancelled", "Cancelled events cannot be submitted for review");
+
+        ReviewStatus = EventReviewStatus.PendingReview;
+        IsOpenForSell = false;
+        UpdateTimestamp();
+    }
+
+    public void ApproveByAdmin()
+    {
+        if (IsCancelled)
+            throw new BusinessRuleViolationException("Event cancelled", "Cancelled events cannot be approved");
+
+        ReviewStatus = EventReviewStatus.Approved;
+        UpdateTimestamp();
+    }
+
+    public void RejectByAdmin()
+    {
+        if (IsCancelled)
+            throw new BusinessRuleViolationException("Event cancelled", "Cancelled events cannot be rejected");
+
+        ReviewStatus = EventReviewStatus.Rejected;
+        IsOpenForSell = false;
+        UpdateTimestamp();
+    }
+
+    public EventOperationalStatus ResolveOperationalStatus(DateTime nowUtc)
+    {
+        if (IsCancelled)
+            return EventOperationalStatus.Cancelled;
+
+        if (DateTimeEnd <= nowUtc)
+            return EventOperationalStatus.Closed;
+
+        if (IsOpenForSell)
+            return EventOperationalStatus.Selling;
+
+        return EventOperationalStatus.Draft;
+    }
+
     public void SetCommissionPercent(decimal percent)
     {
         EventPlannerCommissionPercent = GuardAgainst.Number.OutOfRange(percent, nameof(percent), 0, 100);
@@ -226,7 +301,8 @@ public class DatingEvent : BaseEntity, IAggregateRoot
         int maleCapacity,
         int femaleCapacity,
         int numberOfChatAllowed,
-        decimal ticketPrice,
+        decimal maleTicketPrice,
+        decimal femaleTicketPrice,
         EventEducationLevelRestriction educationLevelRestriction,
         IReadOnlyCollection<string>? tags,
         string? eventImage1,
@@ -248,8 +324,9 @@ public class DatingEvent : BaseEntity, IAggregateRoot
         AgeRangeForFemale = GuardAgainst.Object.Null(ageRangeForFemale, nameof(ageRangeForFemale));
         MaleCapacity = GuardAgainst.Number.Positive(maleCapacity, nameof(maleCapacity));
         FemaleCapacity = GuardAgainst.Number.Positive(femaleCapacity, nameof(femaleCapacity));
-        NumberOfChatAllowed = GuardAgainst.Number.OutOfRange(numberOfChatAllowed, nameof(numberOfChatAllowed), 0, 100);
-        TicketPrice = GuardAgainst.Number.OutOfRange(ticketPrice, nameof(ticketPrice), 0.01m, 1_000_000m);
+        NumberOfLikesAllowed = GuardAgainst.Number.OutOfRange(numberOfChatAllowed, nameof(numberOfChatAllowed), 0, 10);
+        MaleTicketPrice = GuardAgainst.Number.OutOfRange(maleTicketPrice, nameof(maleTicketPrice), 0.01m, 1_000_000m);
+        FemaleTicketPrice = GuardAgainst.Number.OutOfRange(femaleTicketPrice, nameof(femaleTicketPrice), 0.01m, 1_000_000m);
         EducationLevelRestriction = GuardAgainst.Number.AgainstInvalidEnum<EventEducationLevelRestriction>((int)educationLevelRestriction, nameof(educationLevelRestriction));
         MinimumEducationLevelId = MapRestrictionEducationLevelId(EducationLevelRestriction);
         EventImage1 = NormalizeImage(eventImage1, nameof(eventImage1));
@@ -291,6 +368,40 @@ public class DatingEvent : BaseEntity, IAggregateRoot
         CountryId = countryId;
         CityId = cityId;
         UpdateTimestamp();
+    }
+
+    public EventDiscountCode AddDiscountCode(
+        string code,
+        EventDiscountGenderScope genderScope,
+        EventDiscountType discountType,
+        decimal value,
+        DateTime startsAtUtc,
+        DateTime endsAtUtc,
+        int maxUsageCount,
+        bool isActive,
+        string? title = null,
+        string? description = null)
+    {
+        var normalizedCode = code.Trim().ToUpperInvariant();
+        if (_discountCodes.Any(item => item.Code == normalizedCode))
+            throw new BusinessRuleViolationException("Duplicate discount code", "Discount code already exists for this event.");
+
+        var discountCode = new EventDiscountCode(
+            this,
+            normalizedCode,
+            genderScope,
+            discountType,
+            value,
+            startsAtUtc,
+            endsAtUtc,
+            maxUsageCount,
+            isActive,
+            title,
+            description);
+
+        _discountCodes.Add(discountCode);
+        UpdateTimestamp();
+        return discountCode;
     }
 
     public void ReplaceTags(IEnumerable<Tag> tags)

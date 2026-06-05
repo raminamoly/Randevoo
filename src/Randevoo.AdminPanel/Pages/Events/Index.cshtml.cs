@@ -34,7 +34,8 @@ public class IndexModel : PageModel
         || TagId is not null
         || !string.IsNullOrWhiteSpace(City)
         || EventModeId is not null
-        || Status is not null
+        || OperationalStatus is not null
+        || ReviewStatus is not null
         || !string.IsNullOrWhiteSpace(FromDate)
         || !string.IsNullOrWhiteSpace(ToDate)
         || !string.Equals(Sort, "updated-desc", StringComparison.OrdinalIgnoreCase);
@@ -52,7 +53,10 @@ public class IndexModel : PageModel
     public long? EventModeId { get; set; }
 
     [BindProperty(SupportsGet = true)]
-    public EventApprovalState? Status { get; set; }
+    public EventOperationalStatus? OperationalStatus { get; set; }
+
+    [BindProperty(SupportsGet = true)]
+    public EventReviewStatus? ReviewStatus { get; set; }
 
     [BindProperty(SupportsGet = true)]
     public string? FromDate { get; set; }
@@ -82,7 +86,9 @@ public class IndexModel : PageModel
 
     public SelectList EventModeOptions { get; private set; } = new(Array.Empty<object>());
 
-    public SelectList StatusOptions { get; private set; } = new(Array.Empty<object>());
+    public SelectList OperationalStatusOptions { get; private set; } = new(Array.Empty<object>());
+
+    public SelectList ReviewStatusOptions { get; private set; } = new(Array.Empty<object>());
 
     public SelectList SortOptions { get; private set; } = new(Array.Empty<object>());
 
@@ -109,8 +115,11 @@ public class IndexModel : PageModel
         if (EventModeId is long eventModeId)
             events = events.Where(item => item.ActiveDraft.EventModeId == eventModeId);
 
-        if (Status is EventApprovalState status)
-            events = events.Where(item => item.Status == status);
+        if (OperationalStatus is EventOperationalStatus operationalStatus)
+            events = events.Where(item => item.OperationalStatus == operationalStatus);
+
+        if (ReviewStatus is EventReviewStatus reviewStatus)
+            events = events.Where(item => item.ReviewStatus == reviewStatus);
 
         if (PersianDateFormatter.TryParseDate(FromDate, IsRtl, out var fromDate))
             events = events.Where(item => item.ActiveDraft.StartAtUtc.Date >= fromDate.UtcDateTime.Date);
@@ -123,8 +132,8 @@ public class IndexModel : PageModel
             "start-asc" => events.OrderBy(item => item.ActiveDraft.StartAtUtc),
             "start-desc" => events.OrderByDescending(item => item.ActiveDraft.StartAtUtc),
             "title-asc" => events.OrderBy(item => item.DisplayTitle),
-            "price-desc" => events.OrderByDescending(item => item.ActiveDraft.TicketPrice),
-            "price-asc" => events.OrderBy(item => item.ActiveDraft.TicketPrice),
+            "price-desc" => events.OrderByDescending(item => Math.Max(item.ActiveDraft.MaleTicketPrice, item.ActiveDraft.FemaleTicketPrice)),
+            "price-asc" => events.OrderBy(item => Math.Min(item.ActiveDraft.MaleTicketPrice, item.ActiveDraft.FemaleTicketPrice)),
             _ => events.OrderByDescending(item => item.UpdatedAtUtc)
         };
 
@@ -148,15 +157,20 @@ public class IndexModel : PageModel
             .ToList();
         CityOptions = new SelectList(cities, "Name", "Name", City);
         EventModeOptions = new SelectList(await _eventsApi.GetEventModesAsync(), "Id", "Name", EventModeId);
-        StatusOptions = new SelectList(new[]
+        OperationalStatusOptions = new SelectList(new[]
         {
-            new { Value = EventApprovalState.Draft.ToString(), Text = "پیش نویس" },
-            new { Value = EventApprovalState.Approved.ToString(), Text = "تایید شده" },
-            new { Value = EventApprovalState.PendingAdminReview.ToString(), Text = "در انتظار تایید" },
-            new { Value = EventApprovalState.Rejected.ToString(), Text = "رد شده" },
-            new { Value = EventApprovalState.Closed.ToString(), Text = "تمام شده" },
-            new { Value = EventApprovalState.Cancelled.ToString(), Text = "لغو شده" }
-        }, "Value", "Text", Status?.ToString());
+            new { Value = EventOperationalStatus.Draft.ToString(), Text = "پیش‌نویس" },
+            new { Value = EventOperationalStatus.Selling.ToString(), Text = "در حال فروش" },
+            new { Value = EventOperationalStatus.Closed.ToString(), Text = "تمام شده" },
+            new { Value = EventOperationalStatus.Cancelled.ToString(), Text = "لغو شده" }
+        }, "Value", "Text", OperationalStatus?.ToString());
+        ReviewStatusOptions = new SelectList(new[]
+        {
+            new { Value = EventReviewStatus.NotSubmitted.ToString(), Text = "ارسال نشده" },
+            new { Value = EventReviewStatus.PendingReview.ToString(), Text = "در انتظار بررسی" },
+            new { Value = EventReviewStatus.Approved.ToString(), Text = "تایید شده توسط مدیر" },
+            new { Value = EventReviewStatus.Rejected.ToString(), Text = "رد شده توسط مدیر" }
+        }, "Value", "Text", ReviewStatus?.ToString());
         SortOptions = new SelectList(new[]
         {
             new { Value = "updated-desc", Text = "آخرین تغییر" },
@@ -168,13 +182,7 @@ public class IndexModel : PageModel
         }, "Value", "Text", Sort);
     }
 
-    public string GetStatusClass(EventApprovalState state) => state switch
-    {
-        EventApprovalState.Approved => "status-approved",
-        EventApprovalState.PendingAdminReview => "status-pending",
-        EventApprovalState.Rejected => "status-rejected",
-        EventApprovalState.Closed => "status-closed",
-        EventApprovalState.Cancelled => "status-cancelled",
-        _ => "status-draft"
-    };
+    public string GetOperationalStatusClass(EventOperationalStatus status) => DisplayFormatter.OperationalStatusClass(status);
+
+    public string GetReviewStatusClass(EventReviewStatus status) => DisplayFormatter.ReviewStatusClass(status);
 }

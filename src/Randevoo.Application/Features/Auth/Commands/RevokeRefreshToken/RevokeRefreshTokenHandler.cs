@@ -1,4 +1,5 @@
 using MediatR;
+using Randevoo.Application.Interfaces.Auditing;
 using Randevoo.Application.Interfaces.Auth;
 using Randevoo.Domain.Exceptions;
 using Randevoo.Domain.Interfaces;
@@ -11,12 +12,14 @@ public class RevokeRefreshTokenHandler : IRequestHandler<RevokeRefreshTokenComma
     private readonly IRefreshTokenRepository _refreshTokens;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICodeHasher _codeHasher;
+    private readonly IAuditLogger _auditLogger;
 
-    public RevokeRefreshTokenHandler(IRefreshTokenRepository refreshTokens, IUnitOfWork unitOfWork, ICodeHasher codeHasher)
+    public RevokeRefreshTokenHandler(IRefreshTokenRepository refreshTokens, IUnitOfWork unitOfWork, ICodeHasher codeHasher, IAuditLogger auditLogger)
     {
         _refreshTokens = refreshTokens;
         _unitOfWork = unitOfWork;
         _codeHasher = codeHasher;
+        _auditLogger = auditLogger;
     }
 
     public async Task Handle(RevokeRefreshTokenCommand request, CancellationToken cancellationToken)
@@ -27,5 +30,14 @@ public class RevokeRefreshTokenHandler : IRequestHandler<RevokeRefreshTokenComma
         token.Revoke(DateTime.UtcNow);
         await _refreshTokens.UpdateAsync(token, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+        await _auditLogger.TryLogAsync(new AuditLogEntry(
+            ActorUserId: token.UserId,
+            Action: "MobileLogoutSucceeded",
+            TargetType: "RefreshToken",
+            TargetId: token.Id.ToString(),
+            LogType: "logout",
+            Module: "auth",
+            Description: "Refresh token revoked during logout.",
+            Status: "success"), cancellationToken);
     }
 }

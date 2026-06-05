@@ -5,9 +5,15 @@
 }
 
 <header class="admin-topbar">
-    <div class="d-flex align-items-center gap-3">
-        <button class="btn btn-link d-lg-none p-0 sidebar-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarCollapse" aria-label="باز کردن منو">
-            <i class="bi bi-list"></i>
+    <div class="topbar-leading d-flex align-items-center gap-3">
+        <button class="btn btn-light d-lg-none sidebar-toggle"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#sidebarCollapse"
+                aria-controls="sidebarCollapse"
+                aria-expanded="false"
+                aria-label="باز کردن منو">
+            <i class="bi bi-list" aria-hidden="true"></i>
         </button>
         <img src="~/images/logo.png" alt="راندوو" class="topbar-logo" />
         <div>
@@ -18,9 +24,9 @@
 
     <div class="topbar-actions">
         <div class="dropdown">
-            <button class="btn topbar-user-toggle dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <button class="btn topbar-user-toggle dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="منوی حساب کاربری">
                 <span class="user-chip">
-                    <i class="bi bi-person-circle"></i>
+                    <i class="bi bi-person-circle" aria-hidden="true"></i>
                     <span>
                         <strong>@(user?.FullName ?? "میهمان")</strong>
                         <small>@role</small>
@@ -34,7 +40,7 @@
                 </div>
                 <div class="dropdown-divider"></div>
                 <a class="dropdown-item" asp-page="/Account/Logout">
-                    <i class="bi bi-box-arrow-right ms-2"></i>خروج از حساب
+                    <i class="bi bi-box-arrow-right" aria-hidden="true"></i>خروج از حساب
                 </a>
             </div>
         </div>

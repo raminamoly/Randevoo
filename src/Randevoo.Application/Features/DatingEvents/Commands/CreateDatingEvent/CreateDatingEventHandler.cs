@@ -55,8 +55,9 @@ public class CreateDatingEventHandler : IRequestHandler<CreateDatingEventCommand
             new AgeRange(input.FemaleMinAge, input.FemaleMaxAge),
             input.MaleCapacity,
             input.FemaleCapacity,
-            input.NumberOfChatAllowed,
-            input.TicketPrice,
+            input.NumberOfLikesAllowed,
+            input.MaleTicketPrice,
+            input.FemaleTicketPrice,
             input.EducationLevelRestriction,
             input.Tags,
             input.EventImage1,
@@ -66,6 +67,7 @@ public class CreateDatingEventHandler : IRequestHandler<CreateDatingEventCommand
             input.EventPlannerCommissionPercent ?? 10);
         var (countryId, cityId) = MapLocationIds(input.Country, input.City);
         datingEvent.SetLocationLookup(countryId, cityId);
+        datingEvent.SubmitForReview();
 
         await _events.AddAsync(datingEvent, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);

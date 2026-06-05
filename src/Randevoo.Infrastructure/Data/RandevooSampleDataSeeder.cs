@@ -25,11 +25,15 @@ public static class RandevooSampleDataSeeder
 
         var admin = await EnsureUserAsync(db, "09125177721", UserRole.Admin, cancellationToken);
         var planner = await EnsureUserAsync(db, "09125550000", UserRole.EventPlanner, cancellationToken);
+        var plannerTwo = await EnsureUserAsync(db, "09125550001", UserRole.EventPlanner, cancellationToken);
+        var plannerThree = await EnsureUserAsync(db, "09125550002", UserRole.EventPlanner, cancellationToken);
         var guestOne = await EnsureUserAsync(db, "09123334455", UserRole.EndUser, cancellationToken);
         var guestTwo = await EnsureUserAsync(db, "09124445566", UserRole.EndUser, cancellationToken);
 
         EnsureProfile(admin, "مدیر راندوو", new DateOnly(1988, 4, 12), Gender.Male, "تهران", "ونک");
         EnsureProfile(planner, "پویا فرهی", new DateOnly(1991, 7, 23), Gender.Male, "تهران", "ولیعصر");
+        EnsureProfile(plannerTwo, "هانیه صدر", new DateOnly(1990, 10, 9), Gender.Female, "شیراز", "معالی آباد");
+        EnsureProfile(plannerThree, "سام راد", new DateOnly(1989, 6, 1), Gender.Male, "اصفهان", "جلفا");
         EnsureProfile(guestOne, "آرزو", new DateOnly(1997, 9, 2), Gender.Female, "تهران", "جردن");
         EnsureProfile(guestTwo, "کیان", new DateOnly(1995, 2, 14), Gender.Male, "تهران", "یوسف آباد");
         guestOne.Profile?.UpdateEducationLevel(EducationLevel.Graduated);
@@ -38,13 +42,19 @@ public static class RandevooSampleDataSeeder
         await db.SaveChangesAsync(cancellationToken);
 
         EnsurePlannerProfile(db, planner);
+        EnsurePlannerProfile(db, plannerTwo);
+        EnsurePlannerProfile(db, plannerThree);
         EnsureBalance(db, admin, 50000000m, "شارژ اولیه مدیر");
         EnsureBalance(db, planner, 25000000m, "شارژ اولیه برگزارکننده");
+        EnsureBalance(db, plannerTwo, 18000000m, "شارژ اولیه برگزارکننده");
+        EnsureBalance(db, plannerThree, 18000000m, "شارژ اولیه برگزارکننده");
         EnsureBalance(db, guestOne, 12000000m, "شارژ نمونه کاربر");
         EnsureBalance(db, guestTwo, 12000000m, "شارژ نمونه کاربر");
 
         await db.SaveChangesAsync(cancellationToken);
         await EnsurePlannerBankAccountsAsync(db, planner, cancellationToken);
+        await EnsurePlannerBankAccountsAsync(db, plannerTwo, cancellationToken);
+        await EnsurePlannerBankAccountsAsync(db, plannerThree, cancellationToken);
 
         var eventTypes = await EnsureEventTypesAsync(db, cancellationToken);
         var tags = await EnsureTagsAsync(db, cancellationToken);
@@ -64,8 +74,9 @@ public static class RandevooSampleDataSeeder
                 new AgeRange(25, 35),
                 40,
                 40,
-                80,
+                10,
                 950000m,
+                850000m,
                 EventEducationLevelRestriction.WithoutLimit,
                 new[] { "اجتماعی", "حضوری", "منتخب", "تهران" },
                 "/images/logo.png",
@@ -75,6 +86,7 @@ public static class RandevooSampleDataSeeder
                 12m);
 
             socialEvent.SetLocationLookup(1, 1);
+            socialEvent.ApproveByAdmin();
             socialEvent.OpenForSell();
 
             var dinnerEvent = new DatingEvent(
@@ -89,7 +101,8 @@ public static class RandevooSampleDataSeeder
                 new AgeRange(20, 30),
                 30,
                 30,
-                60,
+                10,
+                980000m,
                 880000m,
                 EventEducationLevelRestriction.BachelorOrHigher,
                 new[] { "شام", "روف تاپ", "ویژه", "تهران" },
@@ -100,6 +113,7 @@ public static class RandevooSampleDataSeeder
                 15m);
 
             dinnerEvent.SetLocationLookup(1, 1);
+            dinnerEvent.SubmitForReview();
             db.DatingEvents.AddRange(socialEvent, dinnerEvent);
             await db.SaveChangesAsync(cancellationToken);
             socialEvent.ReplaceTags(tags.Values.Where(tag => tag.Name is "شب اجتماعی" or "بازی").ToList());
@@ -109,21 +123,27 @@ public static class RandevooSampleDataSeeder
             var guestOneBalance = await db.BalanceAccounts.SingleAsync(item => item.UserId == guestOne.Id, cancellationToken);
             var guestTwoBalance = await db.BalanceAccounts.SingleAsync(item => item.UserId == guestTwo.Id, cancellationToken);
 
-            socialEvent.SellTicket(guestOne, guestOne.Profile!);
-            socialEvent.SellTicket(guestTwo, guestTwo.Profile!);
+            var guestOneTicket = socialEvent.SellTicket(guestOne, guestOne.Profile!);
+            var guestTwoTicket = socialEvent.SellTicket(guestTwo, guestTwo.Profile!);
 
-            guestOneBalance.Debit(950000m, BalanceTransactionType.TicketPurchase, "خرید بلیت شب اجتماعی تهران", socialEvent.Id);
-            guestTwoBalance.Debit(950000m, BalanceTransactionType.TicketPurchase, "خرید بلیت شب اجتماعی تهران", socialEvent.Id);
-            plannerBalance.Credit(1900000m, BalanceTransactionType.EventPlannerIncome, "فروش نمونه بلیت رویداد", socialEvent.Id);
+            guestOneBalance.Debit(guestOneTicket.Price, BalanceTransactionType.TicketPurchase, "خرید بلیت شب اجتماعی تهران", socialEvent.Id);
+            guestTwoBalance.Debit(guestTwoTicket.Price, BalanceTransactionType.TicketPurchase, "خرید بلیت شب اجتماعی تهران", socialEvent.Id);
+            plannerBalance.Credit(
+                (guestOneTicket.Price + guestTwoTicket.Price) * (100 - socialEvent.EventPlannerCommissionPercent) / 100,
+                BalanceTransactionType.EventPlannerIncome,
+                "فروش نمونه بلیت رویداد",
+                socialEvent.Id);
 
             db.DatingEvents.Update(socialEvent);
             db.BalanceAccounts.UpdateRange(plannerBalance, guestOneBalance, guestTwoBalance);
         }
 
         await EnsureSampleEventTagsAsync(db, tags, cancellationToken);
+        await EnsureExpandedSampleEventsAsync(db, new[] { planner, plannerTwo, plannerThree }, eventTypes, tags, cancellationToken);
+        await EnsureSampleDiscountCodesAsync(db, cancellationToken);
 
         await db.SaveChangesAsync(cancellationToken);
-        await EnsureSampleTicketsAsync(db, planner, sampleUsers.Append(guestOne).Append(guestTwo).ToList(), cancellationToken);
+        await EnsureSampleTicketsAsync(db, sampleUsers.Append(guestOne).Append(guestTwo).ToList(), cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
         await EnsureSampleSurveysAndConversationsAsync(db, cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
@@ -131,6 +151,10 @@ public static class RandevooSampleDataSeeder
         await db.SaveChangesAsync(cancellationToken);
 
         await EnsureEventSmsRequestsAsync(db, admin, planner, guestOne, guestTwo, cancellationToken);
+        await EnsureSampleActivityLogsAsync(
+            db,
+            new[] { admin, planner, plannerTwo, plannerThree, guestOne, guestTwo }.Concat(sampleUsers).ToList(),
+            cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
     }
 
@@ -222,23 +246,20 @@ public static class RandevooSampleDataSeeder
         return existing.ToDictionary(item => item.Name, StringComparer.Ordinal);
     }
 
-    private static async Task EnsureSampleTicketsAsync(RandevooDbContext db, User planner, IReadOnlyList<User> sampleUsers, CancellationToken cancellationToken)
+    private static async Task EnsureSampleTicketsAsync(RandevooDbContext db, IReadOnlyList<User> sampleUsers, CancellationToken cancellationToken)
     {
         var events = await db.DatingEvents
             .Include(item => item.Tickets)
             .Include(item => item.EventPlannerUser)
-            .Where(item => item.Title == "شب اجتماعی تهران" || item.Title == "پیش نمایش شام روف تاپ")
-            .OrderBy(item => item.Title)
+            .Include(item => item.DiscountCodes)
+            .Where(item => item.IsOpenForSell && !item.IsCancelled)
+            .OrderBy(item => item.DateTimeStart)
             .ToListAsync(cancellationToken);
         if (events.Count == 0)
             return;
 
-        foreach (var datingEvent in events)
-        {
-            if (!datingEvent.IsOpenForSell)
-                datingEvent.OpenForSell();
-        }
-
+        var purchaseOffsets = new[] { 75, 63, 49, 41, 32, 24, 18, 12, 9, 5, 3, 1 };
+        var purchaseIndex = 0;
         foreach (var user in sampleUsers)
         {
             var userWithProfile = await db.Users
@@ -253,11 +274,17 @@ public static class RandevooSampleDataSeeder
                     continue;
 
                 var buyerBalance = await db.BalanceAccounts.SingleAsync(item => item.UserId == userWithProfile.Id, cancellationToken);
-                var plannerBalance = await db.BalanceAccounts.SingleAsync(item => item.UserId == planner.Id, cancellationToken);
+                var plannerBalance = await db.BalanceAccounts.SingleAsync(item => item.UserId == datingEvent.EventPlannerUserId, cancellationToken);
                 EventTicket ticket;
                 try
                 {
-                    ticket = datingEvent.SellTicket(userWithProfile, userWithProfile.Profile);
+                    var discountCode = datingEvent.DiscountCodes
+                        .Where(item => item.IsActive && item.AllowsGender(userWithProfile.Profile.Gender))
+                        .FirstOrDefault();
+                    var basePrice = datingEvent.GetTicketPriceForGender(userWithProfile.Profile.Gender);
+                    var discountedPrice = discountCode?.CalculateDiscountedPrice(basePrice);
+                    ticket = datingEvent.SellTicket(userWithProfile, userWithProfile.Profile, discountedPrice);
+                    discountCode?.RegisterUsage(DateTime.UtcNow);
                 }
                 catch (BusinessRuleViolationException)
                 {
@@ -270,6 +297,10 @@ public static class RandevooSampleDataSeeder
 
                 db.DatingEvents.Update(datingEvent);
                 db.BalanceAccounts.UpdateRange(buyerBalance, plannerBalance);
+                var createdAt = DateTime.UtcNow.Date.AddDays(-purchaseOffsets[purchaseIndex % purchaseOffsets.Length]).AddHours(15 + (purchaseIndex % 4));
+                db.Entry(ticket).Property("CreatedAt").CurrentValue = createdAt;
+                db.Entry(ticket).Property("UpdatedAt").CurrentValue = createdAt;
+                purchaseIndex++;
             }
         }
     }
@@ -279,9 +310,10 @@ public static class RandevooSampleDataSeeder
         if (await db.PlannerBankAccounts.AnyAsync(item => item.UserId == planner.Id, cancellationToken))
             return;
 
+        var suffix = planner.Id.ToString("0000");
         db.PlannerBankAccounts.AddRange(
-            new PlannerBankAccount(planner, "6037991234567890", "IR820540102680020817909002", "بانک پارسیان", true),
-            new PlannerBankAccount(planner, "6274121234567890", "IR060120000000000123456789", "بانک اقتصاد نوین", false));
+            new PlannerBankAccount(planner, $"6037991234{suffix}", $"IR82{suffix}0102680020817909002", "بانک پارسیان", true),
+            new PlannerBankAccount(planner, $"6274121234{suffix}", $"IR06{suffix}000000000123456789", "بانک اقتصاد نوین", false));
     }
 
     private static async Task EnsureSampleOnlinePaymentsAsync(RandevooDbContext db, CancellationToken cancellationToken)
@@ -389,6 +421,360 @@ public static class RandevooSampleDataSeeder
         }
     }
 
+    private static async Task EnsureExpandedSampleEventsAsync(
+        RandevooDbContext db,
+        IReadOnlyList<User> planners,
+        IReadOnlyDictionary<string, EventType> eventTypes,
+        IReadOnlyDictionary<string, Tag> tags,
+        CancellationToken cancellationToken)
+    {
+        var eventModeOnline = await db.EventModes.SingleAsync(item => item.Id == 1L, cancellationToken);
+        var platformGoogleMeet = await db.OnlineEventPlatforms.SingleAsync(item => item.Id == 1L, cancellationToken);
+        var plannerByMobile = planners.ToDictionary(item => item.MobileNumber, StringComparer.Ordinal);
+        var definitions = new[]
+        {
+            new
+            {
+                Title = "کافه گفتگوی شیراز",
+                PlannerMobile = "09125550001",
+                EventType = "قرار قهوه",
+                Country = "ایران",
+                City = "شیراز",
+                Region = "معالی آباد",
+                Latitude = 29.6220m,
+                Longitude = 52.5130m,
+                Address = "شیراز، معالی آباد، کافه ویولا",
+                StartsAt = DateTime.UtcNow.Date.AddDays(7).AddHours(16),
+                EndsAt = DateTime.UtcNow.Date.AddDays(7).AddHours(19),
+                MalePrice = 890000m,
+                FemalePrice = 760000m,
+                MaleCapacity = 24,
+                FemaleCapacity = 24,
+                LikeLimit = 10,
+                Education = EventEducationLevelRestriction.WithoutLimit,
+                Tags = new[] { "کافه", "شب اجتماعی" },
+                Description = "<p>یک رویداد کافه محور با گفتگوی هدایت شده و ظرفیت محدود برای آشنایی باکیفیت در شیراز.</p>",
+                OpenForSell = true,
+                Cancelled = false,
+                IsOnline = false,
+                CreatedAt = DateTime.UtcNow.AddDays(-68)
+            },
+            new
+            {
+                Title = "ورکشاپ آشنایی اصفهان",
+                PlannerMobile = "09125550002",
+                EventType = "ورکشاپ",
+                Country = "ایران",
+                City = "اصفهان",
+                Region = "جلفا",
+                Latitude = 32.6330m,
+                Longitude = 51.6510m,
+                Address = "اصفهان، جلفا، خانه تجربه",
+                StartsAt = DateTime.UtcNow.Date.AddDays(14).AddHours(14),
+                EndsAt = DateTime.UtcNow.Date.AddDays(14).AddHours(18),
+                MalePrice = 980000m,
+                FemalePrice = 960000m,
+                MaleCapacity = 28,
+                FemaleCapacity = 28,
+                LikeLimit = 10,
+                Education = EventEducationLevelRestriction.BachelorOrHigher,
+                Tags = new[] { "کارگاه", "هنر" },
+                Description = "<p>ترکیب گفتگو، تمرین تعاملی و بازی های یخ شکن برای مخاطبانی که دنبال آشنایی هدفمندتر هستند.</p>",
+                OpenForSell = true,
+                Cancelled = false,
+                IsOnline = false,
+                CreatedAt = DateTime.UtcNow.AddDays(-54)
+            },
+            new
+            {
+                Title = "گالری عصرانه تهران",
+                PlannerMobile = "09125550000",
+                EventType = "گالری",
+                Country = "ایران",
+                City = "تهران",
+                Region = "الهیه",
+                Latitude = 35.7900m,
+                Longitude = 51.4310m,
+                Address = "تهران، الهیه، گالری آینه",
+                StartsAt = DateTime.UtcNow.Date.AddDays(21).AddHours(15),
+                EndsAt = DateTime.UtcNow.Date.AddDays(21).AddHours(18),
+                MalePrice = 995000m,
+                FemalePrice = 990000m,
+                MaleCapacity = 20,
+                FemaleCapacity = 20,
+                LikeLimit = 10,
+                Education = EventEducationLevelRestriction.WithoutLimit,
+                Tags = new[] { "هنر", "شب اجتماعی" },
+                Description = "<p>بازدید گروهی از نمایشگاه، معرفی کوتاه شرکت کننده ها و زمان کافی برای ادامه گفتگو در فضای کافه گالری.</p>",
+                OpenForSell = true,
+                Cancelled = false,
+                IsOnline = false,
+                CreatedAt = DateTime.UtcNow.AddDays(-33)
+            },
+            new
+            {
+                Title = "قرار قهوه آنلاین",
+                PlannerMobile = "09125550001",
+                EventType = "قرار قهوه",
+                Country = "ایران",
+                City = "تهران",
+                Region = "آنلاین",
+                Latitude = 35.6892m,
+                Longitude = 51.3890m,
+                Address = "لینک ورود پس از خرید نمایش داده می شود.",
+                StartsAt = DateTime.UtcNow.Date.AddDays(5).AddHours(18),
+                EndsAt = DateTime.UtcNow.Date.AddDays(5).AddHours(20),
+                MalePrice = 690000m,
+                FemalePrice = 590000m,
+                MaleCapacity = 40,
+                FemaleCapacity = 40,
+                LikeLimit = 10,
+                Education = EventEducationLevelRestriction.WithoutLimit,
+                Tags = new[] { "کافه", "کارگاه" },
+                Description = "<p>جلسه آنلاین با تقسیم گروهی و زمان بندی کوتاه برای معرفی اولیه و ادامه گفتگو در اتاق های کوچک.</p>",
+                OpenForSell = true,
+                Cancelled = false,
+                IsOnline = true,
+                CreatedAt = DateTime.UtcNow.AddDays(-19)
+            },
+            new
+            {
+                Title = "روف تاپ تابستانی مشهد",
+                PlannerMobile = "09125550002",
+                EventType = "روف تاپ",
+                Country = "ایران",
+                City = "مشهد",
+                Region = "الهیه",
+                Latitude = 36.3250m,
+                Longitude = 59.5420m,
+                Address = "مشهد، الهیه، روف باغ آسمان",
+                StartsAt = DateTime.UtcNow.Date.AddDays(27).AddHours(17),
+                EndsAt = DateTime.UtcNow.Date.AddDays(27).AddHours(21),
+                MalePrice = 1000000m,
+                FemalePrice = 980000m,
+                MaleCapacity = 26,
+                FemaleCapacity = 26,
+                LikeLimit = 10,
+                Education = EventEducationLevelRestriction.DiplomaOrHigher,
+                Tags = new[] { "روف تاپ", "شام" },
+                Description = "<p>رویداد شبانه با پذیرایی سبک، موسیقی ملایم و طراحی جای نشستن برای شروع گفتگوی طبیعی.</p>",
+                OpenForSell = false,
+                Cancelled = false,
+                IsOnline = false,
+                CreatedAt = DateTime.UtcNow.AddDays(-11)
+            },
+            new
+            {
+                Title = "شب بازی تبریز",
+                PlannerMobile = "09125550000",
+                EventType = "شب اجتماعی",
+                Country = "ایران",
+                City = "تبریز",
+                Region = "ولیعصر",
+                Latitude = 38.0710m,
+                Longitude = 46.2950m,
+                Address = "تبریز، ولیعصر، کافه برد",
+                StartsAt = DateTime.UtcNow.Date.AddDays(2).AddHours(16),
+                EndsAt = DateTime.UtcNow.Date.AddDays(2).AddHours(20),
+                MalePrice = 920000m,
+                FemalePrice = 790000m,
+                MaleCapacity = 18,
+                FemaleCapacity = 18,
+                LikeLimit = 10,
+                Education = EventEducationLevelRestriction.WithoutLimit,
+                Tags = new[] { "بازی", "شب اجتماعی" },
+                Description = "<p>قرار بود شب بازی سبک و صمیمی باشد اما به دلیل تغییر برنامه لوکیشن، این رویداد لغو شده است.</p>",
+                OpenForSell = true,
+                Cancelled = true,
+                IsOnline = false,
+                CreatedAt = DateTime.UtcNow.AddDays(-5)
+            }
+        };
+
+        foreach (var definition in definitions)
+        {
+            if (await db.DatingEvents.AnyAsync(item => item.Title == definition.Title, cancellationToken))
+                continue;
+
+            var planner = plannerByMobile[definition.PlannerMobile];
+            var datingEvent = new DatingEvent(
+                planner,
+                definition.Title,
+                new Location(definition.Country, definition.City, new Coordinates(definition.Latitude, definition.Longitude), definition.Region),
+                definition.Address,
+                definition.StartsAt,
+                definition.EndsAt,
+                eventTypes[definition.EventType],
+                new AgeRange(24, 38),
+                new AgeRange(24, 38),
+                definition.MaleCapacity,
+                definition.FemaleCapacity,
+                definition.LikeLimit,
+                definition.MalePrice,
+                definition.FemalePrice,
+                definition.Education,
+                definition.Tags,
+                "/images/logo.png",
+                null,
+                null,
+                definition.Description,
+                12m);
+
+            datingEvent.SetLocationLookup(
+                1,
+                definition.City switch
+                {
+                    "تهران" => 1,
+                    "مشهد" => 2,
+                    "شیراز" => 3,
+                    "اصفهان" => 4,
+                    "تبریز" => 5,
+                    _ => 1
+                });
+
+            if (definition.IsOnline)
+                datingEvent.SetEventDelivery(eventModeOnline, platformGoogleMeet, "https://meet.google.com/randevoo-sample", "لینک ورود ۳۰ دقیقه قبل از شروع فعال می شود.");
+
+            datingEvent.ReplaceTags(tags.Values.Where(tag => definition.Tags.Contains(tag.Name)).ToList());
+
+            if (definition.OpenForSell)
+            {
+                datingEvent.ApproveByAdmin();
+                datingEvent.OpenForSell();
+            }
+            else if (!definition.Cancelled)
+            {
+                datingEvent.SubmitForReview();
+            }
+
+            if (definition.Cancelled)
+            {
+                datingEvent.ApproveByAdmin();
+                datingEvent.Cancel();
+            }
+
+            db.DatingEvents.Add(datingEvent);
+            await db.SaveChangesAsync(cancellationToken);
+            db.Entry(datingEvent).Property("CreatedAt").CurrentValue = definition.CreatedAt;
+            db.Entry(datingEvent).Property("UpdatedAt").CurrentValue = definition.CreatedAt.AddDays(1);
+        }
+    }
+
+    private static async Task EnsureSampleDiscountCodesAsync(RandevooDbContext db, CancellationToken cancellationToken)
+    {
+        if (!await db.EventDiscountCodes.IgnoreQueryFilters().AnyAsync(item => item.DatingEventId == null && item.Code == "ALLRENDEVOO", cancellationToken))
+        {
+            db.EventDiscountCodes.Add(new EventDiscountCode(
+                null,
+                "ALLRENDEVOO",
+                EventDiscountGenderScope.All,
+                EventDiscountType.Percentage,
+                7m,
+                DateTime.UtcNow.AddDays(-14),
+                DateTime.UtcNow.AddDays(60),
+                300,
+                true,
+                "تخفیف همه رویدادها",
+                "کد نمونه قابل استفاده برای همه رویدادهای فعال."));
+        }
+
+        var events = await db.DatingEvents
+            .Include(item => item.DiscountCodes)
+            .OrderBy(item => item.Title)
+            .ToListAsync(cancellationToken);
+
+        foreach (var datingEvent in events.Where(item => !item.IsCancelled))
+        {
+            if (datingEvent.DiscountCodes.Any())
+                continue;
+
+            datingEvent.AddDiscountCode(
+                $"RV{datingEvent.Id:000}A",
+                EventDiscountGenderScope.All,
+                EventDiscountType.Percentage,
+                10m,
+                DateTime.UtcNow.AddDays(-10),
+                DateTime.UtcNow.AddDays(40),
+                150,
+                true,
+                "تخفیف عمومی",
+                "کد تخفیف عمومی برای تست داشبورد و سناریوهای خرید.");
+
+            datingEvent.AddDiscountCode(
+                $"RV{datingEvent.Id:000}F",
+                EventDiscountGenderScope.Female,
+                EventDiscountType.FixedAmount,
+                120000m,
+                DateTime.UtcNow.AddDays(-7),
+                DateTime.UtcNow.AddDays(20),
+                80,
+                true,
+                "تخفیف ویژه خانم ها",
+                "کاهش مبلغ ثابت برای خرید بلیت بانوان.");
+        }
+    }
+
+    private static async Task EnsureSampleActivityLogsAsync(RandevooDbContext db, IReadOnlyList<User> users, CancellationToken cancellationToken)
+    {
+        const string seedCorrelationId = "sample-activity-20260605";
+        if (await db.AuditLogs.AnyAsync(item => item.CorrelationId == seedCorrelationId, cancellationToken))
+            return;
+
+        var logs = new List<(AuditLog Log, DateTime CreatedAt)>();
+        var importantPaths = new[]
+        {
+            "/dashboard/users",
+            "/dashboard/sales",
+            "/events/index",
+            "/public/event/1",
+            "/finance/index"
+        };
+
+        for (var index = 0; index < users.Count; index++)
+        {
+            var user = users[index];
+            var displayName = user.Profile?.DisplayName ?? user.MobileNumber;
+            var role = user.Role.ToString();
+            var dayOffset = 84 - (index * 7 % 84);
+            var loginAt = DateTime.UtcNow.AddDays(-dayOffset).AddHours(9 + index % 5);
+            var pagePath = importantPaths[index % importantPaths.Length];
+
+            logs.Add((CreateSeedLog(user.Id, displayName, role, "UserLogin", "login", "auth", "ورود کاربر به سیستم", "Session", $"{user.Id}-login", "/account/login", seedCorrelationId, "{\"source\":\"seed\"}"), loginAt));
+            logs.Add((CreateSeedLog(user.Id, displayName, role, "PageView", "page_view", "pages", "مشاهده صفحه مهم", "Page", pagePath, pagePath, seedCorrelationId, "{\"source\":\"seed\"}"), loginAt.AddMinutes(4)));
+            logs.Add((CreateSeedLog(user.Id, displayName, role, "NavigationClick", "click", "pages", "کلیک روی آیتم های اصلی", "Page", pagePath, pagePath, seedCorrelationId, "{\"clicks\":4}"), loginAt.AddMinutes(9)));
+            logs.Add((CreateSeedLog(user.Id, displayName, role, "TimeSpent", "time_spent", "pages", "مدت حضور در صفحه", "Page", pagePath, pagePath, seedCorrelationId, "{\"durationSeconds\":780}"), loginAt.AddMinutes(22)));
+            logs.Add((CreateSeedLog(user.Id, displayName, role, "UserLogout", "logout", "auth", "خروج کاربر از سیستم", "Session", $"{user.Id}-logout", "/account/logout", seedCorrelationId, "{\"source\":\"seed\"}"), loginAt.AddMinutes(26)));
+        }
+
+        for (var index = 0; index < Math.Min(4, users.Count); index++)
+        {
+            var recentUser = users[index];
+            var displayName = recentUser.Profile?.DisplayName ?? recentUser.MobileNumber;
+            logs.Add((
+                CreateSeedLog(
+                    recentUser.Id,
+                    displayName,
+                    recentUser.Role.ToString(),
+                    "Heartbeat",
+                    "click",
+                    "activity",
+                    "فعالیت اخیر کاربر",
+                    "Page",
+                    "/dashboard/index",
+                    "/dashboard/index",
+                    seedCorrelationId,
+                    "{\"online\":true}"),
+                DateTime.UtcNow.AddMinutes(-(index * 6 + 4))));
+        }
+
+        db.AuditLogs.AddRange(logs.Select(item => item.Log));
+        foreach (var item in logs)
+        {
+            db.Entry(item.Log).Property("CreatedAt").CurrentValue = item.CreatedAt;
+            db.Entry(item.Log).Property("UpdatedAt").CurrentValue = item.CreatedAt;
+        }
+    }
+
     private static async Task<Dictionary<string, Tag>> EnsureTagsAsync(RandevooDbContext db, CancellationToken cancellationToken)
     {
         var names = new[]
@@ -424,6 +810,38 @@ public static class RandevooSampleDataSeeder
 
         await db.SaveChangesAsync(cancellationToken);
         return existing.ToDictionary(item => item.Name, StringComparer.Ordinal);
+    }
+
+    private static AuditLog CreateSeedLog(
+        long? actorUserId,
+        string actorDisplayName,
+        string actorRole,
+        string action,
+        string logType,
+        string module,
+        string description,
+        string targetType,
+        string targetId,
+        string requestPath,
+        string correlationId,
+        string metadataJson)
+    {
+        return new AuditLog(
+            actorUserId,
+            actorDisplayName,
+            actorRole,
+            action,
+            logType,
+            module,
+            description,
+            targetType,
+            targetId,
+            ipAddress: "127.0.0.1",
+            requestPath: requestPath,
+            userAgent: "SampleDataSeeder/1.0",
+            status: "success",
+            metadataJson: metadataJson,
+            correlationId: correlationId);
     }
 
     private static async Task<Dictionary<string, EventType>> EnsureEventTypesAsync(RandevooDbContext db, CancellationToken cancellationToken)

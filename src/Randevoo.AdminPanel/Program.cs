@@ -9,6 +9,7 @@ using Randevoo.AdminPanel.Services.Infrastructure;
 using Randevoo.AdminPanel.Services.State;
 using Randevoo.Infrastructure;
 using Randevoo.Infrastructure.Data;
+using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,8 +21,10 @@ builder.Services.AddRazorPages(options =>
     options.Conventions.AuthorizeFolder("/Dashboard");
     options.Conventions.AuthorizeFolder("/Events");
     options.Conventions.AuthorizeFolder("/EventTypes");
+    options.Conventions.AuthorizeFolder("/DiscountCodes");
     options.Conventions.AuthorizeFolder("/Tags");
     options.Conventions.AuthorizeFolder("/Finance");
+    options.Conventions.AuthorizeFolder("/Logs");
     options.Conventions.AuthorizeFolder("/Users");
     options.Conventions.AuthorizeFolder("/UserProfiles");
     options.Conventions.AuthorizeFolder("/Settings");
@@ -45,12 +48,14 @@ builder.Services.AddScoped<IAuditContextAccessor, AdminPanelAuditContextAccessor
 builder.Services.AddScoped<CurrentSessionState>();
 builder.Services.AddScoped<MockAuthService>();
 builder.Services.AddScoped<IEventsApiClient, DatabaseEventsApiClient>();
+builder.Services.AddScoped<IEventDiscountCodesApiClient, DatabaseEventDiscountCodesApiClient>();
 builder.Services.AddScoped<IEventTypesApiClient, DatabaseEventTypesApiClient>();
 builder.Services.AddScoped<IEventTagsApiClient, DatabaseEventTagsApiClient>();
 builder.Services.AddScoped<IUsersApiClient, DatabaseUsersApiClient>();
 builder.Services.AddScoped<IUserProfilesApiClient, DatabaseUserProfilesApiClient>();
 builder.Services.AddScoped<IAdminUserProfilesApiClient, DatabaseAdminUserProfilesApiClient>();
 builder.Services.AddScoped<IDashboardApiClient, DatabaseDashboardApiClient>();
+builder.Services.AddScoped<IAdminAnalyticsApiClient, DatabaseAdminAnalyticsApiClient>();
 builder.Services.AddScoped<IPlannerProfilesApiClient, DatabasePlannerProfilesApiClient>();
 builder.Services.AddScoped<IFinanceApiClient, DatabaseFinanceApiClient>();
 builder.Services.AddScoped<ILocationsApiClient, DatabaseLocationsApiClient>();
@@ -102,6 +107,50 @@ app.Use(async (context, next) =>
     state.Refresh(context.User, cookieValue);
     await next();
 });
+app.UseMiddleware<AdminActivityLogMiddleware>();
+
+app.MapPost("/activity/track", async (
+    AdminActivityTrackRequest request,
+    HttpContext context,
+    IAuditLogger auditLogger,
+    CurrentSessionState session) =>
+{
+    var currentUser = session.CurrentUser;
+    if (currentUser is null)
+        return Results.Unauthorized();
+
+    var path = string.IsNullOrWhiteSpace(request.Path) ? context.Request.Headers.Referer.ToString() : request.Path!.Trim();
+    var logType = string.IsNullOrWhiteSpace(request.Type) ? "click" : request.Type.Trim().ToLowerInvariant();
+    var action = string.IsNullOrWhiteSpace(request.Action) ? $"Admin{char.ToUpperInvariant(logType[0])}{logType[1..]}" : request.Action.Trim();
+    var module = string.IsNullOrWhiteSpace(request.Module)
+        ? path.Split('/', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? "dashboard"
+        : request.Module.Trim().ToLowerInvariant();
+
+    var metadata = request.Metadata is null
+        ? new Dictionary<string, object?>()
+        : request.Metadata.ToDictionary(item => item.Key, item => (object?)item.Value);
+
+    if (request.DurationSeconds.HasValue)
+        metadata["durationSeconds"] = request.DurationSeconds.Value;
+
+    var metadataJson = metadata.Count == 0 ? null : JsonSerializer.Serialize(metadata);
+
+    await auditLogger.TryLogAsync(new AuditLogEntry(
+        ActorUserId: currentUser.Id,
+        Action: action,
+        TargetType: "Page",
+        TargetId: string.IsNullOrWhiteSpace(path) ? "/" : path,
+        ActorDisplayName: currentUser.FullName,
+        ActorRole: currentUser.Role.ToString(),
+        LogType: logType,
+        Module: module,
+        Description: request.Description,
+        RequestPath: string.IsNullOrWhiteSpace(path) ? "/" : path,
+        Status: "success",
+        MetadataJson: metadataJson), context.RequestAborted);
+
+    return Results.Accepted();
+}).RequireAuthorization(Policies.AdminOrPlanner);
 
 app.MapStaticAssets();
 app.MapRazorPages()

@@ -16,7 +16,15 @@ public sealed class DatingEvent
 
     public List<EventChangeLogEntry> ChangeLog { get; set; } = new();
 
-    public EventApprovalState Status { get; set; } = EventApprovalState.Draft;
+    public EventOperationalStatus OperationalStatus { get; set; } = EventOperationalStatus.Draft;
+
+    public EventReviewStatus ReviewStatus { get; set; } = EventReviewStatus.NotSubmitted;
+
+    public EventOperationalStatus Status
+    {
+        get => OperationalStatus;
+        set => OperationalStatus = value;
+    }
 
     public string? AdminReviewNote { get; set; }
 

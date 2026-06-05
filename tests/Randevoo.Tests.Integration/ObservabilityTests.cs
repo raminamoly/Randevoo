@@ -57,7 +57,7 @@ public class ObservabilityTests
 
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<RandevooDbContext>();
-        var auditLog = await db.AuditLogs.SingleAsync();
+        var auditLog = await db.AuditLogs.SingleAsync(item => item.Action == "UserRoleChanged");
         Assert.Equal("UserRoleChanged", auditLog.Action);
         Assert.Equal(adminId, auditLog.ActorUserId);
         Assert.Equal("User", auditLog.TargetType);

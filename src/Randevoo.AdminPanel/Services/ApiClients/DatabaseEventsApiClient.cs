@@ -145,7 +145,7 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
             .ToList();
 
         var latestReviewLog = logs.FirstOrDefault(item =>
-            item.Action is "تایید رویداد" or "رد رویداد");
+            item.Action is "EventReviewApproved" or "EventReviewRejected" or "EventReviewSubmitted");
 
         if (latestReviewLog is not null)
         {
@@ -211,8 +211,9 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
                 new AgeRange(femaleRange.Min, femaleRange.Max),
                 input.CapacityMale,
                 input.CapacityFemale,
-                input.ChatLimit,
-                input.TicketPrice,
+                input.LikeLimit,
+                input.MaleTicketPrice,
+                input.FemaleTicketPrice,
                 input.EducationLevelRestriction,
                 input.Tags,
                 input.Image1,
@@ -226,8 +227,6 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
             datingEvent.ReplaceFaqs(normalizedFaqs);
             datingEvent.ReplaceTags(await ResolveEventTagsAsync(input.TagIds, cancellationToken));
             datingEvent.SetCommissionPercent(input.OrganizerCommissionPercent);
-            ApplySaleStatus(datingEvent, input.IsOpenForSell);
-
             await _auditLogger.LogAsync(new AuditLogEntry(
                 actorUser.Id,
                 "ویرایش رویداد",
@@ -236,6 +235,15 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
                 JsonSerializer.Serialize(beforeSnapshot),
                 JsonSerializer.Serialize(CreateEventSnapshot(datingEvent)),
                 $"رویداد «{datingEvent.Title}» به روز شد."), cancellationToken);
+
+            await _auditLogger.LogAsync(new AuditLogEntry(
+                actorUser.Id,
+                "EventReviewSubmitted",
+                "DatingEvent",
+                datingEvent.Id.ToString(),
+                JsonSerializer.Serialize(beforeSnapshot),
+                JsonSerializer.Serialize(CreateEventSnapshot(datingEvent)),
+                "رویداد برای بررسی مدیر ارسال شد."), cancellationToken);
         }
         else
         {
@@ -251,8 +259,9 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
                 new AgeRange(femaleRange.Min, femaleRange.Max),
                 input.CapacityMale,
                 input.CapacityFemale,
-                input.ChatLimit,
-                input.TicketPrice,
+                input.LikeLimit,
+                input.MaleTicketPrice,
+                input.FemaleTicketPrice,
                 input.EducationLevelRestriction,
                 input.Tags,
                 input.Image1,
@@ -261,7 +270,7 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
                 input.DescriptionHtml,
                 input.OrganizerCommissionPercent);
 
-            ApplySaleStatus(datingEvent, input.IsOpenForSell);
+            datingEvent.SubmitForReview();
             datingEvent.SetLocationLookup(locationLookup.CountryId, locationLookup.CityId);
             datingEvent.SetMinimumEducationLevel(minimumEducationLevelId);
             datingEvent.SetEventDelivery(eventMode, onlineEventPlatform, input.OnlineJoinUrl, input.OnlineAccessInstructions);
@@ -278,6 +287,15 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
                 null,
                 JsonSerializer.Serialize(CreateEventSnapshot(datingEvent)),
                 $"رویداد «{datingEvent.Title}» برای {DatabaseModelMapper.ResolveUserDisplayName(plannerUser)} ساخته شد."), cancellationToken);
+
+            await _auditLogger.LogAsync(new AuditLogEntry(
+                actorUser.Id,
+                "EventReviewSubmitted",
+                "DatingEvent",
+                datingEvent.Id.ToString(),
+                null,
+                JsonSerializer.Serialize(CreateEventSnapshot(datingEvent)),
+                "رویداد برای بررسی مدیر ارسال شد."), cancellationToken);
         }
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -294,19 +312,17 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
             datingEvent.SetCommissionPercent(commissionPercent.Value);
         }
 
-        if (!datingEvent.IsOpenForSell && !datingEvent.IsCancelled)
-        {
-            datingEvent.OpenForSell();
-        }
+        var beforeSnapshot = CreateEventSnapshot(datingEvent);
+        datingEvent.ApproveByAdmin();
 
         await _auditLogger.LogAsync(new AuditLogEntry(
             actor.Id,
-            "تایید رویداد",
+            "EventReviewApproved",
             "DatingEvent",
             datingEvent.Id.ToString(),
-            null,
-            JsonSerializer.Serialize(new { datingEvent.IsOpenForSell, datingEvent.EventPlannerCommissionPercent }),
-            string.IsNullOrWhiteSpace(note) ? $"رویداد «{datingEvent.Title}» تایید و منتشر شد." : note.Trim()), cancellationToken);
+            JsonSerializer.Serialize(beforeSnapshot),
+            JsonSerializer.Serialize(CreateEventSnapshot(datingEvent)),
+            string.IsNullOrWhiteSpace(note) ? "بررسی رویداد توسط مدیر تایید شد." : note.Trim()), cancellationToken);
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         return (await GetEventAsync(datingEvent.Id, cancellationToken))!;
@@ -316,16 +332,17 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
     {
         var actor = await RequireAdminAsync(admin.Id, cancellationToken);
         var datingEvent = await RequireEventAsync(eventId, cancellationToken);
-        datingEvent.CloseForSell();
+        var beforeSnapshot = CreateEventSnapshot(datingEvent);
+        datingEvent.RejectByAdmin();
 
         await _auditLogger.LogAsync(new AuditLogEntry(
             actor.Id,
-            "رد رویداد",
+            "EventReviewRejected",
             "DatingEvent",
             datingEvent.Id.ToString(),
-            null,
-            JsonSerializer.Serialize(new { datingEvent.IsOpenForSell }),
-            string.IsNullOrWhiteSpace(note) ? $"رویداد «{datingEvent.Title}» برای بازبینی بیشتر بسته شد." : note.Trim()), cancellationToken);
+            JsonSerializer.Serialize(beforeSnapshot),
+            JsonSerializer.Serialize(CreateEventSnapshot(datingEvent)),
+            string.IsNullOrWhiteSpace(note) ? "بررسی رویداد توسط مدیر رد شد." : note.Trim()), cancellationToken);
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         return (await GetEventAsync(datingEvent.Id, cancellationToken))!;
@@ -356,16 +373,17 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
         var actor = await RequireUserAsync(admin.Id, cancellationToken);
         var datingEvent = await RequireEventAsync(eventId, cancellationToken);
         EnsureEventWriteAccess(actor, datingEvent);
+        var beforeSnapshot = CreateEventSnapshot(datingEvent);
         ApplySaleStatus(datingEvent, isOpen);
 
         await _auditLogger.LogAsync(new AuditLogEntry(
             actor.Id,
-            isOpen ? "باز کردن فروش رویداد" : "بستن فروش رویداد",
+            isOpen ? "EventSaleOpened" : "EventSaleClosed",
             "DatingEvent",
             datingEvent.Id.ToString(),
-            null,
-            JsonSerializer.Serialize(new { datingEvent.IsOpenForSell }),
-            isOpen ? $"فروش رویداد «{datingEvent.Title}» باز شد." : $"فروش رویداد «{datingEvent.Title}» بسته شد."), cancellationToken);
+            JsonSerializer.Serialize(beforeSnapshot),
+            JsonSerializer.Serialize(CreateEventSnapshot(datingEvent)),
+            isOpen ? "فروش رویداد باز شد." : "فروش رویداد بسته شد."), cancellationToken);
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         return (await GetEventAsync(datingEvent.Id, cancellationToken))!;
@@ -386,6 +404,7 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
 
         EnsureEventWriteAccess(actor, datingEvent);
 
+        var beforeSnapshot = CreateEventSnapshot(datingEvent);
         var tickets = datingEvent.Cancel();
         var refundCount = 0;
         var refundTotal = 0m;
@@ -403,12 +422,12 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
 
         await _auditLogger.LogAsync(new AuditLogEntry(
             actor.Id,
-            "لغو رویداد",
+            "EventCancelled",
             "DatingEvent",
             datingEvent.Id.ToString(),
-            null,
-            JsonSerializer.Serialize(new { refundCount, refundTotal }),
-            $"رویداد «{datingEvent.Title}» لغو شد."), cancellationToken);
+            JsonSerializer.Serialize(beforeSnapshot),
+            JsonSerializer.Serialize(new { Event = CreateEventSnapshot(datingEvent), refundCount, refundTotal }),
+            "رویداد لغو شد و بلیت‌های معتبر برگشت خوردند."), cancellationToken);
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         return (await GetEventAsync(datingEvent.Id, cancellationToken))!;
@@ -851,8 +870,9 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
             datingEvent.EventPlannerCommissionPercent,
             datingEvent.MaleCapacity,
             datingEvent.FemaleCapacity,
-            datingEvent.NumberOfChatAllowed,
-            datingEvent.TicketPrice,
+            datingEvent.NumberOfLikesAllowed,
+            datingEvent.MaleTicketPrice,
+            datingEvent.FemaleTicketPrice,
             datingEvent.EducationLevelRestriction,
             Tags = datingEvent.Tags.ToArray(),
             datingEvent.EventDescriptionHtml,
@@ -864,7 +884,9 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
                 .Select(item => new { item.Question, item.Answer })
                 .ToArray(),
             datingEvent.IsOpenForSell,
-            datingEvent.IsCancelled
+            datingEvent.IsCancelled,
+            datingEvent.ReviewStatus,
+            OperationalStatus = datingEvent.ResolveOperationalStatus(DateTime.UtcNow)
         };
     }
 }

@@ -1,4 +1,29 @@
 $(function () {
+    document.querySelectorAll("i.bi:not([aria-label])").forEach(function (icon) {
+        icon.setAttribute("aria-hidden", "true");
+    });
+
+    const sidebar = document.getElementById("sidebarCollapse");
+    if (sidebar && window.bootstrap && window.bootstrap.Collapse) {
+        const sidebarController = window.bootstrap.Collapse.getOrCreateInstance(sidebar, {
+            toggle: false
+        });
+
+        sidebar.querySelectorAll(".sidebar-nav a.nav-link").forEach(function (link) {
+            link.addEventListener("click", function () {
+                if (window.matchMedia("(max-width: 991.98px)").matches && sidebar.classList.contains("show")) {
+                    sidebarController.hide();
+                }
+            });
+        });
+
+        document.addEventListener("keydown", function (event) {
+            if (event.key === "Escape" && window.matchMedia("(max-width: 991.98px)").matches && sidebar.classList.contains("show")) {
+                sidebarController.hide();
+            }
+        });
+    }
+
     if (window.bootstrap && window.bootstrap.Tooltip) {
         document.querySelectorAll("[data-bs-toggle='tooltip']").forEach(function (element) {
             const instance = window.bootstrap.Tooltip.getInstance(element);
@@ -412,11 +437,25 @@ $(function () {
     });
 
     if ($.fn.persianDatepicker && $(".jalali-date-picker").length) {
+        $(".jalali-date-picker").each(function () {
+            this.setAttribute("inputmode", "numeric");
+            this.setAttribute("dir", "ltr");
+            this.setAttribute("title", this.getAttribute("title") || "قالب تاریخ شمسی: ۱۴۰۵/۰۳/۱۵");
+        });
+
         $(".jalali-date-picker").persianDatepicker({
+            autoClose: true,
+            calendarType: "persian",
             format: "YYYY/MM/DD",
             initialValue: false,
             observer: true,
             persianDigit: true,
+            responsive: true,
+            navigator: {
+                scroll: {
+                    enabled: false
+                }
+            },
             toolbox: {
                 calendarSwitch: {
                     enabled: false
@@ -424,6 +463,139 @@ $(function () {
             }
         });
     }
+
+    if ($.fn.persianDatepicker && $(".jalali-date-time-picker").length) {
+        $(".jalali-date-time-picker").each(function () {
+            this.setAttribute("inputmode", "numeric");
+            this.setAttribute("dir", "ltr");
+            this.setAttribute("title", this.getAttribute("title") || "قالب تاریخ و ساعت شمسی: ۱۴۰۵/۰۳/۱۵ ۱۸:۳۰");
+        });
+
+        $(".jalali-date-time-picker").persianDatepicker({
+            autoClose: true,
+            calendarType: "persian",
+            format: "YYYY/MM/DD HH:mm",
+            initialValue: false,
+            observer: true,
+            persianDigit: true,
+            responsive: true,
+            timePicker: {
+                enabled: true,
+                second: {
+                    enabled: false
+                },
+                meridian: {
+                    enabled: false
+                }
+            },
+            navigator: {
+                scroll: {
+                    enabled: false
+                }
+            },
+            toolbox: {
+                calendarSwitch: {
+                    enabled: false
+                }
+            }
+        });
+    }
+
+    const normalizeNumericInput = function (value) {
+        return String(value || "")
+            .replace(/[۰-۹]/g, function (digit) {
+                return "۰۱۲۳۴۵۶۷۸۹".indexOf(digit);
+            })
+            .replace(/[٠-٩]/g, function (digit) {
+                return "٠١٢٣٤٥٦٧٨٩".indexOf(digit);
+            })
+            .replace(/,/g, "")
+            .trim();
+    };
+
+    const formatMoneyInput = function (input) {
+        const normalized = normalizeNumericInput(input.value).replace(/[^\d.]/g, "");
+        if (!normalized) {
+            input.value = "";
+            return;
+        }
+
+        const parts = normalized.split(".");
+        parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        input.value = parts.length > 1 ? `${parts[0]}.${parts.slice(1).join("")}` : parts[0];
+    };
+
+    document.querySelectorAll(".money-input").forEach(function (input) {
+        formatMoneyInput(input);
+        input.addEventListener("input", function () {
+            formatMoneyInput(input);
+        });
+
+        const form = input.closest("form");
+        if (form) {
+            form.addEventListener("submit", function () {
+                input.value = normalizeNumericInput(input.value);
+            });
+        }
+    });
+
+    document.querySelectorAll("[data-discount-type-group='true']").forEach(function (group) {
+        const form = group.closest("form");
+        const hiddenValue = form ? form.querySelector("[data-discount-value-hidden='true']") : null;
+        const fixedPanel = form ? form.querySelector("[data-discount-value-panel='fixed']") : null;
+        const percentagePanel = form ? form.querySelector("[data-discount-value-panel='percentage']") : null;
+        const fixedInput = form ? form.querySelector("[data-discount-value-source='fixed']") : null;
+        const percentageInput = form ? form.querySelector("[data-discount-value-source='percentage']") : null;
+        const radios = group.querySelectorAll("input[type='radio']");
+
+        const selectedType = function () {
+            const selected = Array.from(radios).find(function (radio) { return radio.checked; });
+            return selected ? selected.value : "";
+        };
+
+        const syncDiscountValue = function () {
+            if (!hiddenValue) {
+                return;
+            }
+
+            const type = selectedType();
+            const isFixedType = type.includes("FixedAmount") || type === "1";
+            hiddenValue.value = isFixedType
+                ? normalizeNumericInput(fixedInput ? fixedInput.value : hiddenValue.value)
+                : normalizeNumericInput(percentageInput ? percentageInput.value : hiddenValue.value);
+        };
+
+        const syncPanels = function () {
+            const type = selectedType();
+            const isFixed = type.includes("FixedAmount") || type === "1";
+            if (fixedPanel) {
+                fixedPanel.classList.toggle("d-none", !isFixed);
+            }
+            if (percentagePanel) {
+                percentagePanel.classList.toggle("d-none", isFixed);
+            }
+            if (fixedInput) {
+                fixedInput.disabled = !isFixed;
+            }
+            if (percentageInput) {
+                percentageInput.disabled = isFixed;
+            }
+            syncDiscountValue();
+        };
+
+        radios.forEach(function (radio) {
+            radio.addEventListener("change", syncPanels);
+        });
+        [fixedInput, percentageInput].forEach(function (input) {
+            if (input) {
+                input.addEventListener("input", syncDiscountValue);
+            }
+        });
+        if (form) {
+            form.addEventListener("submit", syncDiscountValue);
+        }
+        syncPanels();
+    });
 
     if (window.randevooEventEdit && window.L) {
         const config = window.randevooEventEdit;
@@ -434,19 +606,28 @@ $(function () {
         const longitudeDisplay = config.longitudeDisplaySelector ? document.querySelector(config.longitudeDisplaySelector) : null;
         const citySelector = document.querySelector(config.citySelector);
         const mapElement = document.getElementById("eventMap");
-        const eventModeSelector = config.eventModeSelector ? document.querySelector(config.eventModeSelector) : null;
+        const eventModeControls = config.eventModeSelector ? Array.from(document.querySelectorAll(config.eventModeSelector)) : [];
         const onlineModeId = config.onlineModeId || "1";
         const locationSections = document.querySelectorAll("[data-location-section='true']");
         const onlineSections = document.querySelectorAll("[data-online-section='true']");
         let eventMap = null;
 
         const syncDeliverySections = function () {
-            const isOnline = eventModeSelector && eventModeSelector.value === onlineModeId;
+            const selectedMode = eventModeControls.length > 1
+                ? eventModeControls.find(function (item) { return item.checked; })
+                : eventModeControls[0];
+            const isOnline = selectedMode && selectedMode.value === onlineModeId;
             locationSections.forEach(function (section) {
                 section.classList.toggle("d-none", isOnline);
+                section.querySelectorAll("input, select, textarea").forEach(function (control) {
+                    control.disabled = isOnline;
+                });
             });
             onlineSections.forEach(function (section) {
                 section.classList.toggle("d-none", !isOnline);
+                section.querySelectorAll("input, select, textarea").forEach(function (control) {
+                    control.disabled = !isOnline;
+                });
             });
 
             if (!isOnline && eventMap) {
@@ -456,8 +637,10 @@ $(function () {
             }
         };
 
-        if (eventModeSelector) {
-            eventModeSelector.addEventListener("change", syncDeliverySections);
+        if (eventModeControls.length > 0) {
+            eventModeControls.forEach(function (control) {
+                control.addEventListener("change", syncDeliverySections);
+            });
             syncDeliverySections();
         }
 
@@ -587,5 +770,103 @@ $(function () {
             renderCityOptions();
             syncCoordinates(startLat, startLng);
         }
+    }
+
+    if (document.querySelector(".admin-shell")) {
+        const trackingPath = "/activity/track";
+        const pageStart = Date.now();
+        let heartbeatTimer = null;
+        let lastClickAt = 0;
+
+        const resolveModule = function () {
+            const segments = window.location.pathname.split("/").filter(Boolean);
+            return segments.length === 0 ? "dashboard" : segments[0].toLowerCase();
+        };
+
+        const postActivity = function (payload) {
+            if (!payload) {
+                return;
+            }
+
+            const body = JSON.stringify(payload);
+            if (navigator.sendBeacon) {
+                const blob = new Blob([body], { type: "application/json" });
+                navigator.sendBeacon(trackingPath, blob);
+                return;
+            }
+
+            fetch(trackingPath, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: body,
+                keepalive: true,
+                credentials: "same-origin"
+            }).catch(function () {
+            });
+        };
+
+        const track = function (type, action, description, metadata) {
+            postActivity({
+                type: type,
+                action: action,
+                description: description,
+                module: resolveModule(),
+                path: window.location.pathname + window.location.search,
+                metadata: metadata || undefined
+            });
+        };
+
+        heartbeatTimer = window.setInterval(function () {
+            track("heartbeat", "AdminHeartbeat", "Admin session heartbeat.", {
+                title: document.title
+            });
+        }, 60000);
+
+        document.addEventListener("click", function (event) {
+            const target = event.target && event.target.closest ? event.target.closest("a,button,[role='button'],input[type='submit']") : null;
+            if (!target) {
+                return;
+            }
+
+            const now = Date.now();
+            if (now - lastClickAt < 1500) {
+                return;
+            }
+
+            lastClickAt = now;
+            const label = (target.innerText || target.getAttribute("aria-label") || target.getAttribute("title") || target.id || target.className || "click")
+                .replace(/\s+/g, " ")
+                .trim()
+                .slice(0, 120);
+
+            track("click", "AdminClick", "Admin UI click.", {
+                label: label,
+                tagName: target.tagName.toLowerCase()
+            });
+        }, true);
+
+        const flushTimeSpent = function () {
+            if (heartbeatTimer) {
+                window.clearInterval(heartbeatTimer);
+                heartbeatTimer = null;
+            }
+
+            const durationSeconds = Math.max(1, Math.round((Date.now() - pageStart) / 1000));
+            postActivity({
+                type: "time_spent",
+                action: "AdminTimeSpent",
+                description: "Tracked dwell time on admin page.",
+                module: resolveModule(),
+                path: window.location.pathname + window.location.search,
+                durationSeconds: durationSeconds,
+                metadata: {
+                    title: document.title
+                }
+            });
+        };
+
+        window.addEventListener("pagehide", flushTimeSpent, { once: true });
     }
 });

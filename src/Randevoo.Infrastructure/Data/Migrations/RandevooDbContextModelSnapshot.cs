@@ -35,6 +35,14 @@ namespace Randevoo.Infrastructure.Data.Migrations
                         .HasMaxLength(120)
                         .HasColumnType("nvarchar(120)");
 
+                    b.Property<string>("ActorDisplayName")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("ActorRole")
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
                     b.Property<long?>("ActorUserId")
                         .HasColumnType("bigint");
 
@@ -56,6 +64,10 @@ namespace Randevoo.Infrastructure.Data.Migrations
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
                     b.Property<string>("IpAddress")
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
@@ -63,9 +75,31 @@ namespace Randevoo.Infrastructure.Data.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
+                    b.Property<string>("LogType")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<string>("MetadataJson")
+                        .HasMaxLength(8000)
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Module")
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
                     b.Property<string>("Reason")
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("RequestPath")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
 
                     b.Property<string>("TargetId")
                         .IsRequired()
@@ -80,11 +114,21 @@ namespace Randevoo.Infrastructure.Data.Migrations
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("UserAgent")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ActorUserId");
 
                     b.HasIndex("CreatedAt");
+
+                    b.HasIndex("LogType", "CreatedAt");
+
+                    b.HasIndex("Module", "CreatedAt");
+
+                    b.HasIndex("Status", "CreatedAt");
 
                     b.HasIndex("TargetType", "TargetId");
 
@@ -494,6 +538,10 @@ namespace Randevoo.Infrastructure.Data.Migrations
                     b.Property<int>("FemaleCapacity")
                         .HasColumnType("int");
 
+                    b.Property<decimal>("FemaleTicketPrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<bool>("IsCancelled")
                         .HasColumnType("bit");
 
@@ -506,11 +554,16 @@ namespace Randevoo.Infrastructure.Data.Migrations
                     b.Property<int>("MaleCapacity")
                         .HasColumnType("int");
 
+                    b.Property<decimal>("MaleTicketPrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<long?>("MinimumEducationLevelId")
                         .HasColumnType("bigint");
 
-                    b.Property<int>("NumberOfChatAllowed")
-                        .HasColumnType("int");
+                    b.Property<int>("NumberOfLikesAllowed")
+                        .HasColumnType("int")
+                        .HasColumnName("NumberOfLikesAllowed");
 
                     b.Property<string>("OnlineAccessInstructions")
                         .HasMaxLength(1200)
@@ -523,9 +576,8 @@ namespace Randevoo.Infrastructure.Data.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
-                    b.Property<decimal>("TicketPrice")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
+                    b.Property<int>("ReviewStatus")
+                        .HasColumnType("int");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -784,6 +836,86 @@ namespace Randevoo.Infrastructure.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("EventConversations");
+                });
+
+            modelBuilder.Entity("Randevoo.Domain.Entities.EventDiscountCode", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("DatingEventId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("DiscountType")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("EndsAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("GenderScope")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("LastUsedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("MaxUsageCount")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("StartsAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Title")
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("UsedCount")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Value")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique()
+                        .HasDatabaseName("IX_EventDiscountCodes_Global_Code")
+                        .HasFilter("[DatingEventId] IS NULL");
+
+                    b.HasIndex("DatingEventId", "Code")
+                        .IsUnique()
+                        .HasFilter("[DatingEventId] IS NOT NULL");
+
+                    b.HasIndex("IsActive", "StartsAtUtc", "EndsAtUtc");
+
+                    b.ToTable("EventDiscountCodes", (string)null);
                 });
 
             modelBuilder.Entity("Randevoo.Domain.Entities.EventFaq", b =>
@@ -1188,6 +1320,17 @@ namespace Randevoo.Infrastructure.Data.Migrations
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<decimal>("DiscountAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("DiscountCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<long?>("EventDiscountCodeId")
+                        .HasColumnType("bigint");
+
                     b.Property<int>("Gender")
                         .HasColumnType("int");
 
@@ -1199,6 +1342,10 @@ namespace Randevoo.Infrastructure.Data.Migrations
 
                     b.Property<bool>("IsRemoved")
                         .HasColumnType("bit");
+
+                    b.Property<decimal>("OriginalPrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal>("Price")
                         .HasPrecision(18, 2)
@@ -1221,6 +1368,8 @@ namespace Randevoo.Infrastructure.Data.Migrations
                         .HasColumnType("bigint");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("EventDiscountCodeId");
 
                     b.HasIndex("UserId");
 
@@ -2495,6 +2644,16 @@ namespace Randevoo.Infrastructure.Data.Migrations
                     b.Navigation("StarterUser");
                 });
 
+            modelBuilder.Entity("Randevoo.Domain.Entities.EventDiscountCode", b =>
+                {
+                    b.HasOne("Randevoo.Domain.Entities.DatingEvent", "DatingEvent")
+                        .WithMany("DiscountCodes")
+                        .HasForeignKey("DatingEventId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("DatingEvent");
+                });
+
             modelBuilder.Entity("Randevoo.Domain.Entities.EventFaq", b =>
                 {
                     b.HasOne("Randevoo.Domain.Entities.DatingEvent", "DatingEvent")
@@ -2600,6 +2759,11 @@ namespace Randevoo.Infrastructure.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("Randevoo.Domain.Entities.EventDiscountCode", "EventDiscountCode")
+                        .WithMany()
+                        .HasForeignKey("EventDiscountCodeId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("Randevoo.Domain.Entities.User", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
@@ -2607,6 +2771,8 @@ namespace Randevoo.Infrastructure.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("DatingEvent");
+
+                    b.Navigation("EventDiscountCode");
 
                     b.Navigation("User");
                 });
@@ -2893,6 +3059,8 @@ namespace Randevoo.Infrastructure.Data.Migrations
 
             modelBuilder.Entity("Randevoo.Domain.Entities.DatingEvent", b =>
                 {
+                    b.Navigation("DiscountCodes");
+
                     b.Navigation("EventTags");
 
                     b.Navigation("Faqs");

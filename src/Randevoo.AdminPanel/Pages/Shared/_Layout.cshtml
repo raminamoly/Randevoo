@@ -13,28 +13,35 @@
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.rtl.min.css" />
     <link rel="stylesheet" href="~/lib/bootstrap-icons/font/bootstrap-icons.min.css" />
     <link rel="stylesheet" href="~/lib/persian-datepicker/dist/css/persian-datepicker.min.css" />
-    <link rel="stylesheet" href="~/css/site.css?v=20260605-tree-filters" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     @await RenderSectionAsync("Head", required: false)
 </head>
 <body class="rtl">
+    <a class="skip-link" href="#admin-content">پرش به محتوای اصلی</a>
     @if (useShell)
     {
         <div class="admin-shell rtl-shell">
-            <aside class="admin-sidebar">
+            <aside class="admin-sidebar collapse d-lg-block" id="sidebarCollapse" aria-label="ناوبری اصلی پنل">
                 <div class="brand-block">
                     <img src="~/images/logo.png" alt="راندوو" class="brand-logo" />
                     <div>
                         <div class="brand-name">راندوو</div>
                         <div class="brand-subtitle">پلتفرم برگزاری رویداد با چاشنی Dating</div>
                     </div>
+                    <button class="btn btn-light btn-sm sidebar-close d-lg-none"
+                            type="button"
+                            data-bs-toggle="collapse"
+                            data-bs-target="#sidebarCollapse"
+                            aria-controls="sidebarCollapse"
+                            aria-label="بستن منو">
+                        <i class="bi bi-x-lg" aria-hidden="true"></i>
+                    </button>
                 </div>
-                <div id="sidebarCollapse" class="collapse d-lg-block">
-                    <partial name="_SidebarNav" />
-                </div>
+                <partial name="_SidebarNav" />
             </aside>
             <div class="admin-main">
                 <partial name="_Topbar" />
-                <main class="page-content">
+                <main id="admin-content" class="page-content" tabindex="-1">
                     @RenderBody()
                 </main>
             </div>

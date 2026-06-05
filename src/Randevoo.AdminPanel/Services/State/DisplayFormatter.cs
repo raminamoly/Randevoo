@@ -2,6 +2,8 @@ using System.Globalization;
 using Randevoo.AdminPanel.Models.Auth;
 using Randevoo.AdminPanel.Models.Events;
 using Randevoo.Domain.Enums;
+using AdminEventOperationalStatus = Randevoo.AdminPanel.Models.Events.EventOperationalStatus;
+using AdminEventReviewStatus = Randevoo.AdminPanel.Models.Events.EventReviewStatus;
 
 namespace Randevoo.AdminPanel.Services.State;
 
@@ -26,15 +28,38 @@ public static class DisplayFormatter
         _ => role.ToString()
     };
 
-    public static string Status(EventApprovalState state) => state switch
+    public static string OperationalStatus(AdminEventOperationalStatus status) => status switch
     {
-        EventApprovalState.Draft => "پیش نویس",
-        EventApprovalState.PendingAdminReview => "در انتظار تایید مدیر",
-        EventApprovalState.Approved => "تایید شده",
-        EventApprovalState.Rejected => "رد شده",
-        EventApprovalState.Closed => "بسته",
-        EventApprovalState.Cancelled => "لغو شده",
-        _ => state.ToString()
+        AdminEventOperationalStatus.Draft => "پیش‌نویس",
+        AdminEventOperationalStatus.Selling => "در حال فروش",
+        AdminEventOperationalStatus.Closed => "تمام شده",
+        AdminEventOperationalStatus.Cancelled => "لغو شده",
+        _ => status.ToString()
+    };
+
+    public static string ReviewStatus(AdminEventReviewStatus status) => status switch
+    {
+        AdminEventReviewStatus.NotSubmitted => "ارسال نشده",
+        AdminEventReviewStatus.PendingReview => "در انتظار بررسی",
+        AdminEventReviewStatus.Approved => "تایید شده توسط مدیر",
+        AdminEventReviewStatus.Rejected => "رد شده توسط مدیر",
+        _ => status.ToString()
+    };
+
+    public static string OperationalStatusClass(AdminEventOperationalStatus status) => status switch
+    {
+        AdminEventOperationalStatus.Selling => "status-approved",
+        AdminEventOperationalStatus.Closed => "status-closed",
+        AdminEventOperationalStatus.Cancelled => "status-cancelled",
+        _ => "status-draft"
+    };
+
+    public static string ReviewStatusClass(AdminEventReviewStatus status) => status switch
+    {
+        AdminEventReviewStatus.PendingReview => "status-pending",
+        AdminEventReviewStatus.Approved => "status-approved",
+        AdminEventReviewStatus.Rejected => "status-rejected",
+        _ => "status-draft"
     };
 
     public static string TransactionType(BalanceTransactionType type) => type switch

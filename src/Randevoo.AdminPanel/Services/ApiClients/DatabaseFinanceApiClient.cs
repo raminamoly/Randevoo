@@ -187,12 +187,12 @@ public sealed class DatabaseFinanceApiClient : IFinanceApiClient
         EnsureAdmin(currentUser);
 
         var records = await (
-                from transaction in _db.BalanceTransactions
-                join datingEvent in _db.DatingEvents on transaction.DatingEventId!.Value equals datingEvent.Id
-                join buyer in _db.Users on transaction.UserId equals buyer.Id
+                from ticket in _db.EventTickets
+                join datingEvent in _db.DatingEvents on ticket.DatingEventId equals datingEvent.Id
+                join buyer in _db.Users on ticket.UserId equals buyer.Id
                 join planner in _db.Users on datingEvent.EventPlannerUserId equals planner.Id
-                where transaction.Type == BalanceTransactionType.TicketPurchase && transaction.DatingEventId != null
-                orderby datingEvent.DateTimeStart descending, transaction.CreatedAt descending
+                where !ticket.IsRefunded && !ticket.IsRemoved
+                orderby datingEvent.DateTimeStart descending, ticket.CreatedAt descending
                 select new
                 {
                     EventId = datingEvent.Id,
@@ -200,12 +200,15 @@ public sealed class DatabaseFinanceApiClient : IFinanceApiClient
                     StartAtUtc = datingEvent.DateTimeStart,
                     PlannerUserId = planner.Id,
                     PlannerMobile = planner.MobileNumber,
-                    TransactionId = transaction.Id,
+                    TransactionId = ticket.Id,
                     BuyerUserId = buyer.Id,
                     BuyerMobile = buyer.MobileNumber,
-                    Amount = transaction.Amount,
-                    Description = transaction.Description,
-                    PurchasedAtUtc = transaction.CreatedAt
+                    DiscountCode = ticket.DiscountCode,
+                    OriginalPrice = ticket.OriginalPrice,
+                    DiscountAmount = ticket.DiscountAmount,
+                    Amount = ticket.Price,
+                    Description = "خرید بلیت رویداد",
+                    PurchasedAtUtc = ticket.CreatedAt
                 })
             .ToListAsync(cancellationToken);
 
@@ -232,6 +235,10 @@ public sealed class DatabaseFinanceApiClient : IFinanceApiClient
                     BuyerUserId = item.BuyerUserId,
                     BuyerName = profiles.GetValueOrDefault(item.BuyerUserId, item.BuyerMobile),
                     BuyerMobile = item.BuyerMobile,
+                    DiscountCode = item.DiscountCode,
+                    OriginalPrice = item.OriginalPrice,
+                    DiscountAmount = item.DiscountAmount,
+                    FinalPaidAmount = item.Amount,
                     Amount = Math.Abs(item.Amount),
                     Description = item.Description,
                     PurchasedAtUtc = item.PurchasedAtUtc

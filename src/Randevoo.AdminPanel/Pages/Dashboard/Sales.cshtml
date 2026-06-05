@@ -1,0 +1,111 @@
+@page
+@model Randevoo.AdminPanel.Pages.Dashboard.SalesModel
+@using System.Text.Json
+@{
+    ViewData["Title"] = "داشبورد فروش";
+}
+
+<partial name="_DashboardRangeFilter" model="Model.FilterModel" />
+
+<section class="stats-grid dashboard-metrics-grid">
+    @foreach (var metric in Model.Report.Metrics)
+    {
+        <article class="stat-card glass-panel">
+            <div class="stat-label">@metric.Label</div>
+            <div class="stat-value">@metric.Value</div>
+        </article>
+    }
+</section>
+
+<section class="dashboard-chart-grid">
+    <article class="glass-panel p-4">
+        <div class="section-title">فروش بر اساس نوع اجرا</div>
+        <canvas id="purchaseByModeChart" height="120"></canvas>
+    </article>
+    <article class="glass-panel p-4">
+        <div class="section-title">فروش بر اساس نوع رویداد</div>
+        <canvas id="purchaseByTypeChart" height="120"></canvas>
+    </article>
+    <article class="glass-panel p-4">
+        <div class="section-title">فروش بر اساس شهر</div>
+        <canvas id="purchaseByCityChart" height="120"></canvas>
+    </article>
+    <article class="glass-panel p-4">
+        <div class="section-title">روند فروش</div>
+        <canvas id="salesTrendChart" height="120"></canvas>
+    </article>
+</section>
+
+<section class="glass-panel p-4 mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="section-title mb-0">رویدادهای پرفروش</h2>
+        <span class="text-muted small">@Model.Range.Label</span>
+    </div>
+    <div class="dashboard-ranking-list">
+        @foreach (var item in Model.Report.TopEvents)
+        {
+            <div class="dashboard-ranking-item">
+                <div>
+                    <strong>@item.Label</strong>
+                    <div class="text-muted small">@item.Meta</div>
+                </div>
+                <span>@item.Value.ToString("N0")</span>
+            </div>
+        }
+    </div>
+</section>
+
+@section Scripts {
+    <script src="~/lib/chart.js/dist/chart.umd.min.js"></script>
+    <script>
+        (() => {
+            const palette = ["#1765ff", "#ff3c72", "#f4a621", "#0f1f4d", "#22b573", "#ef6c00", "#607d8b", "#8e24aa"];
+            const pie = (canvasId, slices) => {
+                const canvas = document.getElementById(canvasId);
+                if (!canvas || slices.length === 0) {
+                    return;
+                }
+
+                new Chart(canvas, {
+                    type: "doughnut",
+                    data: {
+                        labels: slices.map(item => item.label),
+                        datasets: [{
+                            data: slices.map(item => item.value),
+                            backgroundColor: palette
+                        }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false }
+                });
+            };
+
+            const line = (canvasId, points) => {
+                const canvas = document.getElementById(canvasId);
+                if (!canvas || points.length === 0) {
+                    return;
+                }
+
+                new Chart(canvas, {
+                    type: "bar",
+                    data: {
+                        labels: points.map(item => item.label),
+                        datasets: [{
+                            data: points.map(item => item.value),
+                            backgroundColor: "#1765ff"
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } }
+                    }
+                });
+            };
+
+            pie("purchaseByModeChart", @Html.Raw(JsonSerializer.Serialize(Model.Report.PurchaseByMode.Select(item => new { label = item.Label, value = item.Value }))));
+            pie("purchaseByTypeChart", @Html.Raw(JsonSerializer.Serialize(Model.Report.PurchaseByType.Select(item => new { label = item.Label, value = item.Value }))));
+            pie("purchaseByCityChart", @Html.Raw(JsonSerializer.Serialize(Model.Report.PurchaseByCity.Select(item => new { label = item.Label, value = item.Value }))));
+            line("salesTrendChart", @Html.Raw(JsonSerializer.Serialize(Model.Report.SalesTrend.Select(item => new { label = item.Label, value = item.Value }))));
+        })();
+    </script>
+}

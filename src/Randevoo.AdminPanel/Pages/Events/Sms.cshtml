@@ -19,6 +19,165 @@
     <div class="alert alert-success border-0 mb-4">@Model.StatusMessage</div>
 }
 
+<div class="glass-panel p-4 mb-4 sms-history-panel">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
+        <div>
+            <h2 class="section-title mb-1">فهرست پیام ها</h2>
+            <div class="help-tip mb-0">متن پیام در اولویت نمایش است؛ جزئیات هر درخواست با دکمه جزئیات باز می شود.</div>
+        </div>
+        @if (Model.IsAdmin)
+        {
+            <form method="get" class="sms-filter-toolbar">
+                <input type="hidden" name="eventId" value="@Model.Event.Id" />
+                <input type="text" name="SearchText" value="@Model.SearchText" class="form-control" placeholder="جستجو در متن یا درخواست دهنده" />
+                <select name="StatusFilter" class="form-select" asp-items="Model.StatusOptions"></select>
+                <select name="ScheduleFilter" class="form-select" asp-items="Model.ScheduleOptions"></select>
+                <select name="RequesterFilter" class="form-select" asp-items="Model.RequesterOptions"></select>
+                <button type="submit" class="btn btn-outline-primary">فیلتر</button>
+                <a asp-page="/Events/Sms" asp-route-eventId="@Model.Event.Id" class="btn btn-outline-secondary">حذف فیلتر</a>
+            </form>
+        }
+    </div>
+
+    @if (Model.Requests.Count == 0)
+    {
+        <div class="sms-history-empty text-center text-muted">هنوز پیامی برای این رویداد ثبت نشده است.</div>
+    }
+    else
+    {
+        <div class="sms-message-list">
+            @foreach (var request in Model.Requests)
+            {
+                var badgeClass = request.Status switch
+                {
+                    EventSmsRequestStatus.Approved => "status-approved",
+                    EventSmsRequestStatus.Rejected => "status-rejected",
+                    _ => "status-pending"
+                };
+                var statusText = request.Status switch
+                {
+                    EventSmsRequestStatus.Approved => "تایید شده",
+                    EventSmsRequestStatus.Rejected => "رد شده",
+                    _ => "در انتظار تایید"
+                };
+                var collapseId = $"sms-detail-{request.Id}";
+                var isSelected = Model.ReviewId == request.Id;
+
+                <article class="sms-message-list-item @(isSelected ? "is-selected" : string.Empty)">
+                    <div class="sms-message-list-top">
+                        <div class="sms-message-list-body">
+                            <div class="sms-message-list-meta">
+                                <span class="status-badge @badgeClass">@statusText</span>
+                                <span>درخواست @request.RequestedByName</span>
+                                <span>@PersianDateFormatter.Format(request.RequestedAtUtc, Model.IsRtl)</span>
+                                @if (request.PlannedSendAtUtc.HasValue)
+                                {
+                                    <span>ارسال: @PersianDateFormatter.Format(request.PlannedSendAtUtc, Model.IsRtl)</span>
+                                }
+                                else
+                                {
+                                    <span>ارسال فوری</span>
+                                }
+                            </div>
+                            <div class="sms-message-list-text">@request.EffectiveMessage</div>
+                            @if (request.HasAdminEdits)
+                            {
+                                <div class="text-muted small mt-2">متن نهایی توسط مدیر ویرایش شده است.</div>
+                            }
+                        </div>
+                        <div class="sms-message-list-actions">
+                            @if (Model.IsAdmin && request.Status == EventSmsRequestStatus.Pending)
+                            {
+                                <a asp-page="/Events/Sms"
+                                   asp-route-eventId="@Model.Event.Id"
+                                   asp-route-ReviewId="@request.Id"
+                                   asp-route-StatusFilter="@Model.StatusFilter"
+                                   asp-route-ScheduleFilter="@Model.ScheduleFilter"
+                                   asp-route-RequesterFilter="@Model.RequesterFilter"
+                                   asp-route-SearchText="@Model.SearchText"
+                                   class="btn btn-sm btn-outline-primary">
+                                    بازبینی
+                                </a>
+                            }
+                            <button class="btn btn-sm btn-outline-secondary sms-detail-toggle"
+                                    type="button"
+                                    data-bs-toggle="collapse"
+                                    data-bs-target="#@collapseId"
+                                    aria-expanded="@(isSelected ? "true" : "false")"
+                                    aria-controls="@collapseId">
+                                <i class="bi bi-chevron-down"></i>
+                                جزئیات
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="collapse @(isSelected ? "show" : string.Empty)" id="@collapseId">
+                        <div class="sms-message-detail-panel">
+                            <div class="sms-history-meta-grid">
+                                <div>
+                                    <div class="sms-history-kicker">درخواست دهنده</div>
+                                    <div class="fw-semibold">@request.RequestedByName</div>
+                                </div>
+                                <div>
+                                    <div class="sms-history-kicker">بازبین</div>
+                                    @if (!string.IsNullOrWhiteSpace(request.ReviewedByName))
+                                    {
+                                        <div class="fw-semibold">@request.ReviewedByName</div>
+                                    }
+                                    else
+                                    {
+                                        <div class="text-muted">ثبت نشده</div>
+                                    }
+                                </div>
+                                <div>
+                                    <div class="sms-history-kicker">زمان ثبت</div>
+                                    <div>@PersianDateFormatter.Format(request.RequestedAtUtc, Model.IsRtl)</div>
+                                </div>
+                                <div>
+                                    <div class="sms-history-kicker">برنامه ارسال</div>
+                                    @if (request.PlannedSendAtUtc.HasValue)
+                                    {
+                                        <div>@PersianDateFormatter.Format(request.PlannedSendAtUtc, Model.IsRtl)</div>
+                                    }
+                                    else
+                                    {
+                                        <div class="text-muted">فوری</div>
+                                    }
+                                </div>
+                            </div>
+
+                            <div class="sms-history-message-grid">
+                                <section class="sms-history-message-box">
+                                    <div class="sms-history-kicker">متن ثبت شده</div>
+                                    <div class="sms-message-preview">@request.Message</div>
+                                </section>
+                                <section class="sms-history-message-box">
+                                    <div class="sms-history-kicker">متن نهایی</div>
+                                    <div class="sms-message-preview @(request.HasAdminEdits ? "is-edited" : string.Empty)">
+                                        @request.EffectiveMessage
+                                    </div>
+                                </section>
+                            </div>
+
+                            <section class="sms-history-note">
+                                <div class="sms-history-kicker">یادداشت</div>
+                                @if (!string.IsNullOrWhiteSpace(request.ReviewNote))
+                                {
+                                    <div class="sms-message-preview">@request.ReviewNote</div>
+                                }
+                                else
+                                {
+                                    <div class="text-muted">بدون یادداشت</div>
+                                }
+                            </section>
+                        </div>
+                    </div>
+                </article>
+            }
+        </div>
+    }
+</div>
+
 <div class="row g-4">
     <div class="col-lg-5">
         <form method="post" asp-page-handler="Create" class="glass-panel p-4 sticky-panel sms-compose-card">
@@ -111,126 +270,4 @@
             </div>
         }
     </div>
-</div>
-
-<div class="glass-panel p-4 mt-4">
-    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
-        <div>
-            <h2 class="section-title mb-1">فهرست پیام ها</h2>
-            <div class="help-tip mb-0">همه پیام های ثبت شده برای این رویداد همراه با وضعیت، زمان بندی و نتیجه بازبینی در کارت ها آمده است.</div>
-        </div>
-        @if (Model.IsAdmin)
-        {
-            <form method="get" class="sms-filter-toolbar">
-                <input type="hidden" name="eventId" value="@Model.Event.Id" />
-                <input type="text" name="SearchText" value="@Model.SearchText" class="form-control" placeholder="جستجو در متن یا درخواست دهنده" />
-                <select name="StatusFilter" class="form-select" asp-items="Model.StatusOptions"></select>
-                <select name="ScheduleFilter" class="form-select" asp-items="Model.ScheduleOptions"></select>
-                <select name="RequesterFilter" class="form-select" asp-items="Model.RequesterOptions"></select>
-                <button type="submit" class="btn btn-outline-primary">فیلتر</button>
-                <a asp-page="/Events/Sms" asp-route-eventId="@Model.Event.Id" class="btn btn-outline-secondary">حذف فیلتر</a>
-            </form>
-        }
-    </div>
-
-    @if (Model.Requests.Count == 0)
-    {
-        <div class="sms-history-empty text-center text-muted">هنوز پیامی برای این رویداد ثبت نشده است.</div>
-    }
-    else
-    {
-        <div class="sms-history-cards">
-            @foreach (var request in Model.Requests)
-            {
-                var badgeClass = request.Status switch
-                {
-                    EventSmsRequestStatus.Approved => "status-approved",
-                    EventSmsRequestStatus.Rejected => "status-rejected",
-                    _ => "status-pending"
-                };
-                var statusText = request.Status switch
-                {
-                    EventSmsRequestStatus.Approved => "تایید شده",
-                    EventSmsRequestStatus.Rejected => "رد شده",
-                    _ => "در انتظار تایید"
-                };
-
-                <article class="sms-history-card">
-                    <div class="sms-history-card-head">
-                        <div>
-                            <div class="sms-history-kicker">درخواست دهنده</div>
-                            <div class="fw-semibold">@request.RequestedByName</div>
-                            @if (!string.IsNullOrWhiteSpace(request.ReviewedByName))
-                            {
-                                <div class="text-muted small mt-1">بازبینی: @request.ReviewedByName</div>
-                            }
-                        </div>
-                        <div class="sms-history-card-actions">
-                            <span class="status-badge @badgeClass">@statusText</span>
-                            @if (Model.IsAdmin && request.Status == EventSmsRequestStatus.Pending)
-                            {
-                                <a asp-page="/Events/Sms"
-                                   asp-route-eventId="@Model.Event.Id"
-                                   asp-route-ReviewId="@request.Id"
-                                   asp-route-StatusFilter="@Model.StatusFilter"
-                                   asp-route-ScheduleFilter="@Model.ScheduleFilter"
-                                   asp-route-RequesterFilter="@Model.RequesterFilter"
-                                   asp-route-SearchText="@Model.SearchText"
-                                   class="btn btn-sm btn-outline-primary">
-                                    بازبینی
-                                </a>
-                            }
-                        </div>
-                    </div>
-
-                    <div class="sms-history-meta-grid">
-                        <div>
-                            <div class="sms-history-kicker">زمان ثبت</div>
-                            <div>@PersianDateFormatter.Format(request.RequestedAtUtc, Model.IsRtl)</div>
-                        </div>
-                        <div>
-                            <div class="sms-history-kicker">برنامه ارسال</div>
-                            @if (request.PlannedSendAtUtc.HasValue)
-                            {
-                                <div>@PersianDateFormatter.Format(request.PlannedSendAtUtc, Model.IsRtl)</div>
-                            }
-                            else
-                            {
-                                <div class="text-muted">فوری</div>
-                            }
-                        </div>
-                    </div>
-
-                    <div class="sms-history-message-grid">
-                        <section class="sms-history-message-box">
-                            <div class="sms-history-kicker">متن ثبت شده</div>
-                            <div class="sms-message-preview">@request.Message</div>
-                        </section>
-                        <section class="sms-history-message-box">
-                            <div class="sms-history-kicker">متن نهایی</div>
-                            <div class="sms-message-preview @(request.HasAdminEdits ? "is-edited" : string.Empty)">
-                                @request.EffectiveMessage
-                            </div>
-                            @if (request.HasAdminEdits)
-                            {
-                                <div class="text-muted small mt-2">متن توسط مدیر ویرایش شده است.</div>
-                            }
-                        </section>
-                    </div>
-
-                    <section class="sms-history-note">
-                        <div class="sms-history-kicker">یادداشت</div>
-                        @if (!string.IsNullOrWhiteSpace(request.ReviewNote))
-                        {
-                            <div class="sms-message-preview">@request.ReviewNote</div>
-                        }
-                        else
-                        {
-                            <div class="text-muted">بدون یادداشت</div>
-                        }
-                    </section>
-                </article>
-            }
-        </div>
-    }
 </div>

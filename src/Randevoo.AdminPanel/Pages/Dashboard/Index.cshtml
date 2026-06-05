@@ -44,7 +44,8 @@
                         <tr>
                             <th>رویداد</th>
                             <th>برگزارکننده</th>
-                            <th>وضعیت</th>
+                            <th>وضعیت رویداد</th>
+                            <th>بررسی مدیر</th>
                             <th>قیمت</th>
                             <th></th>
                         </tr>
@@ -58,8 +59,9 @@
                                     <div class="text-muted small">@item.ActiveDraft.City، @item.ActiveDraft.Country</div>
                                 </td>
                                 <td>@item.PlannerName</td>
-                                <td><span class="status-badge @Model.GetStatusClass(item.Status)">@DisplayFormatter.Status(item.Status)</span></td>
-                                <td>@DisplayFormatter.Money(item.ActiveDraft.TicketPrice, Model.IsRtl)</td>
+                                <td><span class="status-badge @Model.GetOperationalStatusClass(item.OperationalStatus)">@DisplayFormatter.OperationalStatus(item.OperationalStatus)</span></td>
+                                <td><span class="status-badge @Model.GetReviewStatusClass(item.ReviewStatus)">@DisplayFormatter.ReviewStatus(item.ReviewStatus)</span></td>
+                                <td>@DisplayFormatter.Money(Math.Min(item.ActiveDraft.MaleTicketPrice, item.ActiveDraft.FemaleTicketPrice), Model.IsRtl)</td>
                                 <td class="text-end">
                                     <a asp-page="/Events/Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-secondary">بررسی</a>
                                 </td>

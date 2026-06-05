@@ -49,8 +49,8 @@ public class StartEventConversationHandler : IRequestHandler<StartEventConversat
         await EnsureValidTicketAsync(request.EventId, request.ParticipantUserId, cancellationToken);
 
         var connectionCount = await _conversations.CountActiveConnectionsForUserAsync(request.EventId, request.StarterUserId, cancellationToken);
-        if (connectionCount >= datingEvent.NumberOfChatAllowed)
-            throw new BusinessRuleViolationException("Chat limit reached", "User reached the event chat connection limit");
+        if (connectionCount >= datingEvent.NumberOfLikesAllowed)
+            throw new BusinessRuleViolationException("Like limit reached", "User reached the event like limit");
 
         var conversation = new EventConversation(datingEvent, starter, participant);
         await _conversations.AddAsync(conversation, cancellationToken);

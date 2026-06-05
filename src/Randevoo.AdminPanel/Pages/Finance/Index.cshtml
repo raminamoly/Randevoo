@@ -33,7 +33,7 @@
                     <th>وضعیت</th>
                     <th>زمان درخواست</th>
                     <th>یادداشت</th>
-                    <th>اقدام ها</th>
+                    <th>عملیات</th>
                 </tr>
             </thead>
             <tbody>
@@ -53,21 +53,25 @@
                             {
                                 <div class="dropdown">
                                     <button class="btn btn-sm btn-outline-secondary dropdown-toggle table-action-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                        اقدام ها
+                                        عملیات
                                     </button>
                                     <div class="dropdown-menu dropdown-menu-end action-menu shadow-sm border-0 finance-review-menu">
                                         <form method="post" asp-page-handler="ConfirmWithdrawal">
                                             <input type="hidden" name="ReviewInput.RequestId" value="@item.Id" />
                                             <label class="form-label small">یادداشت تایید</label>
                                             <textarea name="ReviewInput.ReviewNote" class="form-control form-control-sm mb-2" rows="2"></textarea>
-                                            <button type="submit" class="dropdown-item text-success">تایید پرداخت</button>
+                                            <button type="submit" class="dropdown-item text-success">
+                                                <i class="bi bi-check2-circle"></i>تایید پرداخت
+                                            </button>
                                         </form>
                                         <div class="dropdown-divider"></div>
                                         <form method="post" asp-page-handler="RejectWithdrawal">
                                             <input type="hidden" name="ReviewInput.RequestId" value="@item.Id" />
                                             <label class="form-label small">علت رد</label>
                                             <textarea name="ReviewInput.ReviewNote" class="form-control form-control-sm mb-2" rows="2"></textarea>
-                                            <button type="submit" class="dropdown-item text-danger">رد درخواست</button>
+                                            <button type="submit" class="dropdown-item text-danger">
+                                                <i class="bi bi-x-circle"></i>رد درخواست
+                                            </button>
                                         </form>
                                     </div>
                                 </div>

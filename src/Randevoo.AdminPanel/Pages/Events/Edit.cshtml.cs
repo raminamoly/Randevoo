@@ -10,6 +10,8 @@ using Randevoo.AdminPanel.Services.ApiClients;
 using Randevoo.AdminPanel.Services.State;
 using Randevoo.Domain.Enums;
 using Randevoo.Domain.Exceptions;
+using AdminEventOperationalStatus = Randevoo.AdminPanel.Models.Events.EventOperationalStatus;
+using AdminEventReviewStatus = Randevoo.AdminPanel.Models.Events.EventReviewStatus;
 
 namespace Randevoo.AdminPanel.Pages.Events;
 
@@ -71,11 +73,15 @@ public class EditModel : PageModel
 
     public string? ReviewNote { get; set; }
 
-    public string StatusText { get; set; } = EventApprovalState.Draft.ToString();
+    public string StatusText { get; set; } = AdminEventOperationalStatus.Draft.ToString();
 
-    public EventApprovalState StatusValue { get; set; } = EventApprovalState.Draft;
+    public AdminEventOperationalStatus StatusValue { get; set; } = AdminEventOperationalStatus.Draft;
 
     public string StatusClass { get; set; } = "status-draft";
+
+    public AdminEventReviewStatus ReviewStatusValue { get; set; } = AdminEventReviewStatus.NotSubmitted;
+
+    public string ReviewStatusClass { get; set; } = "status-draft";
 
     public SelectList CountryOptions { get; private set; } = new(Array.Empty<object>());
 
@@ -119,9 +125,11 @@ public class EditModel : PageModel
 
             Input = @event.ActiveDraft;
             ReviewNote = @event.AdminReviewNote;
-            StatusText = @event.Status.ToString();
-            StatusValue = @event.Status;
-            StatusClass = GetStatusClass(@event.Status);
+            StatusText = @event.OperationalStatus.ToString();
+            StatusValue = @event.OperationalStatus;
+            StatusClass = GetOperationalStatusClass(@event.OperationalStatus);
+            ReviewStatusValue = @event.ReviewStatus;
+            ReviewStatusClass = GetReviewStatusClass(@event.ReviewStatus);
             AssignedPlannerId = @event.PlannerUserId;
         }
         else
@@ -136,9 +144,11 @@ public class EditModel : PageModel
             {
                 Input.EventTypeId = long.Parse(EventTypeOptions.First().Value!);
             }
-            StatusText = EventApprovalState.Draft.ToString();
-            StatusValue = EventApprovalState.Draft;
-            StatusClass = GetStatusClass(EventApprovalState.Draft);
+            StatusText = AdminEventOperationalStatus.Draft.ToString();
+            StatusValue = AdminEventOperationalStatus.Draft;
+            StatusClass = GetOperationalStatusClass(AdminEventOperationalStatus.Draft);
+            ReviewStatusValue = AdminEventReviewStatus.NotSubmitted;
+            ReviewStatusClass = GetReviewStatusClass(AdminEventReviewStatus.NotSubmitted);
             if (IsAdmin)
             {
                 AssignedPlannerId = GetDefaultPlannerId();
@@ -308,9 +318,11 @@ public class EditModel : PageModel
 
     private void ApplyEventContextDefaults()
     {
-        StatusText = IsNew ? EventApprovalState.Draft.ToString() : StatusText;
-        StatusValue = IsNew ? EventApprovalState.Draft : StatusValue;
-        StatusClass = GetStatusClass(StatusValue);
+        StatusText = IsNew ? AdminEventOperationalStatus.Draft.ToString() : StatusText;
+        StatusValue = IsNew ? AdminEventOperationalStatus.Draft : StatusValue;
+        StatusClass = GetOperationalStatusClass(StatusValue);
+        ReviewStatusValue = IsNew ? AdminEventReviewStatus.NotSubmitted : ReviewStatusValue;
+        ReviewStatusClass = GetReviewStatusClass(ReviewStatusValue);
         ReviewNote ??= null;
     }
 
@@ -318,9 +330,11 @@ public class EditModel : PageModel
     {
         if (ExistingEventId is not long id)
         {
-            StatusText = EventApprovalState.Draft.ToString();
-            StatusValue = EventApprovalState.Draft;
-            StatusClass = GetStatusClass(StatusValue);
+            StatusText = AdminEventOperationalStatus.Draft.ToString();
+            StatusValue = AdminEventOperationalStatus.Draft;
+            StatusClass = GetOperationalStatusClass(StatusValue);
+            ReviewStatusValue = AdminEventReviewStatus.NotSubmitted;
+            ReviewStatusClass = GetReviewStatusClass(ReviewStatusValue);
             return;
         }
 
@@ -329,9 +343,11 @@ public class EditModel : PageModel
             return;
 
         ReviewNote = existing.AdminReviewNote;
-        StatusText = existing.Status.ToString();
-        StatusValue = existing.Status;
-        StatusClass = GetStatusClass(existing.Status);
+        StatusText = existing.OperationalStatus.ToString();
+        StatusValue = existing.OperationalStatus;
+        StatusClass = GetOperationalStatusClass(existing.OperationalStatus);
+        ReviewStatusValue = existing.ReviewStatus;
+        ReviewStatusClass = GetReviewStatusClass(existing.ReviewStatus);
     }
 
     private void ValidateEventInput()
@@ -379,8 +395,11 @@ public class EditModel : PageModel
             ModelState.AddModelError(nameof(EndDateText), "زمان پایان باید بعد از زمان شروع باشد.");
         }
 
-        if (Input.TicketPrice is < 0.01m or > 1_000_000m)
-            ModelState.AddModelError(nameof(Input.TicketPrice), "قیمت بلیت باید بین 1 و 1,000,000 ریال باشد.");
+        if (Input.MaleTicketPrice is < 0.01m or > 1_000_000m)
+            ModelState.AddModelError(nameof(Input.MaleTicketPrice), "قیمت بلیت آقایان باید بین 1 و 1,000,000 ریال باشد.");
+
+        if (Input.FemaleTicketPrice is < 0.01m or > 1_000_000m)
+            ModelState.AddModelError(nameof(Input.FemaleTicketPrice), "قیمت بلیت خانم ها باید بین 1 و 1,000,000 ریال باشد.");
 
         if (Input.OrganizerCommissionPercent is < 0 or > 100)
             ModelState.AddModelError(nameof(Input.OrganizerCommissionPercent), "درصد کمیسیون باید بین 0 تا 100 باشد.");
@@ -391,8 +410,8 @@ public class EditModel : PageModel
         if (Input.CapacityFemale <= 0)
             ModelState.AddModelError(nameof(Input.CapacityFemale), "ظرفیت بانوان باید بیشتر از صفر باشد.");
 
-        if (Input.ChatLimit is < 0 or > 100)
-            ModelState.AddModelError(nameof(Input.ChatLimit), "تعداد مجاز گفتگو باید بین 0 تا 100 باشد.");
+        if (Input.LikeLimit is < 0 or > 10)
+            ModelState.AddModelError(nameof(Input.LikeLimit), "تعداد لایک مجاز باید بین 0 تا 10 باشد.");
 
         ValidateAgeRange(nameof(Input.AgeRangeForMale), Input.AgeRangeForMale, "بازه سنی آقایان");
         ValidateAgeRange(nameof(Input.AgeRangeForFemale), Input.AgeRangeForFemale, "بازه سنی بانوان");
@@ -465,15 +484,9 @@ public class EditModel : PageModel
         }
     }
 
-    public static string GetStatusClass(EventApprovalState state) => state switch
-    {
-        EventApprovalState.Approved => "status-approved",
-        EventApprovalState.PendingAdminReview => "status-pending",
-        EventApprovalState.Rejected => "status-rejected",
-        EventApprovalState.Closed => "status-closed",
-        EventApprovalState.Cancelled => "status-cancelled",
-        _ => "status-draft"
-    };
+    public static string GetOperationalStatusClass(AdminEventOperationalStatus status) => DisplayFormatter.OperationalStatusClass(status);
+
+    public static string GetReviewStatusClass(AdminEventReviewStatus status) => DisplayFormatter.ReviewStatusClass(status);
 
     private static async Task<string> ToDataUrlAsync(IFormFile file)
     {

@@ -42,7 +42,8 @@
                 <tr>
                     <th>رویداد</th>
                     <th>زمان شروع</th>
-                    <th>وضعیت</th>
+                    <th>وضعیت رویداد</th>
+                    <th>بررسی مدیر</th>
                     <th>یادداشت مدیر</th>
                     <th></th>
                 </tr>
@@ -56,7 +57,8 @@
                             <div class="text-muted small">@item.ActiveDraft.City</div>
                         </td>
                         <td>@PersianDateFormatter.Format(item.ActiveDraft.StartAtUtc, Model.IsRtl)</td>
-                        <td><span class="status-badge @Model.GetStatusClass(item.Status)">@DisplayFormatter.Status(item.Status)</span></td>
+                        <td><span class="status-badge @Model.GetOperationalStatusClass(item.OperationalStatus)">@DisplayFormatter.OperationalStatus(item.OperationalStatus)</span></td>
+                        <td><span class="status-badge @Model.GetReviewStatusClass(item.ReviewStatus)">@DisplayFormatter.ReviewStatus(item.ReviewStatus)</span></td>
                         <td class="text-muted">@item.AdminReviewNote</td>
                         <td class="text-end">
                             <a asp-page="/Events/Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-secondary">ویرایش</a>

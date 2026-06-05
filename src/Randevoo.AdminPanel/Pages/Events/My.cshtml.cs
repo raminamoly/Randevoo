@@ -58,13 +58,7 @@ public class MyModel : PageModel
         return RedirectToPage();
     }
 
-    public string GetStatusClass(EventApprovalState state) => state switch
-    {
-        EventApprovalState.Approved => "status-approved",
-        EventApprovalState.PendingAdminReview => "status-pending",
-        EventApprovalState.Rejected => "status-rejected",
-        EventApprovalState.Closed => "status-closed",
-        EventApprovalState.Cancelled => "status-cancelled",
-        _ => "status-draft"
-    };
+    public string GetOperationalStatusClass(EventOperationalStatus status) => DisplayFormatter.OperationalStatusClass(status);
+
+    public string GetReviewStatusClass(EventReviewStatus status) => DisplayFormatter.ReviewStatusClass(status);
 }

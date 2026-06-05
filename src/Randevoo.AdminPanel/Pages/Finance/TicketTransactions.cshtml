@@ -77,7 +77,10 @@
                             <tr>
                                 <th>خریدار</th>
                                 <th>موبایل</th>
-                                <th>مبلغ</th>
+                                <th>کد تخفیف</th>
+                                <th>قیمت اصلی</th>
+                                <th>تخفیف</th>
+                                <th>پرداخت نهایی</th>
                                 <th>زمان خرید</th>
                                 <th>شرح</th>
                             </tr>
@@ -88,7 +91,10 @@
                                 <tr>
                                     <td>@item.BuyerName</td>
                                     <td>@DisplayFormatter.ToPersianDigits(item.BuyerMobile)</td>
-                                    <td>@DisplayFormatter.Money(item.Amount, Model.IsRtl)</td>
+                                    <td dir="ltr">@(string.IsNullOrWhiteSpace(item.DiscountCode) ? "-" : item.DiscountCode)</td>
+                                    <td>@DisplayFormatter.Money(item.OriginalPrice, Model.IsRtl)</td>
+                                    <td>@DisplayFormatter.Money(item.DiscountAmount, Model.IsRtl)</td>
+                                    <td>@DisplayFormatter.Money(item.FinalPaidAmount, Model.IsRtl)</td>
                                     <td>@PersianDateFormatter.FormatDateTime(item.PurchasedAtUtc, Model.IsRtl)</td>
                                     <td class="table-wrap-cell">@item.Description</td>
                                 </tr>

@@ -68,13 +68,17 @@
                                 <td class="text-end table-action-cell">
                                     <div class="dropdown">
                                         <button class="btn btn-sm btn-outline-secondary dropdown-toggle table-action-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                            اقدام ها
+                                            عملیات
                                         </button>
                                         <div class="dropdown-menu dropdown-menu-end action-menu shadow-sm border-0">
-                                            <a asp-page="/Tags/Index" asp-route-id="@item.Id" class="dropdown-item">ویرایش تگ</a>
+                                            <a asp-page="/Tags/Index" asp-route-id="@item.Id" class="dropdown-item">
+                                                <i class="bi bi-pencil-square"></i>ویرایش تگ
+                                            </a>
                                             <form method="post" asp-page-handler="Delete" onsubmit="return confirm('تگ حذف شود؟');">
                                                 <input type="hidden" name="id" value="@item.Id" />
-                                                <button class="dropdown-item text-danger" type="submit">حذف تگ</button>
+                                                <button class="dropdown-item text-danger" type="submit">
+                                                    <i class="bi bi-trash3"></i>حذف تگ
+                                                </button>
                                             </form>
                                         </div>
                                     </div>
