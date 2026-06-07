@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Randevoo.AdminPanel.Models.Auth;
 using Randevoo.AdminPanel.Models.Users;
+using Randevoo.AdminPanel.Services.State;
 using Randevoo.Domain.Entities;
 using Randevoo.Domain.Enums;
 using Randevoo.Domain.ValueObjects;
@@ -15,6 +16,138 @@ public sealed class DatabaseAdminUserProfilesApiClient : IAdminUserProfilesApiCl
     public DatabaseAdminUserProfilesApiClient(RandevooDbContext db)
     {
         _db = db;
+    }
+
+    public async Task<AdminUserProfileListResult> GetProfilesAsync(MockUser admin, AdminUserProfileListFilter filter, CancellationToken cancellationToken = default)
+    {
+        EnsureAdmin(admin);
+
+        var pageNumber = Math.Max(filter.PageNumber, 1);
+        var pageSize = Math.Clamp(filter.PageSize, 10, 100);
+
+        var baseQuery = _db.UserProfiles
+            .AsNoTracking()
+            .Include(item => item.User)
+            .Include(item => item.City)
+            .Include(item => item.GenderLookup)
+            .Include(item => item.EducationLevelLookup)
+            .Include(item => item.ZodiacSignLookup)
+            .Include(item => item.Images)
+            .Include(item => item.Interests)
+            .Where(item => item.User != null);
+
+        if (!string.IsNullOrWhiteSpace(filter.Search))
+        {
+            var search = filter.Search.Trim();
+            baseQuery = baseQuery.Where(item =>
+                item.DisplayName.Contains(search)
+                || item.User.MobileNumber.Contains(search)
+                || (item.User.Email != null && item.User.Email.Contains(search)));
+        }
+
+        if (filter.CityId.HasValue)
+            baseQuery = baseQuery.Where(item => item.CityId == filter.CityId.Value);
+        if (filter.GenderId.HasValue)
+            baseQuery = baseQuery.Where(item => item.GenderId == filter.GenderId.Value);
+        if (filter.ZodiacSignId.HasValue)
+            baseQuery = baseQuery.Where(item => item.ZodiacSignId == filter.ZodiacSignId.Value);
+        if (filter.IsActive.HasValue)
+            baseQuery = baseQuery.Where(item => item.User.IsActive == filter.IsActive.Value);
+
+        if (filter.IsProfileComplete.HasValue)
+        {
+            if (filter.IsProfileComplete.Value)
+            {
+                baseQuery = baseQuery.Where(IsProfileCompleteExpression());
+            }
+            else
+            {
+                baseQuery = baseQuery.Where(IsProfileIncompleteExpression());
+            }
+        }
+
+        var lastActivityQuery = _db.AuditLogs
+            .AsNoTracking()
+            .Where(log => log.ActorUserId != null)
+            .GroupBy(log => log.ActorUserId!.Value)
+            .Select(group => new
+            {
+                UserId = group.Key,
+                LastActivityAtUtc = group.Max(item => item.CreatedAt)
+            });
+
+        var query =
+            from profile in baseQuery
+            join lastActivity in lastActivityQuery on profile.UserId equals lastActivity.UserId into lastActivityGroup
+            from lastActivity in lastActivityGroup.DefaultIfEmpty()
+            select new
+            {
+                Profile = profile,
+                LastActivityAtUtc = lastActivity != null ? lastActivity.LastActivityAtUtc : (DateTime?)null
+            };
+
+        query = filter.Sort switch
+        {
+            "name" => query.OrderBy(item => item.Profile.DisplayName),
+            "last-activity" => query.OrderByDescending(item => item.LastActivityAtUtc).ThenByDescending(item => item.Profile.CreatedAt),
+            "oldest" => query.OrderBy(item => item.Profile.CreatedAt),
+            _ => query.OrderByDescending(item => item.Profile.CreatedAt)
+        };
+
+        var totalCount = await query.CountAsync(cancellationToken);
+        var rows = await query
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .Select(item => new
+            {
+                UserId = item.Profile.UserId,
+                ProfileId = item.Profile.Id,
+                DisplayName = item.Profile.DisplayName,
+                MobileNumber = item.Profile.User.MobileNumber,
+                UserRole = item.Profile.User.Role,
+                GenderLookupTitle = item.Profile.GenderLookup != null ? item.Profile.GenderLookup.Title : null,
+                Gender = item.Profile.Gender,
+                CityName = item.Profile.City != null ? item.Profile.City.Name : null,
+                LocationCity = item.Profile.Location.City,
+                Age = item.Profile.Age,
+                ZodiacSignLookupTitle = item.Profile.ZodiacSignLookup != null ? item.Profile.ZodiacSignLookup.Title : null,
+                ZodiacSign = item.Profile.ZodiacSign,
+                EducationLevelLookupTitle = item.Profile.EducationLevelLookup != null ? item.Profile.EducationLevelLookup.Title : null,
+                EducationLevel = item.Profile.EducationLevel,
+                IsProfileComplete = item.Profile.EducationLevel != EducationLevel.NotSpecified
+                    && item.Profile.Images.Count > 0
+                    && item.Profile.Interests.Count > 0
+                    && !string.IsNullOrWhiteSpace(item.Profile.Location.City)
+                    && !string.IsNullOrWhiteSpace(item.Profile.Location.Country),
+                IsActive = item.Profile.User.IsActive,
+                CreatedAtUtc = item.Profile.CreatedAt,
+                LastActivityAtUtc = item.LastActivityAtUtc
+            })
+            .ToListAsync(cancellationToken);
+
+        var items = rows.Select(item => new AdminUserProfileListItem
+        {
+            UserId = item.UserId,
+            ProfileId = item.ProfileId,
+            DisplayName = item.DisplayName,
+            MobileNumber = item.MobileNumber,
+            RoleTitle = item.UserRole == UserRole.EventPlanner ? "برگزارکننده" : item.UserRole == UserRole.Admin ? "مدیر" : "کاربر",
+            GenderTitle = item.GenderLookupTitle ?? DisplayFormatter.Gender(item.Gender),
+            CityTitle = item.CityName ?? (string.IsNullOrWhiteSpace(item.LocationCity) ? "ثبت نشده" : item.LocationCity),
+            Age = item.Age,
+            ZodiacSignTitle = item.ZodiacSignLookupTitle ?? item.ZodiacSign,
+            EducationLevelTitle = item.EducationLevelLookupTitle ?? item.EducationLevel.ToString(),
+            IsProfileComplete = item.IsProfileComplete,
+            IsActive = item.IsActive,
+            CreatedAtUtc = item.CreatedAtUtc,
+            LastActivityAtUtc = item.LastActivityAtUtc
+        }).ToList();
+
+        return new AdminUserProfileListResult
+        {
+            TotalCount = totalCount,
+            Items = items
+        };
     }
 
     public async Task<AdminUserProfileEditor> GetEditorAsync(long userId, MockUser admin, CancellationToken cancellationToken = default)
@@ -47,6 +180,7 @@ public sealed class DatabaseAdminUserProfilesApiClient : IAdminUserProfilesApiCl
                 CountryId = profile.CountryId,
                 CityId = profile.CityId,
                 EducationLevelId = profile.EducationLevelId,
+                ZodiacSignId = profile.ZodiacSignId,
                 HeightCentimeters = profile.Height.Centimeters,
                 Smoking = profile.Smoking,
                 IsActive = user.IsActive
@@ -101,7 +235,7 @@ public sealed class DatabaseAdminUserProfilesApiClient : IAdminUserProfilesApiCl
             new Height(input.HeightCentimeters),
             MapEducation(input.EducationLevelId),
             input.Smoking);
-        profile.UpdateLookupReferences(input.CountryId, input.CityId, input.EducationLevelId, MapGenderId(input.Gender));
+        profile.UpdateLookupReferences(input.CountryId, input.CityId, input.EducationLevelId, MapGenderId(input.Gender), input.ZodiacSignId);
 
         await _db.SaveChangesAsync(cancellationToken);
     }
@@ -204,6 +338,20 @@ public sealed class DatabaseAdminUserProfilesApiClient : IAdminUserProfilesApiCl
         Gender.Female => 3,
         _ => null
     };
+
+    private static System.Linq.Expressions.Expression<Func<UserProfile, bool>> IsProfileCompleteExpression()
+        => item => item.EducationLevel != EducationLevel.NotSpecified
+            && item.Images.Count > 0
+            && item.Interests.Count > 0
+            && !string.IsNullOrWhiteSpace(item.Location.City)
+            && !string.IsNullOrWhiteSpace(item.Location.Country);
+
+    private static System.Linq.Expressions.Expression<Func<UserProfile, bool>> IsProfileIncompleteExpression()
+        => item => item.EducationLevel == EducationLevel.NotSpecified
+            || item.Images.Count == 0
+            || item.Interests.Count == 0
+            || string.IsNullOrWhiteSpace(item.Location.City)
+            || string.IsNullOrWhiteSpace(item.Location.Country);
 
     private static void EnsureAdmin(MockUser admin)
     {

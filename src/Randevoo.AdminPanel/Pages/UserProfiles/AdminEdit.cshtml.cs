@@ -39,10 +39,12 @@ public class AdminEditModel : PageModel
     public IReadOnlyList<CityOption> Cities { get; private set; } = Array.Empty<CityOption>();
     public IReadOnlyList<EducationLevelOption> EducationLevels { get; private set; } = Array.Empty<EducationLevelOption>();
     public IReadOnlyList<GenderOption> Genders { get; private set; } = Array.Empty<GenderOption>();
+    public IReadOnlyList<ZodiacSignOption> ZodiacSigns { get; private set; } = Array.Empty<ZodiacSignOption>();
 
     public SelectList CountryOptions => new(Countries, nameof(CountryOption.Id), nameof(CountryOption.Name), ProfileInput.CountryId);
     public SelectList CityOptions => new(Cities, nameof(CityOption.Id), nameof(CityOption.Name), ProfileInput.CityId);
     public SelectList EducationOptions => new(EducationLevels, nameof(EducationLevelOption.Id), nameof(EducationLevelOption.Title), ProfileInput.EducationLevelId);
+    public SelectList ZodiacSignOptions => new(ZodiacSigns, nameof(ZodiacSignOption.Id), nameof(ZodiacSignOption.Title), ProfileInput.ZodiacSignId);
     public SelectList GenderOptions => new(
         Genders.Select(gender => new
         {
@@ -162,6 +164,7 @@ public class AdminEditModel : PageModel
         Cities = await _locationsApi.GetCitiesAsync();
         EducationLevels = await _locationsApi.GetEducationLevelsAsync();
         Genders = await _locationsApi.GetGendersAsync();
+        ZodiacSigns = await _locationsApi.GetZodiacSignsAsync();
     }
 
     private MockUser CurrentAdmin() => _session.CurrentUser ?? throw new InvalidOperationException("کاربر جاری شناسایی نشد.");

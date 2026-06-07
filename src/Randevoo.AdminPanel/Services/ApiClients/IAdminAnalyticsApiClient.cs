@@ -16,4 +16,6 @@ public interface IAdminAnalyticsApiClient
     Task<MoneyDashboardReport> GetMoneyDashboardAsync(MockUser currentUser, DashboardDateRangeValue range, CancellationToken cancellationToken = default);
 
     Task<AuditLogListResult> GetAuditLogsAsync(MockUser currentUser, AuditLogFilter filter, CancellationToken cancellationToken = default);
+
+    Task<SmsQueueListResult> GetSmsQueueAsync(MockUser currentUser, SmsQueueListFilter filter, CancellationToken cancellationToken = default);
 }

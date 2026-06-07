@@ -19,6 +19,7 @@ public class RandevooDbContext : DbContext
     public DbSet<City> Cities => Set<City>();
     public DbSet<EducationLevelLookup> EducationLevels => Set<EducationLevelLookup>();
     public DbSet<GenderLookup> Genders => Set<GenderLookup>();
+    public DbSet<ZodiacSignLookup> ZodiacSigns => Set<ZodiacSignLookup>();
     public DbSet<BalanceAccount> BalanceAccounts => Set<BalanceAccount>();
     public DbSet<BalanceTransaction> BalanceTransactions => Set<BalanceTransaction>();
     public DbSet<OnlinePayment> OnlinePayments => Set<OnlinePayment>();
@@ -185,6 +186,32 @@ public class RandevooDbContext : DbContext
                 new { Id = 3L, Title = "خانم", IsActive = true, DisplayOrder = 2, CreatedAt = new DateTime(2026, 6, 4, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false });
         });
 
+        modelBuilder.Entity<ZodiacSignLookup>(b =>
+        {
+            b.ToTable("ZodiacSigns");
+            b.HasKey(sign => sign.Id);
+            b.Property(sign => sign.Code).IsRequired().HasMaxLength(30);
+            b.Property(sign => sign.Title).IsRequired().HasMaxLength(80);
+            b.Property(sign => sign.IsActive).IsRequired();
+            b.Property(sign => sign.DisplayOrder).IsRequired();
+            b.HasIndex(sign => sign.Code).IsUnique();
+            b.HasIndex(sign => sign.Title).IsUnique();
+            b.HasQueryFilter(sign => !sign.IsDeleted);
+            b.HasData(
+                new { Id = 1L, Code = "Aries", Title = "حمل", IsActive = true, DisplayOrder = 1, CreatedAt = new DateTime(2026, 6, 6, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 2L, Code = "Taurus", Title = "ثور", IsActive = true, DisplayOrder = 2, CreatedAt = new DateTime(2026, 6, 6, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 3L, Code = "Gemini", Title = "جوزا", IsActive = true, DisplayOrder = 3, CreatedAt = new DateTime(2026, 6, 6, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 4L, Code = "Cancer", Title = "سرطان", IsActive = true, DisplayOrder = 4, CreatedAt = new DateTime(2026, 6, 6, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 5L, Code = "Leo", Title = "اسد", IsActive = true, DisplayOrder = 5, CreatedAt = new DateTime(2026, 6, 6, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 6L, Code = "Virgo", Title = "سنبله", IsActive = true, DisplayOrder = 6, CreatedAt = new DateTime(2026, 6, 6, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 7L, Code = "Libra", Title = "میزان", IsActive = true, DisplayOrder = 7, CreatedAt = new DateTime(2026, 6, 6, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 8L, Code = "Scorpio", Title = "عقرب", IsActive = true, DisplayOrder = 8, CreatedAt = new DateTime(2026, 6, 6, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 9L, Code = "Sagittarius", Title = "قوس", IsActive = true, DisplayOrder = 9, CreatedAt = new DateTime(2026, 6, 6, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 10L, Code = "Capricorn", Title = "جدی", IsActive = true, DisplayOrder = 10, CreatedAt = new DateTime(2026, 6, 6, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 11L, Code = "Aquarius", Title = "دلو", IsActive = true, DisplayOrder = 11, CreatedAt = new DateTime(2026, 6, 6, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 12L, Code = "Pisces", Title = "حوت", IsActive = true, DisplayOrder = 12, CreatedAt = new DateTime(2026, 6, 6, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false });
+        });
+
         modelBuilder.Entity<EventPlannerProfile>(b =>
         {
             b.HasKey(p => p.Id);
@@ -345,6 +372,7 @@ public class RandevooDbContext : DbContext
             b.HasIndex(p => p.CityId);
             b.HasIndex(p => p.EducationLevelId);
             b.HasIndex(p => p.GenderId);
+            b.HasIndex(p => p.ZodiacSignId);
             b.HasQueryFilter(p => !p.IsDeleted);
             b.HasOne(p => p.Country)
                 .WithMany()
@@ -361,6 +389,10 @@ public class RandevooDbContext : DbContext
             b.HasOne(p => p.GenderLookup)
                 .WithMany()
                 .HasForeignKey(p => p.GenderId)
+                .OnDelete(DeleteBehavior.Restrict);
+            b.HasOne(p => p.ZodiacSignLookup)
+                .WithMany()
+                .HasForeignKey(p => p.ZodiacSignId)
                 .OnDelete(DeleteBehavior.Restrict);
             b.OwnsOne(p => p.Height, hb =>
             {

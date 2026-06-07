@@ -73,6 +73,12 @@
                         <option value="">ثبت نشده</option>
                     </select>
                 </div>
+                <div class="col-md-6">
+                    <label asp-for="ProfileInput.ZodiacSignId" class="form-label">نشان زودیاک</label>
+                    <select asp-for="ProfileInput.ZodiacSignId" asp-items="Model.ZodiacSignOptions" class="form-select">
+                        <option value="">ثبت نشده</option>
+                    </select>
+                </div>
                 <div class="col-md-3 d-flex align-items-end">
                     <div class="form-check form-switch">
                         <input asp-for="ProfileInput.Smoking" class="form-check-input" />

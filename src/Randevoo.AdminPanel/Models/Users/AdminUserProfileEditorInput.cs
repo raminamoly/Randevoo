@@ -22,6 +22,8 @@ public sealed class AdminUserProfileEditorInput
 
     public long? EducationLevelId { get; set; }
 
+    public long? ZodiacSignId { get; set; }
+
     [Range(120, 230, ErrorMessage = "قد معتبر نیست.")]
     public int HeightCentimeters { get; set; }
 

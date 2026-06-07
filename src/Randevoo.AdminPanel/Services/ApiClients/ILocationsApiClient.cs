@@ -11,4 +11,6 @@ public interface ILocationsApiClient
     Task<IReadOnlyList<EducationLevelOption>> GetEducationLevelsAsync(CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<GenderOption>> GetGendersAsync(CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<ZodiacSignOption>> GetZodiacSignsAsync(CancellationToken cancellationToken = default);
 }

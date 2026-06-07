@@ -20,6 +20,8 @@ public class UserProfile : BaseEntity , IAggregateRoot
     public DateOnly DateOfBirth { get; private set; }
     public int BirthMonth { get; private set; }
     public string ZodiacSign { get; private set; } = null!;
+    public long? ZodiacSignId { get; private set; }
+    public ZodiacSignLookup? ZodiacSignLookup { get; private set; }
     public Height Height { get; private set; } = null!;
     public EducationLevel EducationLevel { get; private set; }
     public long? EducationLevelId { get; private set; }
@@ -70,6 +72,7 @@ public class UserProfile : BaseEntity , IAggregateRoot
         DateOfBirth = GuardAgainst.Date.AgeRequirement(dateOfBirth, 18, nameof(dateOfBirth));
         BirthMonth = DateOfBirth.Month;
         ZodiacSign = MapZodiacSign(DateOfBirth.Month, DateOfBirth.Day);
+        ZodiacSignId = MapZodiacSignId(ZodiacSign);
         Location = GuardAgainst.Object.Null(location, nameof(location));
         (CountryId, CityId) = MapLocationIds(location.Country, location.City);
         Height = height ?? new Height(170);
@@ -143,6 +146,7 @@ public class UserProfile : BaseEntity , IAggregateRoot
         DateOfBirth = GuardAgainst.Date.AgeRequirement(dateOfBirth, 18, nameof(dateOfBirth));
         BirthMonth = DateOfBirth.Month;
         ZodiacSign = MapZodiacSign(DateOfBirth.Month, DateOfBirth.Day);
+        ZodiacSignId = MapZodiacSignId(ZodiacSign);
         UpdateTimestamp();
 
         AddDomainEvent(new EntityUpdatedEvent<UserProfile>(this, nameof(DateOfBirth), oldDateOfBirth, dateOfBirth));
@@ -174,12 +178,13 @@ public class UserProfile : BaseEntity , IAggregateRoot
         SetSmoking(smoking);
     }
 
-    public void UpdateLookupReferences(long? countryId, long? cityId, long? educationLevelId, long? genderId)
+    public void UpdateLookupReferences(long? countryId, long? cityId, long? educationLevelId, long? genderId, long? zodiacSignId = null)
     {
         CountryId = countryId;
         CityId = cityId;
         EducationLevelId = educationLevelId ?? MapEducationLevelId(EducationLevel);
         GenderId = genderId ?? MapGenderId(Gender);
+        ZodiacSignId = zodiacSignId ?? MapZodiacSignId(ZodiacSign);
         UpdateTimestamp();
     }
 
@@ -331,6 +336,23 @@ public class UserProfile : BaseEntity , IAggregateRoot
         (12, >= 22) or (1, <= 19) => "Capricorn",
         (1, >= 20) or (2, <= 18) => "Aquarius",
         _ => "Pisces"
+    };
+
+    private static long? MapZodiacSignId(string zodiacSign) => zodiacSign switch
+    {
+        "Aries" => 1,
+        "Taurus" => 2,
+        "Gemini" => 3,
+        "Cancer" => 4,
+        "Leo" => 5,
+        "Virgo" => 6,
+        "Libra" => 7,
+        "Scorpio" => 8,
+        "Sagittarius" => 9,
+        "Capricorn" => 10,
+        "Aquarius" => 11,
+        "Pisces" => 12,
+        _ => null
     };
 }
 

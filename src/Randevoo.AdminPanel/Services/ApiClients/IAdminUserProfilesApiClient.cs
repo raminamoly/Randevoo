@@ -5,6 +5,8 @@ namespace Randevoo.AdminPanel.Services.ApiClients;
 
 public interface IAdminUserProfilesApiClient
 {
+    Task<AdminUserProfileListResult> GetProfilesAsync(MockUser admin, AdminUserProfileListFilter filter, CancellationToken cancellationToken = default);
+
     Task<AdminUserProfileEditor> GetEditorAsync(long userId, MockUser admin, CancellationToken cancellationToken = default);
 
     Task SaveProfileAsync(long userId, MockUser admin, AdminUserProfileEditorInput input, CancellationToken cancellationToken = default);

@@ -22,6 +22,7 @@ public sealed class DatabaseUserProfilesApiClient : IUserProfilesApiClient
             .Include(item => item.User)
             .Include(item => item.GenderLookup)
             .Include(item => item.EducationLevelLookup)
+            .Include(item => item.ZodiacSignLookup)
             .Include(item => item.Country)
             .Include(item => item.City)
             .Include(item => item.Images)
@@ -54,7 +55,7 @@ public sealed class DatabaseUserProfilesApiClient : IUserProfilesApiClient
             GenderTitle = profile.GenderLookup?.Title ?? DisplayFormatter.Gender(profile.Gender),
             Age = profile.Age,
             BirthMonth = DisplayFormatter.Count(profile.BirthMonth),
-            ZodiacSign = profile.ZodiacSign,
+            ZodiacSign = profile.ZodiacSignLookup?.Title ?? profile.ZodiacSign,
             EducationLevelTitle = profile.EducationLevelLookup?.Title ?? profile.EducationLevel.ToString(),
             Country = profile.Country?.Name ?? "ثبت نشده",
             City = profile.City?.Name ?? "ثبت نشده",

@@ -313,6 +313,89 @@ public sealed class DatabaseAdminAnalyticsApiClient : IAdminAnalyticsApiClient
         };
     }
 
+    public async Task<SmsQueueListResult> GetSmsQueueAsync(MockUser currentUser, SmsQueueListFilter filter, CancellationToken cancellationToken = default)
+    {
+        EnsureAdmin(currentUser);
+
+        var pageNumber = Math.Max(filter.PageNumber, 1);
+        var pageSize = Math.Clamp(filter.PageSize, 10, 100);
+
+        var query = _db.SmsQueueItems
+            .AsNoTracking()
+            .Include(item => item.RecipientUser)
+                .ThenInclude(user => user.Profile)
+            .Include(item => item.DatingEvent)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(filter.Search))
+        {
+            var search = filter.Search.Trim();
+            query = query.Where(item =>
+                item.MobileNumber.Contains(search)
+                || item.Message.Contains(search)
+                || item.DatingEvent.Title.Contains(search)
+                || (item.RecipientUser.Profile != null && item.RecipientUser.Profile.DisplayName.Contains(search)));
+        }
+
+        if (!string.IsNullOrWhiteSpace(filter.Status) && Enum.TryParse<SmsQueueItemStatus>(filter.Status, true, out var status))
+            query = query.Where(item => item.Status == status);
+        if (filter.EventId.HasValue)
+            query = query.Where(item => item.DatingEventId == filter.EventId.Value);
+
+        query = string.Equals(filter.Sort, "oldest", StringComparison.OrdinalIgnoreCase)
+            ? query.OrderBy(item => item.CreatedAt)
+            : query.OrderByDescending(item => item.CreatedAt);
+
+        var totalCount = await query.CountAsync(cancellationToken);
+        var rows = await query
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .Select(item => new
+            {
+                Id = item.Id,
+                ProfileDisplayName = item.RecipientUser.Profile != null ? item.RecipientUser.Profile.DisplayName : null,
+                Mobile = item.RecipientUser.MobileNumber,
+                MobileNumber = item.MobileNumber,
+                EventTitle = item.DatingEvent.Title,
+                Message = item.Message,
+                Status = item.Status,
+                AttemptCount = item.AttemptCount,
+                FailureReason = item.FailureReason,
+                CreatedAtUtc = item.CreatedAt,
+                PlannedSendAtUtc = item.PlannedSendAtUtc
+            })
+            .ToListAsync(cancellationToken);
+
+        var items = rows.Select(item => new SmsQueueListItem
+        {
+            Id = item.Id,
+            RecipientDisplayName = string.IsNullOrWhiteSpace(item.ProfileDisplayName) ? item.Mobile : item.ProfileDisplayName,
+            MobileNumber = item.MobileNumber,
+            EventTitle = item.EventTitle,
+            MessagePreview = item.Message.Length > 80 ? item.Message[..80] + "..." : item.Message,
+            Status = item.Status.ToString(),
+            AttemptCount = item.AttemptCount,
+            FailureReason = item.FailureReason,
+            CreatedAtUtc = item.CreatedAtUtc,
+            PlannedSendAtUtc = item.PlannedSendAtUtc
+        }).ToList();
+
+        var metricsSource = await _db.SmsQueueItems.AsNoTracking().ToListAsync(cancellationToken);
+
+        return new SmsQueueListResult
+        {
+            TotalCount = totalCount,
+            Metrics =
+            [
+                new SummaryMetric { Label = "کل پیام ها", Value = metricsSource.Count.ToString("N0", CultureInfo.InvariantCulture) },
+                new SummaryMetric { Label = "در انتظار ارسال", Value = metricsSource.Count(item => item.Status == SmsQueueItemStatus.Pending).ToString("N0", CultureInfo.InvariantCulture) },
+                new SummaryMetric { Label = "ارسال شده", Value = metricsSource.Count(item => item.Status == SmsQueueItemStatus.Sent).ToString("N0", CultureInfo.InvariantCulture) },
+                new SummaryMetric { Label = "ناموفق", Value = metricsSource.Count(item => item.Status == SmsQueueItemStatus.Failed).ToString("N0", CultureInfo.InvariantCulture) }
+            ],
+            Items = items
+        };
+    }
+
     private static IQueryable<T> ApplyRange<T>(IQueryable<T> query, DashboardDateRangeValue range, Expression<Func<T, DateTime>> selector)
     {
         if (!range.StartUtc.HasValue)

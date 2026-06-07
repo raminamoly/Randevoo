@@ -73,4 +73,18 @@ public sealed class DatabaseLocationsApiClient : ILocationsApiClient
             })
             .ToListAsync(cancellationToken);
     }
+
+    public async Task<IReadOnlyList<ZodiacSignOption>> GetZodiacSignsAsync(CancellationToken cancellationToken = default)
+    {
+        return await _db.ZodiacSigns
+            .Where(sign => sign.IsActive)
+            .OrderBy(sign => sign.DisplayOrder)
+            .Select(sign => new ZodiacSignOption
+            {
+                Id = sign.Id,
+                Code = sign.Code,
+                Title = sign.Title
+            })
+            .ToListAsync(cancellationToken);
+    }
 }
