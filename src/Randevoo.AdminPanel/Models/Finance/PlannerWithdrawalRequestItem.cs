@@ -9,6 +9,8 @@ public sealed class PlannerWithdrawalRequestItem
     public string PlannerName { get; set; } = string.Empty;
     public string PlannerMobile { get; set; } = string.Empty;
     public decimal Amount { get; set; }
+    public string CurrencyCode { get; set; } = "IRR";
+    public decimal ReportingAmountIrr { get; set; }
     public PlannerWithdrawalRequestStatus Status { get; set; }
     public DateTime RequestedAtUtc { get; set; }
     public DateTime? ReviewedAtUtc { get; set; }

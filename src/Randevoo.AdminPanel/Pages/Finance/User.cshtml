@@ -20,7 +20,7 @@
     </article>
     <article class="stat-card">
         <span>موجودی فعلی</span>
-        <strong>@DisplayFormatter.Money(Model.Overview.Balance, Model.IsRtl)</strong>
+        <strong>@DisplayFormatter.ReportingMoney(Model.Overview.Balance, Model.IsRtl)</strong>
         <small>@(Model.Overview.IsActive ? "فعال" : "غیرفعال")</small>
     </article>
     <article class="stat-card">
@@ -73,7 +73,10 @@
                             <td>@Model.TransactionTypeTitle(item.Type)</td>
                             <td>@item.EventTitle</td>
                             <td class="table-wrap-cell">@item.Description</td>
-                            <td class="@(item.Amount < 0 ? "text-danger" : "text-success")">@DisplayFormatter.Money(item.Amount, Model.IsRtl)</td>
+                            <td class="@(item.Amount < 0 ? "text-danger" : "text-success")">
+                                <div>@DisplayFormatter.CurrencyMoney(item.Amount, item.CurrencyCode, Model.IsRtl)</div>
+                                <div class="text-muted small">@DisplayFormatter.ReportingMoney(item.ReportingAmountIrr, Model.IsRtl)</div>
+                            </td>
                             <td>@PersianDateFormatter.FormatDateTime(item.CreatedAtUtc, Model.IsRtl)</td>
                         </tr>
                     }
@@ -108,7 +111,10 @@
                             <td dir="ltr">@payment.TrackingCode</td>
                             <td>@payment.EventTitle</td>
                             <td>@(payment.TicketId is null ? "بدون بلیت" : DisplayFormatter.Count((int)payment.TicketId.Value))</td>
-                            <td>@DisplayFormatter.Money(payment.Amount, Model.IsRtl)</td>
+                            <td>
+                                <div>@DisplayFormatter.CurrencyMoney(payment.Amount, payment.CurrencyCode, Model.IsRtl)</div>
+                                <div class="text-muted small">@DisplayFormatter.ReportingMoney(payment.ReportingAmountIrr, Model.IsRtl)</div>
+                            </td>
                             <td><span class="status-badge @Model.PaymentStatusClass(payment.Status)">@Model.PaymentStatusTitle(payment.Status)</span></td>
                             <td>@PersianDateFormatter.FormatDateTime(payment.CreatedAtUtc, Model.IsRtl)</td>
                         </tr>

@@ -67,7 +67,8 @@
                     </div>
                     <div class="finance-event-total">
                         <span>@DisplayFormatter.Count(group.TicketCount) بلیت</span>
-                        <strong>@DisplayFormatter.Money(group.TotalTicketAmount, Model.IsRtl)</strong>
+                        <strong>@DisplayFormatter.CurrencyMoney(group.TotalTicketAmount, group.CurrencyCode, Model.IsRtl)</strong>
+                        <small>@DisplayFormatter.ReportingMoney(group.TotalTicketAmountIrr, Model.IsRtl)</small>
                     </div>
                 </header>
                 <div class="table-responsive">
@@ -91,9 +92,12 @@
                                     <td>@item.BuyerName</td>
                                     <td>@DisplayFormatter.ToPersianDigits(item.BuyerMobile)</td>
                                     <td dir="ltr">@(string.IsNullOrWhiteSpace(item.DiscountCode) ? "-" : item.DiscountCode)</td>
-                                    <td>@DisplayFormatter.Money(item.OriginalPrice, Model.IsRtl)</td>
-                                    <td>@DisplayFormatter.Money(item.DiscountAmount, Model.IsRtl)</td>
-                                    <td>@DisplayFormatter.Money(item.FinalPaidAmount, Model.IsRtl)</td>
+                                    <td>@DisplayFormatter.CurrencyMoney(item.OriginalPrice, item.CurrencyCode, Model.IsRtl)</td>
+                                    <td>@DisplayFormatter.CurrencyMoney(item.DiscountAmount, item.CurrencyCode, Model.IsRtl)</td>
+                                    <td>
+                                        <div>@DisplayFormatter.CurrencyMoney(item.FinalPaidAmount, item.CurrencyCode, Model.IsRtl)</div>
+                                        <div class="text-muted small">@DisplayFormatter.ReportingMoney(item.ReportingAmountIrr, Model.IsRtl)</div>
+                                    </td>
                                     <td>@PersianDateFormatter.FormatDateTime(item.PurchasedAtUtc, Model.IsRtl)</td>
                                     <td class="table-wrap-cell">@item.Description</td>
                                 </tr>

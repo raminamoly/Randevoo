@@ -59,6 +59,10 @@ public sealed class EventDraftInput
 
     public decimal OrganizerCommissionPercent { get; set; } = 12m;
 
+    public EventPaymentCollectionMethod PaymentCollectionMethod { get; set; } = EventPaymentCollectionMethod.PlatformGateway;
+
+    public string? OrganizerPaymentInstructions { get; set; }
+
     public int CapacityMale { get; set; } = 40;
 
     public int CapacityFemale { get; set; } = 40;

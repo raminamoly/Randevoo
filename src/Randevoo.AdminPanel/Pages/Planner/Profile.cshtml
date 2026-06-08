@@ -24,6 +24,7 @@
 <div class="row g-4">
     <div class="col-lg-7">
         <form method="post" enctype="multipart/form-data" class="glass-panel p-4">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger border-0 mb-3"></div>
             <div class="form-section-head">
                 <div>
                     <h2 class="section-title mb-1">هویت برگزارکننده</h2>
@@ -43,6 +44,39 @@
                 <div class="col-12">
                     <label asp-for="Input.Title" class="form-label">عنوان حرفه ای</label>
                     <input asp-for="Input.Title" class="form-control" placeholder="مثلاً برگزارکننده رویدادهای اجتماعی و شام های منتخب" />
+                </div>
+                <div class="col-12">
+                    <label asp-for="Input.SettlementCurrencyCode" class="form-label">ارز کاری برگزارکننده</label>
+                    @if (Model.Profile?.IsSettlementCurrencyLocked == true)
+                    {
+                        <input type="hidden" asp-for="Input.SettlementCurrencyCode" />
+                        <select id="SettlementCurrencyDisplay" class="form-select" disabled aria-label="ارز کاری برگزارکننده">
+                            @foreach (var option in Model.CurrencyOptions)
+                            {
+                                if (string.Equals(option.Value, Model.Input.SettlementCurrencyCode, StringComparison.OrdinalIgnoreCase))
+                                {
+                                    <option value="@option.Value" selected>@option.Text</option>
+                                }
+                                else
+                                {
+                                    <option value="@option.Value">@option.Text</option>
+                                }
+                            }
+                        </select>
+                        <div class="form-text">
+                            این ارز بعد از شروع فعالیت مالی قفل شده است.
+                            @if (!string.IsNullOrWhiteSpace(Model.Profile.SettlementCurrencyLockReason))
+                            {
+                                <span>@Model.Profile.SettlementCurrencyLockReason</span>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <select asp-for="Input.SettlementCurrencyCode" class="form-select" asp-items="Model.CurrencyOptions"></select>
+                        <div class="form-text">این ارز، پیش‌فرض قیمت‌گذاری رویدادها و فرم حساب پرداخت شما خواهد بود.</div>
+                    }
+                    <span asp-validation-for="Input.SettlementCurrencyCode" class="text-danger small"></span>
                 </div>
                 <div class="col-12">
                     <label class="form-label">تصویر برگزارکننده</label>
@@ -84,9 +118,10 @@
                     </div>
                 </div>
                 <p class="text-muted mt-3">@Model.Profile.Resume</p>
-                <div class="planner-metrics">
-                    <div class="detail-block"><span>شهر فعالیت</span><strong>@Model.Profile.City</strong></div>
-                    <div class="detail-block"><span>میانگین امتیاز</span><strong>@DisplayFormatter.ToPersianDigits(Model.Profile.AverageRating.ToString("0.0"))</strong></div>
+                    <div class="planner-metrics">
+                        <div class="detail-block"><span>شهر فعالیت</span><strong>@Model.Profile.City</strong></div>
+                        <div class="detail-block"><span>ارز کاری</span><strong dir="ltr">@Model.Profile.SettlementCurrencyCode</strong></div>
+                        <div class="detail-block"><span>میانگین امتیاز</span><strong>@DisplayFormatter.ToPersianDigits(Model.Profile.AverageRating.ToString("0.0"))</strong></div>
                     <div class="detail-block"><span>رویداد برگزارشده</span><strong>@DisplayFormatter.Count(Model.Profile.HostedEventCount)</strong></div>
                     <div class="detail-block"><span>رویداد تکمیل شده</span><strong>@DisplayFormatter.Count(Model.Profile.CompletedEventCount)</strong></div>
                 </div>
@@ -119,9 +154,9 @@
                         <table class="table align-middle mb-0">
                             <thead>
                                 <tr>
-                                    <th>بانک</th>
-                                    <th>شماره کارت</th>
-                                    <th>شماره شبا</th>
+                                    <th>حساب</th>
+                                    <th>ارز/روش</th>
+                                    <th>اطلاعات پرداخت</th>
                                     <th>فعال/غیرفعال</th>
                                 </tr>
                             </thead>
@@ -129,9 +164,26 @@
                                 @foreach (var account in Model.BankAccounts)
                                 {
                                     <tr>
-                                        <td>@account.BankName</td>
-                                        <td dir="ltr">@account.CardNumber</td>
-                                        <td dir="ltr">@account.Iban</td>
+                                        <td>
+                                            <div class="fw-semibold">@(account.BankName ?? "بدون بانک")</div>
+                                            <div class="text-muted small">@account.AccountHolderName</div>
+                                        </td>
+                                        <td>
+                                            <div dir="ltr">@account.CurrencyCode</div>
+                                            <div class="text-muted small">@DisplayFormatter.PayoutMethod(account.PayoutMethod)</div>
+                                        </td>
+                                        <td class="table-wrap-cell">
+                                            @if (account.CurrencyCode == "IRR")
+                                            {
+                                                <div dir="ltr">@(account.CardNumber ?? "-")</div>
+                                                <div dir="ltr" class="text-muted small">@(account.Iban ?? "-")</div>
+                                            }
+                                            else
+                                            {
+                                                <div dir="ltr">@(account.AccountIdentifier ?? account.Iban ?? account.SwiftCode ?? "-")</div>
+                                                <div class="text-muted small">@(account.Country ?? account.PublicPaymentInstructions ?? "بدون توضیحات")</div>
+                                            }
+                                        </td>
                                         <td>
                                             <span class="status-badge @(account.IsActive ? "status-approved" : "status-closed")">
                                                 @(account.IsActive ? "فعال" : "غیرفعال")

@@ -552,22 +552,223 @@ a {
 
 .gender-field-grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 14px;
+    grid-template-columns: 1fr;
+    gap: 16px;
 }
 
 .gender-field-panel {
-    border-block-start: 2px solid rgba(23, 101, 255, 0.18);
-    padding: 16px;
-    border-radius: 14px;
-    background: rgba(248, 251, 255, 0.72);
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(23, 101, 255, 0.14);
+    border-block-start: 3px solid rgba(23, 101, 255, 0.34);
+    padding: 18px;
+    border-radius: 18px;
+    background: linear-gradient(180deg, rgba(248, 251, 255, 0.88), rgba(255, 255, 255, 0.74));
+    box-shadow: 0 16px 36px rgba(15, 31, 77, 0.06);
+}
+
+.gender-field-panel-female {
+    border-color: rgba(255, 45, 111, 0.14);
+    border-block-start-color: rgba(255, 45, 111, 0.34);
+}
+
+.gender-field-panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
 }
 
 .gender-field-panel h3 {
-    margin: 0 0 12px;
+    margin: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
     color: var(--rv-navy);
-    font-size: 0.95rem;
+    font-size: 1rem;
     font-weight: 800;
+}
+
+.gender-field-panel h3 i {
+    width: 30px;
+    height: 30px;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(23, 101, 255, 0.10);
+    color: var(--rv-blue);
+    font-size: 1rem;
+}
+
+.gender-field-panel-female h3 i {
+    background: rgba(255, 45, 111, 0.10);
+    color: var(--rv-pink);
+}
+
+.gender-ticket-fields {
+    display: grid;
+    gap: 14px;
+}
+
+.gender-ticket-row {
+    display: grid;
+    gap: 12px;
+}
+
+.gender-ticket-row-price {
+    grid-template-columns: minmax(0, 1.45fr) minmax(200px, 0.55fr);
+}
+
+.gender-ticket-row-meta {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.gender-ticket-field {
+    min-width: 0;
+}
+
+.gender-ticket-field .form-control,
+.gender-ticket-field .form-select {
+    min-height: 48px;
+    border-radius: 14px;
+}
+
+.event-currency-display[readonly] {
+    background: rgba(247, 250, 255, 0.86);
+    color: var(--rv-navy);
+    cursor: default;
+}
+
+.payment-method-panel,
+.financial-review-panel {
+    border: 1px solid rgba(23, 101, 255, 0.14);
+    border-radius: 18px;
+    padding: 18px;
+    background: rgba(255, 255, 255, 0.78);
+    box-shadow: 0 16px 36px rgba(15, 31, 77, 0.06);
+}
+
+.payment-method-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 14px;
+}
+
+.payment-method-head h3 {
+    margin: 0 0 6px;
+    color: var(--rv-navy);
+    font-size: 1rem;
+    font-weight: 800;
+}
+
+.payment-method-head p {
+    margin: 0;
+    color: var(--rv-muted);
+    font-size: 0.82rem;
+    line-height: 1.8;
+}
+
+.payment-method-options {
+    display: grid;
+    gap: 10px;
+}
+
+.payment-method-option {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 12px;
+    align-items: flex-start;
+    min-height: 64px;
+    padding: 14px;
+    border: 1px solid rgba(17, 24, 39, 0.10);
+    border-radius: 14px;
+    background: rgba(248, 251, 255, 0.72);
+    cursor: pointer;
+}
+
+.payment-method-option:has(input:checked) {
+    border-color: rgba(23, 101, 255, 0.55);
+    background: rgba(23, 101, 255, 0.08);
+}
+
+.payment-method-option input {
+    width: 20px;
+    height: 20px;
+    margin-top: 3px;
+}
+
+.payment-method-option strong {
+    display: block;
+    color: var(--rv-navy);
+    font-size: 0.92rem;
+    line-height: 1.6;
+}
+
+.payment-method-option small {
+    display: block;
+    margin-top: 4px;
+    color: var(--rv-muted);
+    font-size: 0.78rem;
+    line-height: 1.7;
+}
+
+.financial-preview-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.financial-preview-item {
+    min-width: 0;
+    padding: 14px;
+    border-radius: 14px;
+    background: rgba(247, 250, 255, 0.86);
+    border: 1px solid rgba(17, 24, 39, 0.08);
+}
+
+.financial-preview-item span {
+    display: block;
+    color: var(--rv-muted);
+    font-size: 0.74rem;
+    margin-bottom: 6px;
+}
+
+.financial-preview-item strong {
+    display: block;
+    color: var(--rv-navy);
+    font-size: 0.9rem;
+    line-height: 1.7;
+    overflow-wrap: anywhere;
+}
+
+.financial-preview-item small {
+    display: block;
+    margin-top: 0.25rem;
+    color: var(--rv-muted);
+    font-size: 0.78rem;
+    line-height: 1.4;
+}
+
+.financial-preview-note {
+    background: rgba(255, 244, 225, 0.78);
+}
+
+.payment-method-public-panel {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.payment-instructions-block {
+    grid-column: 1 / -1;
+}
+
+.payment-instructions-block strong {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
 }
 
 .image-help-button {
@@ -630,7 +831,7 @@ a {
 
 .event-wizard-steps {
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     gap: 10px;
     padding: 8px;
     border-radius: 18px;
@@ -730,6 +931,10 @@ a {
     gap: 12px;
 }
 
+.event-review-summary-wide {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .event-details-actionbar {
     display: flex;
     align-items: stretch;
@@ -799,8 +1004,14 @@ a {
     }
 
     .event-review-grid,
-    .event-review-summary {
+    .event-review-summary,
+    .event-review-summary-wide,
+    .payment-method-public-panel {
         grid-template-columns: 1fr;
+    }
+
+    .financial-preview-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     .event-wizard-footer {
@@ -812,6 +1023,21 @@ a {
         flex: 1 1 0;
         min-width: 0;
         width: auto;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .gender-ticket-row-price,
+    .gender-ticket-row-meta {
+        grid-template-columns: 1fr;
+    }
+
+    .payment-method-head {
+        display: grid;
+    }
+
+    .financial-preview-grid {
+        grid-template-columns: 1fr;
     }
 }
 

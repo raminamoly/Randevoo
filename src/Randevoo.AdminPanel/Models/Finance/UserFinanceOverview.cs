@@ -7,6 +7,7 @@ public sealed class UserFinanceOverview
     public string MobileNumber { get; set; } = string.Empty;
     public bool IsActive { get; set; }
     public decimal Balance { get; set; }
+    public string ReportingCurrencyCode { get; set; } = "IRR";
     public IReadOnlyList<UserFinanceTransactionItem> Transactions { get; set; } = Array.Empty<UserFinanceTransactionItem>();
     public IReadOnlyList<UserOnlinePaymentItem> OnlinePayments { get; set; } = Array.Empty<UserOnlinePaymentItem>();
 }

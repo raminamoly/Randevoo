@@ -11,6 +11,8 @@ public sealed class AdminTicketTransactionItem
     public decimal DiscountAmount { get; set; }
     public decimal FinalPaidAmount { get; set; }
     public decimal Amount { get; set; }
+    public string CurrencyCode { get; set; } = "IRR";
+    public decimal ReportingAmountIrr { get; set; }
     public string Description { get; set; } = string.Empty;
     public DateTime PurchasedAtUtc { get; set; }
 }

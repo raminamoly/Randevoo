@@ -160,6 +160,8 @@ public sealed class DatabaseSupportTicketsApiClient : ISupportTicketsApiClient
             .Select(payment => new SupportSubmitterPaymentItem(
                 payment.Id,
                 payment.Amount,
+                payment.CurrencyCode,
+                payment.ReportingAmountIrr,
                 payment.GatewayName,
                 payment.TrackingCode,
                 payment.Status,
@@ -182,6 +184,8 @@ public sealed class DatabaseSupportTicketsApiClient : ISupportTicketsApiClient
             .Select(transaction => new SupportSubmitterTransactionItem(
                 transaction.Id,
                 transaction.Amount,
+                transaction.CurrencyCode,
+                transaction.ReportingAmountIrr,
                 transaction.Type,
                 transaction.Description,
                 transaction.DatingEventId,
@@ -189,7 +193,7 @@ public sealed class DatabaseSupportTicketsApiClient : ISupportTicketsApiClient
                 transaction.CreatedAt))
             .ToList();
 
-        return new SupportSubmitterFinanceContext(account?.Balance ?? 0m, transactions, payments);
+        return new SupportSubmitterFinanceContext(account?.Balance ?? 0m, account?.ReportingCurrencyCode ?? "IRR", transactions, payments);
     }
 
     public async Task<IReadOnlyList<SupportSubmitterEventBookingItem>> GetSubmitterEventsAsync(MockUser currentUser, long ticketId, CancellationToken cancellationToken = default)

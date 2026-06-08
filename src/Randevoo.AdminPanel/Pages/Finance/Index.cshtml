@@ -43,7 +43,10 @@
                             <div class="fw-semibold">@item.PlannerName</div>
                             <div class="text-muted small">@item.PlannerMobile</div>
                         </td>
-                        <td>@DisplayFormatter.Money(item.Amount, Model.IsRtl)</td>
+                        <td>
+                            <div>@DisplayFormatter.CurrencyMoney(item.Amount, item.CurrencyCode, Model.IsRtl)</div>
+                            <div class="text-muted small">@DisplayFormatter.ReportingMoney(item.ReportingAmountIrr, Model.IsRtl)</div>
+                        </td>
                         <td><span class="status-badge @Model.WithdrawalStatusClass(item.Status)">@DisplayFormatter.WithdrawalStatus(item.Status)</span></td>
                         <td>@PersianDateFormatter.FormatDateTime(item.RequestedAtUtc, Model.IsRtl)</td>
                         <td class="table-wrap-cell">@(string.IsNullOrWhiteSpace(item.ReviewNote) ? "بدون یادداشت" : item.ReviewNote)</td>
@@ -104,7 +107,8 @@
                     </div>
                     <div class="finance-event-total">
                         <span>@DisplayFormatter.Count(group.TicketCount) بلیت</span>
-                        <strong>@DisplayFormatter.Money(group.TotalTicketAmount, Model.IsRtl)</strong>
+                        <strong>@DisplayFormatter.CurrencyMoney(group.TotalTicketAmount, group.CurrencyCode, Model.IsRtl)</strong>
+                        <small>@DisplayFormatter.ReportingMoney(group.TotalTicketAmountIrr, Model.IsRtl)</small>
                     </div>
                 </header>
                 <div class="table-responsive">
@@ -124,7 +128,10 @@
                                 <tr>
                                     <td>@item.BuyerName</td>
                                     <td>@DisplayFormatter.ToPersianDigits(item.BuyerMobile)</td>
-                                    <td>@DisplayFormatter.Money(item.Amount, Model.IsRtl)</td>
+                                    <td>
+                                        <div>@DisplayFormatter.CurrencyMoney(item.Amount, item.CurrencyCode, Model.IsRtl)</div>
+                                        <div class="text-muted small">@DisplayFormatter.ReportingMoney(item.ReportingAmountIrr, Model.IsRtl)</div>
+                                    </td>
                                     <td>@PersianDateFormatter.FormatDateTime(item.PurchasedAtUtc, Model.IsRtl)</td>
                                     <td class="table-wrap-cell">@item.Description</td>
                                 </tr>

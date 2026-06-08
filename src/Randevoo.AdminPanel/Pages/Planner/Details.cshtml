@@ -63,9 +63,9 @@
                     <table class="table align-middle mb-0">
                         <thead>
                             <tr>
-                                <th>بانک</th>
-                                <th>شماره کارت</th>
-                                <th>شماره شبا</th>
+                                <th>حساب</th>
+                                <th>ارز/روش</th>
+                                <th>اطلاعات پرداخت</th>
                                 <th>فعال/غیرفعال</th>
                             </tr>
                         </thead>
@@ -73,9 +73,26 @@
                             @foreach (var account in Model.BankAccounts)
                             {
                                 <tr>
-                                    <td>@account.BankName</td>
-                                    <td dir="ltr">@account.CardNumber</td>
-                                    <td dir="ltr">@account.Iban</td>
+                                    <td>
+                                        <div class="fw-semibold">@(account.BankName ?? "بدون بانک")</div>
+                                        <div class="text-muted small">@account.AccountHolderName</div>
+                                    </td>
+                                    <td>
+                                        <div dir="ltr">@account.CurrencyCode</div>
+                                        <div class="text-muted small">@DisplayFormatter.PayoutMethod(account.PayoutMethod)</div>
+                                    </td>
+                                    <td class="table-wrap-cell">
+                                        @if (account.CurrencyCode == "IRR")
+                                        {
+                                            <div dir="ltr">@(account.CardNumber ?? "-")</div>
+                                            <div dir="ltr" class="text-muted small">@(account.Iban ?? "-")</div>
+                                        }
+                                        else
+                                        {
+                                            <div dir="ltr">@(account.AccountIdentifier ?? account.Iban ?? account.SwiftCode ?? "-")</div>
+                                            <div class="text-muted small">@(account.Country ?? account.PublicPaymentInstructions ?? "بدون توضیحات")</div>
+                                        }
+                                    </td>
                                     <td>
                                         <span class="status-badge @(account.IsActive ? "status-approved" : "status-closed")">
                                             @(account.IsActive ? "فعال" : "غیرفعال")

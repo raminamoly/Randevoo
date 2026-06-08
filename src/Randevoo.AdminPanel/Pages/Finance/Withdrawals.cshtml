@@ -72,7 +72,10 @@
                             <div class="fw-semibold">@item.PlannerName</div>
                             <div class="text-muted small">@item.PlannerMobile</div>
                         </td>
-                        <td>@DisplayFormatter.Money(item.Amount, Model.IsRtl)</td>
+                        <td>
+                            <div>@DisplayFormatter.CurrencyMoney(item.Amount, item.CurrencyCode, Model.IsRtl)</div>
+                            <div class="text-muted small">@DisplayFormatter.ReportingMoney(item.ReportingAmountIrr, Model.IsRtl)</div>
+                        </td>
                         <td><span class="status-badge @Model.WithdrawalStatusClass(item.Status)">@DisplayFormatter.WithdrawalStatus(item.Status)</span></td>
                         <td>@PersianDateFormatter.FormatDateTime(item.RequestedAtUtc, Model.IsRtl)</td>
                         <td class="table-wrap-cell">@(string.IsNullOrWhiteSpace(item.ReviewNote) ? "بدون یادداشت" : item.ReviewNote)</td>

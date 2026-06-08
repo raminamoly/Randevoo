@@ -22,7 +22,7 @@ public static class EventPlannerProfileEndpoints
         try
         {
             var userId = EndpointHelpers.GetUserId(principal);
-            return Results.Ok(await sender.Send(new UpsertEventPlannerProfileCommand(userId, request.Title, request.PictureUrl, request.Resume), cancellationToken));
+            return Results.Ok(await sender.Send(new UpsertEventPlannerProfileCommand(userId, request.Title, request.PictureUrl, request.Resume, request.SettlementCurrencyCode), cancellationToken));
         }
         catch (Exception ex) when (ex is DomainException or UnauthorizedAccessException)
         {
@@ -30,5 +30,5 @@ public static class EventPlannerProfileEndpoints
         }
     }
 
-    public record UpsertEventPlannerProfileRequest(string Title, string? PictureUrl, string Resume);
+    public record UpsertEventPlannerProfileRequest(string Title, string? PictureUrl, string Resume, string SettlementCurrencyCode = "IRR");
 }

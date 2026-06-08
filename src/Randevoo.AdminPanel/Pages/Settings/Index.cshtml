@@ -10,16 +10,96 @@
     </div>
 </section>
 
+@if (!string.IsNullOrWhiteSpace(Model.StatusMessage))
+{
+    <div class="alert alert-success border-0 mb-4">@Model.StatusMessage</div>
+}
+
 <div class="row g-4">
-    <div class="col-lg-8">
-        <div class="glass-panel p-4">
-            <h2 class="section-title">جهت طراحی</h2>
-        </div>
+    <div class="col-xl-5">
+        <form method="post" asp-page-handler="SaveRate" class="glass-panel p-4 stacked-form">
+            <div>
+                <h2 class="section-title mb-1">نرخ تبدیل ارز</h2>
+                <p class="text-muted small mb-0">هر تغییر، یک ردیف تاریخی جدید می‌سازد و نرخ قبلی را نمی‌نویسد.</p>
+            </div>
+            <div asp-validation-summary="ModelOnly" class="text-danger small"></div>
+            <div>
+                <label asp-for="RateInput.CurrencyCode" class="form-label">ارز</label>
+                <select asp-for="RateInput.CurrencyCode" asp-items="Model.CurrencyOptions" class="form-select"></select>
+                <span asp-validation-for="RateInput.CurrencyCode" class="text-danger small"></span>
+            </div>
+            <div>
+                <label asp-for="RateInput.Rate" class="form-label">معادل هر واحد به ریال</label>
+                <input asp-for="RateInput.Rate" class="form-control" type="number" min="0.000001" step="0.000001" dir="ltr" />
+                <span asp-validation-for="RateInput.Rate" class="text-danger small"></span>
+                <div class="form-text">مثلاً اگر ۱ دلار برابر ۱,۷۵۰,۰۰۰ ریال است، عدد 1750000 را وارد کنید.</div>
+            </div>
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-save"></i>ثبت نرخ جدید
+            </button>
+        </form>
     </div>
 
-    <div class="col-lg-4">
+    <div class="col-xl-7">
         <div class="glass-panel p-4">
-            <img src="~/images/logo.png" class="settings-logo" alt="راندوو" />
+            <h2 class="section-title">نرخ‌های فعال</h2>
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead>
+                        <tr>
+                            <th>ارز</th>
+                            <th>نرخ به ریال</th>
+                            <th>شروع اعتبار</th>
+                            <th>منبع</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.ActiveRates)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="fw-semibold">@item.CurrencyTitle</div>
+                                    <div class="text-muted small" dir="ltr">@item.CurrencyCode @item.CurrencySymbol</div>
+                                </td>
+                                <td>@DisplayFormatter.Money(item.Rate, Model.IsRtl)</td>
+                                <td>@PersianDateFormatter.FormatDateTime(item.EffectiveFromUtc, Model.IsRtl)</td>
+                                <td>@item.Source</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>
+
+<div class="glass-panel p-4 mt-4">
+    <h2 class="section-title">تاریخچه نرخ‌ها</h2>
+    <div class="table-responsive">
+        <table class="table align-middle">
+            <thead>
+                <tr>
+                    <th>ارز</th>
+                    <th>نرخ به ریال</th>
+                    <th>از تاریخ</th>
+                    <th>تا تاریخ</th>
+                    <th>منبع</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model.RateHistory)
+                {
+                    <tr>
+                        <td>@item.CurrencyTitle <span class="text-muted small" dir="ltr">(@item.CurrencyCode)</span></td>
+                        <td>@DisplayFormatter.Money(item.Rate, Model.IsRtl)</td>
+                        <td>@PersianDateFormatter.FormatDateTime(item.EffectiveFromUtc, Model.IsRtl)</td>
+                        <td>@(item.EffectiveToUtc is null ? "فعال" : PersianDateFormatter.FormatDateTime(item.EffectiveToUtc.Value, Model.IsRtl))</td>
+                        <td>@item.Source</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<partial name="_ValidationScriptsPartial" />

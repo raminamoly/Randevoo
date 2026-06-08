@@ -69,7 +69,7 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
 
     public async Task<IReadOnlyList<SystemLookupOption>> GetCurrencyOptionsAsync(CancellationToken cancellationToken = default)
     {
-        return await _db.Currencies
+        var currencies = await _db.Currencies
             .Where(item => item.IsActive)
             .OrderBy(item => item.DisplayOrder)
             .ThenBy(item => item.Code)
@@ -77,9 +77,31 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
             {
                 Id = item.Id,
                 Name = item.Code,
-                DisplayNameFa = item.DisplayNameFa
+                DisplayNameFa = item.DisplayNameFa,
+                Symbol = item.Symbol
             })
             .ToListAsync(cancellationToken);
+
+        var codes = currencies.Select(item => item.Name).ToList();
+        var activeRates = await _db.CurrencyExchangeRates
+            .Where(item => codes.Contains(item.FromCurrencyCode)
+                && item.ToCurrencyCode == "IRR"
+                && item.EffectiveToUtc == null)
+            .ToListAsync(cancellationToken);
+
+        var rateLookup = activeRates
+            .GroupBy(item => item.FromCurrencyCode, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(group => group.Key, group => group.OrderByDescending(item => item.EffectiveFromUtc).First(), StringComparer.OrdinalIgnoreCase);
+        foreach (var currency in currencies)
+        {
+            if (rateLookup.TryGetValue(currency.Name, out var rate))
+            {
+                currency.ExchangeRateToIrr = rate.Rate;
+                currency.ExchangeRateEffectiveFromUtc = DateTime.SpecifyKind(rate.EffectiveFromUtc, DateTimeKind.Utc);
+            }
+        }
+
+        return currencies;
     }
 
     public async Task<IReadOnlyList<Models.Events.DatingEvent>> GetEventsAsync(MockUser currentUser, CancellationToken cancellationToken = default)
@@ -296,6 +318,8 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
     {
         var actorUser = await RequireUserAsync(actor.Id, cancellationToken);
         var plannerUser = await ResolvePlannerAsync(actor, assignedPlannerId, cancellationToken);
+        var plannerProfile = await _db.EventPlannerProfiles.FirstOrDefaultAsync(item => item.UserId == plannerUser.Id, cancellationToken);
+        var plannerCurrencyCode = plannerProfile?.SettlementCurrencyCode ?? "IRR";
         var eventType = await _db.EventTypes.FirstOrDefaultAsync(item => item.Id == input.EventTypeId && item.IsActive, cancellationToken)
             ?? throw new InvalidOperationException("نوع رویداد انتخاب شده معتبر نیست.");
         var eventMode = await ResolveEventModeAsync(input.EventModeId, cancellationToken);
@@ -303,9 +327,10 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
         var normalizedDelivery = NormalizeDeliveryInput(input, eventMode.IsOnline);
         var locationLookup = await ResolveLocationLookupAsync(normalizedDelivery.Country, normalizedDelivery.City, cancellationToken);
         var minimumEducationLevelId = await ResolveMinimumEducationLevelIdAsync(input.MinimumEducationLevelId, cancellationToken);
-        input.MaleTicketCurrencyCode = await ResolveCurrencyCodeAsync(input.MaleTicketCurrencyCode, cancellationToken);
-        input.FemaleTicketCurrencyCode = await ResolveCurrencyCodeAsync(input.FemaleTicketCurrencyCode, cancellationToken);
+        input.MaleTicketCurrencyCode = await ResolveCurrencyCodeAsync(plannerCurrencyCode, cancellationToken);
+        input.FemaleTicketCurrencyCode = input.MaleTicketCurrencyCode;
         var normalizedFaqs = NormalizeFaqs(input.Faqs);
+        plannerProfile?.LockSettlementCurrency("Locked after organizer event activity.");
 
         var maleRange = DatabaseModelMapper.ParseAgeRange(input.AgeRangeForMale);
         var femaleRange = DatabaseModelMapper.ParseAgeRange(input.AgeRangeForFemale);
@@ -355,7 +380,9 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
                 input.Image3,
                 input.DescriptionHtml,
                 input.MaleTicketCurrencyCode,
-                input.FemaleTicketCurrencyCode);
+                input.FemaleTicketCurrencyCode,
+                input.PaymentCollectionMethod,
+                input.OrganizerPaymentInstructions);
 
             datingEvent.SetLocationLookup(locationLookup.CountryId, locationLookup.CityId);
             datingEvent.SetMinimumEducationLevel(minimumEducationLevelId);
@@ -406,7 +433,9 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
                 input.DescriptionHtml,
                 input.OrganizerCommissionPercent,
                 input.MaleTicketCurrencyCode,
-                input.FemaleTicketCurrencyCode);
+                input.FemaleTicketCurrencyCode,
+                input.PaymentCollectionMethod,
+                input.OrganizerPaymentInstructions);
 
             datingEvent.SubmitForReview();
             datingEvent.SetLocationLookup(locationLookup.CountryId, locationLookup.CityId);
@@ -546,6 +575,7 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
         var tickets = datingEvent.Cancel();
         var refundCount = 0;
         var refundTotal = 0m;
+        var refundTotalIrr = 0m;
 
         foreach (var ticket in tickets.Where(item => item.IsRefunded))
         {
@@ -553,9 +583,22 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
             if (balance is null)
                 continue;
 
-            balance.Credit(ticket.Price, BalanceTransactionType.TicketRefund, $"Refund for {datingEvent.Title}", datingEvent.Id);
+            balance.Credit(
+                ticket.Price,
+                BalanceTransactionType.TicketRefund,
+                $"Refund for {datingEvent.Title}",
+                datingEvent.Id,
+                nameof(EventTicket),
+                ticket.Id,
+                actor.Id,
+                ticket.CurrencyCode,
+                ticket.ReportingPriceIrr,
+                ticket.ExchangeRateToIrr,
+                ticket.ExchangeRateCapturedAtUtc,
+                ticket.ExchangeRateId);
             refundCount++;
             refundTotal += ticket.Price;
+            refundTotalIrr += ticket.ReportingPriceIrr;
         }
 
         await _auditLogger.LogAsync(new AuditLogEntry(
@@ -564,7 +607,7 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
             "DatingEvent",
             datingEvent.Id.ToString(),
             JsonSerializer.Serialize(beforeSnapshot),
-            JsonSerializer.Serialize(new { Event = CreateEventSnapshot(datingEvent), refundCount, refundTotal }),
+            JsonSerializer.Serialize(new { Event = CreateEventSnapshot(datingEvent), refundCount, refundTotal, refundTotalIrr }),
             "رویداد لغو شد و بلیت‌های معتبر برگشت خوردند."), cancellationToken);
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -661,7 +704,12 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
             ticket.DatingEventId,
             nameof(EventTicket),
             ticket.Id,
-            actor.Id);
+            actor.Id,
+            ticket.CurrencyCode,
+            ticket.ReportingPriceIrr,
+            ticket.ExchangeRateToIrr,
+            ticket.ExchangeRateCapturedAtUtc,
+            ticket.ExchangeRateId);
 
         var plannerBalance = await GetOrCreateBalanceAccountAsync(ticket.DatingEvent.EventPlannerUser, cancellationToken);
         var plannerIncome = ticket.Price * (100 - ticket.DatingEvent.EventPlannerCommissionPercent) / 100;
@@ -674,7 +722,12 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
                 ticket.DatingEventId,
                 nameof(EventTicket),
                 ticket.Id,
-                actor.Id);
+                actor.Id,
+                ticket.CurrencyCode,
+                Math.Round(ticket.ReportingPriceIrr * (100 - ticket.DatingEvent.EventPlannerCommissionPercent) / 100, 0, MidpointRounding.AwayFromZero),
+                ticket.ExchangeRateToIrr,
+                ticket.ExchangeRateCapturedAtUtc,
+                ticket.ExchangeRateId);
         }
 
         await _auditLogger.LogAsync(new AuditLogEntry(
@@ -1017,6 +1070,8 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
             datingEvent.DateTimeStart,
             datingEvent.DateTimeEnd,
             datingEvent.EventPlannerCommissionPercent,
+            datingEvent.PaymentCollectionMethod,
+            datingEvent.OrganizerPaymentInstructions,
             datingEvent.MaleCapacity,
             datingEvent.FemaleCapacity,
             datingEvent.NumberOfLikesAllowed,

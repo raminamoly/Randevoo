@@ -39,6 +39,8 @@ public class DatingEvent : BaseEntity, IAggregateRoot
     public long EventPlannerUserId { get; private set; }
     public User EventPlannerUser { get; private set; } = null!;
     public decimal EventPlannerCommissionPercent { get; private set; }
+    public EventPaymentCollectionMethod PaymentCollectionMethod { get; private set; } = EventPaymentCollectionMethod.PlatformGateway;
+    public string? OrganizerPaymentInstructions { get; private set; }
     public int MaleCapacity { get; private set; }
     public int FemaleCapacity { get; private set; }
     public int NumberOfLikesAllowed { get; private set; }
@@ -92,13 +94,15 @@ public class DatingEvent : BaseEntity, IAggregateRoot
         string eventDescriptionHtml,
         decimal eventPlannerCommissionPercent = 10,
         string maleTicketCurrencyCode = "IRR",
-        string femaleTicketCurrencyCode = "IRR")
+        string femaleTicketCurrencyCode = "IRR",
+        EventPaymentCollectionMethod paymentCollectionMethod = EventPaymentCollectionMethod.PlatformGateway,
+        string? organizerPaymentInstructions = null)
     {
         EventPlannerUser = GuardAgainst.Object.Null(eventPlannerUser, nameof(eventPlannerUser));
         if (eventPlannerUser.Role != UserRole.EventPlanner && eventPlannerUser.Role != UserRole.Admin)
             throw new BusinessRuleViolationException("Invalid event planner", "Only event planners can own dating events");
 
-        SetCoreDetails(title, location, address, dateTimeStart, dateTimeEnd, eventType, ageRangeForMale, ageRangeForFemale, maleCapacity, femaleCapacity, numberOfChatAllowed, maleTicketPrice, femaleTicketPrice, educationLevelRestriction, tags, eventImage1, eventImage2, eventImage3, eventDescriptionHtml, maleTicketCurrencyCode, femaleTicketCurrencyCode);
+        SetCoreDetails(title, location, address, dateTimeStart, dateTimeEnd, eventType, ageRangeForMale, ageRangeForFemale, maleCapacity, femaleCapacity, numberOfChatAllowed, maleTicketPrice, femaleTicketPrice, educationLevelRestriction, tags, eventImage1, eventImage2, eventImage3, eventDescriptionHtml, maleTicketCurrencyCode, femaleTicketCurrencyCode, paymentCollectionMethod, organizerPaymentInstructions);
         SetCommissionPercent(eventPlannerCommissionPercent);
         IsOpenForSell = false;
         IsCancelled = false;
@@ -182,7 +186,9 @@ public class DatingEvent : BaseEntity, IAggregateRoot
         string? eventImage3,
         string eventDescriptionHtml,
         string maleTicketCurrencyCode = "IRR",
-        string femaleTicketCurrencyCode = "IRR")
+        string femaleTicketCurrencyCode = "IRR",
+        EventPaymentCollectionMethod paymentCollectionMethod = EventPaymentCollectionMethod.PlatformGateway,
+        string? organizerPaymentInstructions = null)
     {
         if (IsCancelled)
             throw new BusinessRuleViolationException("Event cancelled", "Cancelled events cannot be edited");
@@ -208,7 +214,9 @@ public class DatingEvent : BaseEntity, IAggregateRoot
             eventImage3,
             eventDescriptionHtml,
             maleTicketCurrencyCode,
-            femaleTicketCurrencyCode);
+            femaleTicketCurrencyCode,
+            paymentCollectionMethod,
+            organizerPaymentInstructions);
 
         SubmitForReview();
         UpdateTimestamp();
@@ -304,6 +312,13 @@ public class DatingEvent : BaseEntity, IAggregateRoot
         UpdateTimestamp();
     }
 
+    public void SetPaymentCollection(EventPaymentCollectionMethod method, string? organizerPaymentInstructions)
+    {
+        PaymentCollectionMethod = GuardAgainst.Number.AgainstInvalidEnum<EventPaymentCollectionMethod>((int)method, nameof(method));
+        OrganizerPaymentInstructions = NormalizeOrganizerPaymentInstructions(PaymentCollectionMethod, organizerPaymentInstructions);
+        UpdateTimestamp();
+    }
+
     private void SetCoreDetails(
         string title,
         Location location,
@@ -325,7 +340,9 @@ public class DatingEvent : BaseEntity, IAggregateRoot
         string? eventImage3,
         string eventDescriptionHtml,
         string maleTicketCurrencyCode = "IRR",
-        string femaleTicketCurrencyCode = "IRR")
+        string femaleTicketCurrencyCode = "IRR",
+        EventPaymentCollectionMethod paymentCollectionMethod = EventPaymentCollectionMethod.PlatformGateway,
+        string? organizerPaymentInstructions = null)
     {
         if (dateTimeEnd <= dateTimeStart)
             throw new BusinessRuleViolationException("Invalid event time", "End time must be after start time");
@@ -344,14 +361,17 @@ public class DatingEvent : BaseEntity, IAggregateRoot
         NumberOfLikesAllowed = GuardAgainst.Number.OutOfRange(numberOfChatAllowed, nameof(numberOfChatAllowed), 0, 10);
         MaleTicketPrice = GuardAgainst.Number.OutOfRange(maleTicketPrice, nameof(maleTicketPrice), 0.01m, 1_000_000_000m);
         FemaleTicketPrice = GuardAgainst.Number.OutOfRange(femaleTicketPrice, nameof(femaleTicketPrice), 0.01m, 1_000_000_000m);
-        MaleTicketCurrencyCode = NormalizeCurrencyCode(maleTicketCurrencyCode);
-        FemaleTicketCurrencyCode = NormalizeCurrencyCode(femaleTicketCurrencyCode);
+        var ticketCurrencyCode = NormalizeCurrencyCode(maleTicketCurrencyCode);
+        MaleTicketCurrencyCode = ticketCurrencyCode;
+        FemaleTicketCurrencyCode = ticketCurrencyCode;
         EducationLevelRestriction = GuardAgainst.Number.AgainstInvalidEnum<EventEducationLevelRestriction>((int)educationLevelRestriction, nameof(educationLevelRestriction));
         MinimumEducationLevelId = MapRestrictionEducationLevelId(EducationLevelRestriction);
         EventImage1 = NormalizeImage(eventImage1, nameof(eventImage1));
         EventImage2 = NormalizeImage(eventImage2, nameof(eventImage2));
         EventImage3 = NormalizeImage(eventImage3, nameof(eventImage3));
         EventDescriptionHtml = GuardAgainst.String.InvalidLength(eventDescriptionHtml, nameof(eventDescriptionHtml), 10, 10000);
+        PaymentCollectionMethod = GuardAgainst.Number.AgainstInvalidEnum<EventPaymentCollectionMethod>((int)paymentCollectionMethod, nameof(paymentCollectionMethod));
+        OrganizerPaymentInstructions = NormalizeOrganizerPaymentInstructions(PaymentCollectionMethod, organizerPaymentInstructions);
     }
 
     private static string NormalizeTags(IReadOnlyCollection<string>? tags)
@@ -390,6 +410,14 @@ public class DatingEvent : BaseEntity, IAggregateRoot
             throw new BusinessRuleViolationException("Invalid ticket currency", "Ticket currency is not supported.");
 
         return normalized;
+    }
+
+    private static string? NormalizeOrganizerPaymentInstructions(EventPaymentCollectionMethod method, string? instructions)
+    {
+        if (method != EventPaymentCollectionMethod.OrganizerManualTransfer)
+            return null;
+
+        return GuardAgainst.String.InvalidLength((instructions ?? string.Empty).Trim(), nameof(OrganizerPaymentInstructions), 10, 1200);
     }
 
     public void SetLocationLookup(long? countryId, long? cityId)

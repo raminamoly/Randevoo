@@ -2,6 +2,7 @@ using System.Text.Json;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using Randevoo.Application.Interfaces.Auditing;
+using Randevoo.Domain.Entities;
 using Randevoo.Domain.Enums;
 using Randevoo.Domain.Exceptions;
 using Randevoo.Domain.Interfaces;
@@ -42,15 +43,29 @@ public class CancelDatingEventHandler : IRequestHandler<CancelDatingEventCommand
         var tickets = datingEvent.Cancel();
         var refundCount = 0;
         var refundTotal = 0m;
+        var refundTotalIrr = 0m;
         foreach (var ticket in tickets)
         {
             var balance = await _balances.GetByUserIdAsync(ticket.UserId, cancellationToken);
             if (balance is null)
                 continue;
 
-            balance.Credit(ticket.Price, BalanceTransactionType.TicketRefund, $"Refund for {datingEvent.Title}", datingEvent.Id);
+            balance.Credit(
+                ticket.Price,
+                BalanceTransactionType.TicketRefund,
+                $"Refund for {datingEvent.Title}",
+                datingEvent.Id,
+                nameof(EventTicket),
+                ticket.Id,
+                actor.Id,
+                ticket.CurrencyCode,
+                ticket.ReportingPriceIrr,
+                ticket.ExchangeRateToIrr,
+                ticket.ExchangeRateCapturedAtUtc,
+                ticket.ExchangeRateId);
             refundCount++;
             refundTotal += ticket.Price;
+            refundTotalIrr += ticket.ReportingPriceIrr;
         }
 
         await _auditLogger.LogAsync(new AuditLogEntry(
@@ -59,7 +74,7 @@ public class CancelDatingEventHandler : IRequestHandler<CancelDatingEventCommand
             "DatingEvent",
             datingEvent.Id.ToString(),
             JsonSerializer.Serialize(beforeSnapshot),
-            JsonSerializer.Serialize(new { Event = CreateSnapshot(datingEvent), refundCount, refundTotal }),
+            JsonSerializer.Serialize(new { Event = CreateSnapshot(datingEvent), refundCount, refundTotal, refundTotalIrr }),
             "رویداد لغو شد و بلیت‌های معتبر برگشت خوردند."), cancellationToken);
 
         await _events.UpdateAsync(datingEvent, cancellationToken);

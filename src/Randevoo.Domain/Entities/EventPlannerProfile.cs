@@ -1,5 +1,6 @@
 using Randevoo.Domain.Common;
 using Randevoo.Domain.Events;
+using Randevoo.Domain.Exceptions;
 
 namespace Randevoo.Domain.Entities;
 
@@ -10,6 +11,10 @@ public class EventPlannerProfile : BaseEntity, IAggregateRoot
     public string Title { get; private set; } = null!;
     public string? PictureUrl { get; private set; }
     public string Resume { get; private set; } = null!;
+    public string SettlementCurrencyCode { get; private set; } = "IRR";
+    public DateTime? SettlementCurrencyLockedAtUtc { get; private set; }
+    public string? SettlementCurrencyLockReason { get; private set; }
+    public bool IsSettlementCurrencyLocked => SettlementCurrencyLockedAtUtc.HasValue;
     public bool HasPendingChanges { get; private set; }
     public string? PendingFullName { get; private set; }
     public string? PendingCity { get; private set; }
@@ -28,13 +33,14 @@ public class EventPlannerProfile : BaseEntity, IAggregateRoot
 
     private EventPlannerProfile() { }
 
-    public EventPlannerProfile(User user, string title, string? pictureUrl, string resume)
+    public EventPlannerProfile(User user, string title, string? pictureUrl, string resume, string settlementCurrencyCode = "IRR")
     {
         User = GuardAgainst.Object.Null(user, nameof(user));
         User.BecomeEventPlanner();
         Title = GuardAgainst.String.InvalidLength(title, nameof(title), 2, 100);
         PictureUrl = string.IsNullOrWhiteSpace(pictureUrl) ? null : GuardAgainst.String.MaxLength(pictureUrl, nameof(pictureUrl), 500);
         Resume = GuardAgainst.String.InvalidLength(resume, nameof(resume), 10, 4000);
+        SettlementCurrencyCode = CurrencyLookup.NormalizeCode(string.IsNullOrWhiteSpace(settlementCurrencyCode) ? "IRR" : settlementCurrencyCode);
         AverageRating = 0;
         TotalSurveyCount = 0;
         HostedEventCount = 0;
@@ -45,13 +51,35 @@ public class EventPlannerProfile : BaseEntity, IAggregateRoot
         AddDomainEvent(new EntityCreatedEvent<EventPlannerProfile>(this));
     }
 
-    public void Update(string title, string? pictureUrl, string resume)
+    public void Update(string title, string? pictureUrl, string resume, string? settlementCurrencyCode = null)
     {
         Title = GuardAgainst.String.InvalidLength(title, nameof(title), 2, 100);
         PictureUrl = string.IsNullOrWhiteSpace(pictureUrl) ? null : GuardAgainst.String.MaxLength(pictureUrl, nameof(pictureUrl), 500);
         Resume = GuardAgainst.String.InvalidLength(resume, nameof(resume), 10, 4000);
+        if (!string.IsNullOrWhiteSpace(settlementCurrencyCode))
+            ChangeSettlementCurrency(settlementCurrencyCode);
         UpdateTimestamp();
         AddDomainEvent(new EntityUpdatedEvent<EventPlannerProfile>(this, nameof(Title), string.Empty, Title));
+    }
+
+    public void ChangeSettlementCurrency(string settlementCurrencyCode)
+    {
+        var normalized = CurrencyLookup.NormalizeCode(settlementCurrencyCode);
+        if (IsSettlementCurrencyLocked && !string.Equals(SettlementCurrencyCode, normalized, StringComparison.OrdinalIgnoreCase))
+            throw new BusinessRuleViolationException("Settlement currency locked", "Organizer settlement currency cannot be changed after financial activity starts.");
+
+        SettlementCurrencyCode = normalized;
+        UpdateTimestamp();
+    }
+
+    public void LockSettlementCurrency(string reason)
+    {
+        if (IsSettlementCurrencyLocked)
+            return;
+
+        SettlementCurrencyLockedAtUtc = DateTime.UtcNow;
+        SettlementCurrencyLockReason = GuardAgainst.String.InvalidLength(reason.Trim(), nameof(reason), 3, 300);
+        UpdateTimestamp();
     }
 
     public void SubmitChangesForApproval(string fullName, string city, string title, string? pictureUrl, string resume)

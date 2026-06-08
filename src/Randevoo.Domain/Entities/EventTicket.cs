@@ -13,6 +13,12 @@ public class EventTicket : BaseEntity
     public Gender Gender { get; private set; }
     public decimal OriginalPrice { get; private set; }
     public string CurrencyCode { get; private set; } = "IRR";
+    public decimal ReportingOriginalPriceIrr { get; private set; }
+    public decimal ReportingPriceIrr { get; private set; }
+    public decimal ExchangeRateToIrr { get; private set; } = 1m;
+    public DateTime ExchangeRateCapturedAtUtc { get; private set; }
+    public long? ExchangeRateId { get; private set; }
+    public CurrencyExchangeRate? ExchangeRate { get; private set; }
     public decimal DiscountAmount { get; private set; }
     public long? EventDiscountCodeId { get; private set; }
     public EventDiscountCode? EventDiscountCode { get; private set; }
@@ -44,11 +50,27 @@ public class EventTicket : BaseEntity
         Price = GuardAgainst.Number.OutOfRange(finalPrice, nameof(finalPrice), 0.01m, OriginalPrice);
         CurrencyCode = CurrencyLookup.NormalizeCode(string.IsNullOrWhiteSpace(currencyCode) ? "IRR" : currencyCode);
         DiscountAmount = OriginalPrice - Price;
+        ReportingOriginalPriceIrr = OriginalPrice;
+        ReportingPriceIrr = Price;
+        ExchangeRateToIrr = 1m;
+        ExchangeRateCapturedAtUtc = DateTime.UtcNow;
         EventDiscountCode = discountCode;
         EventDiscountCodeId = discountCode?.Id;
         DiscountCode = discountCode?.Code;
         IsRefunded = false;
         IsRemoved = false;
+    }
+
+    public void CaptureExchangeRate(decimal exchangeRateToIrr, DateTime capturedAtUtc, long? exchangeRateId = null)
+    {
+        ExchangeRateToIrr = GuardAgainst.Number.OutOfRange(exchangeRateToIrr, nameof(exchangeRateToIrr), 0.000001m, 1_000_000_000_000m);
+        ExchangeRateCapturedAtUtc = capturedAtUtc.Kind == DateTimeKind.Utc
+            ? capturedAtUtc
+            : DateTime.SpecifyKind(capturedAtUtc, DateTimeKind.Utc);
+        ExchangeRateId = exchangeRateId;
+        ReportingOriginalPriceIrr = ConvertToIrr(OriginalPrice, ExchangeRateToIrr);
+        ReportingPriceIrr = ConvertToIrr(Price, ExchangeRateToIrr);
+        UpdateTimestamp();
     }
 
     public void MarkRefunded()
@@ -68,4 +90,7 @@ public class EventTicket : BaseEntity
         RemovedAt = DateTime.UtcNow;
         MarkRefunded();
     }
+
+    private static decimal ConvertToIrr(decimal amount, decimal rate)
+        => Math.Round(amount * rate, 0, MidpointRounding.AwayFromZero);
 }

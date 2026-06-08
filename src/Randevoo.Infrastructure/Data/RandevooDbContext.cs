@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Randevoo.Domain.Entities;
+using Randevoo.Domain.Enums;
 using Randevoo.Domain.ValueObjects;
 
 namespace Randevoo.Infrastructure.Data;
@@ -25,6 +26,7 @@ public class RandevooDbContext : DbContext
     public DbSet<EventDiscountTypeLookup> EventDiscountTypes => Set<EventDiscountTypeLookup>();
     public DbSet<BalanceTransactionTypeLookup> BalanceTransactionTypes => Set<BalanceTransactionTypeLookup>();
     public DbSet<CurrencyLookup> Currencies => Set<CurrencyLookup>();
+    public DbSet<CurrencyExchangeRate> CurrencyExchangeRates => Set<CurrencyExchangeRate>();
     public DbSet<BalanceAccount> BalanceAccounts => Set<BalanceAccount>();
     public DbSet<BalanceTransaction> BalanceTransactions => Set<BalanceTransaction>();
     public DbSet<OnlinePayment> OnlinePayments => Set<OnlinePayment>();
@@ -214,6 +216,29 @@ public class RandevooDbContext : DbContext
                 new { Id = 7L, Code = "TRY", DisplayNameFa = "لیر ترکیه", Symbol = "₺", IsActive = true, DisplayOrder = 7, CreatedAt = new DateTime(2026, 6, 8, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false });
         });
 
+        modelBuilder.Entity<CurrencyExchangeRate>(b =>
+        {
+            b.ToTable("CurrencyExchangeRates");
+            b.HasKey(rate => rate.Id);
+            b.Property(rate => rate.FromCurrencyCode).IsRequired().HasMaxLength(3);
+            b.Property(rate => rate.ToCurrencyCode).IsRequired().HasMaxLength(3);
+            b.Property(rate => rate.Rate).HasPrecision(18, 6).IsRequired();
+            b.Property(rate => rate.EffectiveFromUtc).IsRequired();
+            b.Property(rate => rate.EffectiveToUtc);
+            b.Property(rate => rate.Source).IsRequired().HasMaxLength(80);
+            b.HasIndex(rate => new { rate.FromCurrencyCode, rate.ToCurrencyCode, rate.EffectiveFromUtc }).IsUnique();
+            b.HasIndex(rate => new { rate.FromCurrencyCode, rate.ToCurrencyCode, rate.EffectiveToUtc });
+            b.HasQueryFilter(rate => !rate.IsDeleted);
+            b.HasData(
+                new { Id = 1L, FromCurrencyCode = "IRR", ToCurrencyCode = "IRR", Rate = 1m, EffectiveFromUtc = new DateTime(2026, 6, 8, 0, 0, 0, DateTimeKind.Utc), EffectiveToUtc = (DateTime?)null, Source = "Seed", CreatedByUserId = (long?)null, CreatedAt = new DateTime(2026, 6, 8, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 2L, FromCurrencyCode = "USD", ToCurrencyCode = "IRR", Rate = 1750000m, EffectiveFromUtc = new DateTime(2026, 6, 8, 0, 0, 0, DateTimeKind.Utc), EffectiveToUtc = (DateTime?)null, Source = "Seed", CreatedByUserId = (long?)null, CreatedAt = new DateTime(2026, 6, 8, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 3L, FromCurrencyCode = "EUR", ToCurrencyCode = "IRR", Rate = 2000000m, EffectiveFromUtc = new DateTime(2026, 6, 8, 0, 0, 0, DateTimeKind.Utc), EffectiveToUtc = (DateTime?)null, Source = "Seed", CreatedByUserId = (long?)null, CreatedAt = new DateTime(2026, 6, 8, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 4L, FromCurrencyCode = "CAD", ToCurrencyCode = "IRR", Rate = 1280000m, EffectiveFromUtc = new DateTime(2026, 6, 8, 0, 0, 0, DateTimeKind.Utc), EffectiveToUtc = (DateTime?)null, Source = "Seed", CreatedByUserId = (long?)null, CreatedAt = new DateTime(2026, 6, 8, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 5L, FromCurrencyCode = "GBP", ToCurrencyCode = "IRR", Rate = 2350000m, EffectiveFromUtc = new DateTime(2026, 6, 8, 0, 0, 0, DateTimeKind.Utc), EffectiveToUtc = (DateTime?)null, Source = "Seed", CreatedByUserId = (long?)null, CreatedAt = new DateTime(2026, 6, 8, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 6L, FromCurrencyCode = "AED", ToCurrencyCode = "IRR", Rate = 476500m, EffectiveFromUtc = new DateTime(2026, 6, 8, 0, 0, 0, DateTimeKind.Utc), EffectiveToUtc = (DateTime?)null, Source = "Seed", CreatedByUserId = (long?)null, CreatedAt = new DateTime(2026, 6, 8, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 7L, FromCurrencyCode = "TRY", ToCurrencyCode = "IRR", Rate = 54000m, EffectiveFromUtc = new DateTime(2026, 6, 8, 0, 0, 0, DateTimeKind.Utc), EffectiveToUtc = (DateTime?)null, Source = "Seed", CreatedByUserId = (long?)null, CreatedAt = new DateTime(2026, 6, 8, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false });
+        });
+
         modelBuilder.Entity<Country>(b =>
         {
             b.HasKey(country => country.Id);
@@ -322,6 +347,8 @@ public class RandevooDbContext : DbContext
             b.Property(p => p.Title).IsRequired().HasMaxLength(100);
             b.Property(p => p.PictureUrl).HasMaxLength(500);
             b.Property(p => p.Resume).IsRequired().HasMaxLength(4000);
+            b.Property(p => p.SettlementCurrencyCode).IsRequired().HasMaxLength(3).HasDefaultValue("IRR");
+            b.Property(p => p.SettlementCurrencyLockReason).HasMaxLength(300);
             b.Property(p => p.PendingFullName).HasMaxLength(100);
             b.Property(p => p.PendingCity).HasMaxLength(100);
             b.Property(p => p.PendingTitle).HasMaxLength(100);
@@ -373,6 +400,7 @@ public class RandevooDbContext : DbContext
         {
             b.HasKey(a => a.Id);
             b.Property(a => a.Balance).HasPrecision(18, 2).IsRequired();
+            b.Property(a => a.ReportingCurrencyCode).IsRequired().HasMaxLength(3).HasDefaultValue("IRR");
             b.HasIndex(a => a.UserId).IsUnique();
             b.HasQueryFilter(a => !a.IsDeleted);
             b.HasOne(a => a.User)
@@ -390,16 +418,31 @@ public class RandevooDbContext : DbContext
         {
             b.HasKey(t => t.Id);
             b.Property(t => t.Amount).HasPrecision(18, 2).IsRequired();
+            b.Property(t => t.CurrencyCode).IsRequired().HasMaxLength(3).HasDefaultValue("IRR");
+            b.Property(t => t.ReportingCurrencyCode).IsRequired().HasMaxLength(3).HasDefaultValue("IRR");
+            b.Property(t => t.ReportingAmountIrr).HasPrecision(18, 2).IsRequired();
+            b.Property(t => t.ExchangeRateToIrr).HasPrecision(18, 6).IsRequired().HasDefaultValue(1m);
+            b.Property(t => t.ExchangeRateCapturedAtUtc).HasDefaultValueSql("GETUTCDATE()").IsRequired();
             b.Property(t => t.Description).IsRequired().HasMaxLength(300);
             b.Property(t => t.ReferenceType).HasMaxLength(100);
             b.HasIndex(t => t.UserId);
+            b.HasIndex(t => t.CurrencyCode);
+            b.HasIndex(t => t.ExchangeRateId);
             b.HasQueryFilter(t => !t.BalanceAccount.IsDeleted);
+            b.HasOne(t => t.ExchangeRate)
+                .WithMany()
+                .HasForeignKey(t => t.ExchangeRateId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<OnlinePayment>(b =>
         {
             b.HasKey(payment => payment.Id);
             b.Property(payment => payment.Amount).HasPrecision(18, 2).IsRequired();
+            b.Property(payment => payment.CurrencyCode).IsRequired().HasMaxLength(3).HasDefaultValue("IRR");
+            b.Property(payment => payment.ReportingAmountIrr).HasPrecision(18, 2).IsRequired();
+            b.Property(payment => payment.ExchangeRateToIrr).HasPrecision(18, 6).IsRequired().HasDefaultValue(1m);
+            b.Property(payment => payment.ExchangeRateCapturedAtUtc).HasDefaultValueSql("GETUTCDATE()").IsRequired();
             b.Property(payment => payment.GatewayName).IsRequired().HasMaxLength(80);
             b.Property(payment => payment.TrackingCode).IsRequired().HasMaxLength(120);
             b.Property(payment => payment.Status).IsRequired();
@@ -408,6 +451,8 @@ public class RandevooDbContext : DbContext
             b.HasIndex(payment => payment.DatingEventId);
             b.HasIndex(payment => payment.EventTicketId);
             b.HasIndex(payment => payment.BalanceTransactionId);
+            b.HasIndex(payment => payment.CurrencyCode);
+            b.HasIndex(payment => payment.ExchangeRateId);
             b.HasIndex(payment => payment.TrackingCode).IsUnique();
             b.HasQueryFilter(payment => !payment.IsDeleted && !payment.User.IsDeleted);
             b.HasOne(payment => payment.User)
@@ -426,13 +471,23 @@ public class RandevooDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(payment => payment.BalanceTransactionId)
                 .OnDelete(DeleteBehavior.Restrict);
+            b.HasOne(payment => payment.ExchangeRate)
+                .WithMany()
+                .HasForeignKey(payment => payment.ExchangeRateId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<PlannerWithdrawalRequest>(b =>
         {
             b.HasKey(request => request.Id);
             b.Property(request => request.Amount).HasPrecision(18, 2).IsRequired();
+            b.Property(request => request.CurrencyCode).IsRequired().HasMaxLength(3).HasDefaultValue("IRR");
+            b.Property(request => request.ReportingAmountIrr).HasPrecision(18, 2).IsRequired();
+            b.Property(request => request.ExchangeRateToIrr).HasPrecision(18, 6).IsRequired().HasDefaultValue(1m);
+            b.Property(request => request.ExchangeRateCapturedAtUtc).HasDefaultValueSql("GETUTCDATE()").IsRequired();
             b.Property(request => request.Status).IsRequired();
+            b.HasIndex(request => request.CurrencyCode);
+            b.HasIndex(request => request.ExchangeRateId);
             b.Property(request => request.ReviewNote).HasMaxLength(1000);
             b.HasIndex(request => request.UserId);
             b.HasIndex(request => new { request.Status, request.RequestedAtUtc });
@@ -445,17 +500,30 @@ public class RandevooDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(request => request.ReviewedByAdminUserId)
                 .OnDelete(DeleteBehavior.Restrict);
+            b.HasOne(request => request.ExchangeRate)
+                .WithMany()
+                .HasForeignKey(request => request.ExchangeRateId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<PlannerBankAccount>(b =>
         {
             b.HasKey(account => account.Id);
-            b.Property(account => account.CardNumber).IsRequired().HasMaxLength(19);
-            b.Property(account => account.Iban).IsRequired().HasMaxLength(34);
-            b.Property(account => account.BankName).IsRequired().HasMaxLength(80);
+            b.Property(account => account.CurrencyCode).IsRequired().HasMaxLength(3).HasDefaultValue("IRR");
+            b.Property(account => account.PayoutMethod).IsRequired().HasDefaultValue(PlannerPayoutMethod.IranianBankCard);
+            b.Property(account => account.AccountHolderName).IsRequired().HasMaxLength(120).HasDefaultValue("برگزارکننده");
+            b.Property(account => account.Country).HasMaxLength(80);
+            b.Property(account => account.CardNumber).HasMaxLength(19);
+            b.Property(account => account.Iban).HasMaxLength(34);
+            b.Property(account => account.BankName).HasMaxLength(80);
+            b.Property(account => account.AccountNumber).HasMaxLength(80);
+            b.Property(account => account.SwiftCode).HasMaxLength(20);
+            b.Property(account => account.AccountIdentifier).HasMaxLength(160);
+            b.Property(account => account.PublicPaymentInstructions).HasMaxLength(1200);
             b.Property(account => account.IsActive).IsRequired();
             b.HasIndex(account => account.UserId);
-            b.HasIndex(account => account.Iban).IsUnique();
+            b.HasIndex(account => account.CurrencyCode);
+            b.HasIndex(account => account.Iban).IsUnique().HasFilter("[Iban] IS NOT NULL");
             b.HasQueryFilter(account => !account.IsDeleted && !account.User.IsDeleted);
             b.HasOne(account => account.User)
                 .WithMany()
@@ -578,6 +646,8 @@ public class RandevooDbContext : DbContext
             b.HasIndex(e => new { e.DateTimeStart, e.Id });
             b.HasIndex(e => new { e.UpdatedAt, e.Id });
             b.Property(e => e.EventPlannerCommissionPercent).HasPrecision(5, 2).IsRequired();
+            b.Property(e => e.PaymentCollectionMethod).HasDefaultValue(EventPaymentCollectionMethod.PlatformGateway).IsRequired();
+            b.Property(e => e.OrganizerPaymentInstructions).HasMaxLength(1200);
             b.Property(e => e.NumberOfLikesAllowed).HasColumnName("NumberOfLikesAllowed").IsRequired();
             b.Property(e => e.ReviewStatus).IsRequired();
             b.Property(e => e.MaleTicketPrice).HasPrecision(18, 2).IsRequired();
@@ -763,12 +833,17 @@ public class RandevooDbContext : DbContext
             b.HasKey(t => t.Id);
             b.Property(t => t.OriginalPrice).HasPrecision(18, 2).IsRequired();
             b.Property(t => t.CurrencyCode).IsRequired().HasMaxLength(3).HasDefaultValue("IRR");
+            b.Property(t => t.ReportingOriginalPriceIrr).HasPrecision(18, 2).IsRequired();
+            b.Property(t => t.ReportingPriceIrr).HasPrecision(18, 2).IsRequired();
+            b.Property(t => t.ExchangeRateToIrr).HasPrecision(18, 6).IsRequired().HasDefaultValue(1m);
+            b.Property(t => t.ExchangeRateCapturedAtUtc).HasDefaultValueSql("GETUTCDATE()").IsRequired();
             b.Property(t => t.DiscountAmount).HasPrecision(18, 2).IsRequired();
             b.Property(t => t.DiscountCode).HasMaxLength(50);
             b.Property(t => t.Price).HasPrecision(18, 2).IsRequired();
             b.Property(t => t.RemovalReason).HasMaxLength(500);
             b.HasIndex(t => new { t.DatingEventId, t.UserId }).IsUnique();
             b.HasIndex(t => t.CurrencyCode);
+            b.HasIndex(t => t.ExchangeRateId);
             b.HasIndex(t => t.EventDiscountCodeId);
             b.HasQueryFilter(t => !t.DatingEvent.IsDeleted);
             b.HasOne(t => t.User)
@@ -778,6 +853,10 @@ public class RandevooDbContext : DbContext
             b.HasOne(t => t.EventDiscountCode)
                 .WithMany()
                 .HasForeignKey(t => t.EventDiscountCodeId)
+                .OnDelete(DeleteBehavior.Restrict);
+            b.HasOne(t => t.ExchangeRate)
+                .WithMany()
+                .HasForeignKey(t => t.ExchangeRateId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
 

@@ -6,6 +6,8 @@ public sealed class UserOnlinePaymentItem
 {
     public long Id { get; set; }
     public decimal Amount { get; set; }
+    public string CurrencyCode { get; set; } = "IRR";
+    public decimal ReportingAmountIrr { get; set; }
     public string GatewayName { get; set; } = string.Empty;
     public string TrackingCode { get; set; } = string.Empty;
     public OnlinePaymentStatus Status { get; set; }

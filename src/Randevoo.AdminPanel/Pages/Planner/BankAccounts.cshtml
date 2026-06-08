@@ -1,5 +1,6 @@
 @page "{plannerUserId:long?}"
 @model Randevoo.AdminPanel.Pages.Planner.BankAccountsModel
+@using Randevoo.Domain.Enums
 @{
     ViewData["Title"] = "حساب های بانکی برگزارکننده";
 }
@@ -22,22 +23,85 @@
     <div class="col-xl-5">
         <form method="post" asp-page-handler="Save" asp-route-plannerUserId="@Model.PlannerUserId" class="glass-panel p-4 stacked-form">
             <input type="hidden" asp-for="Input.Id" />
+            <input type="hidden" asp-for="Input.CurrencyCode" value="@Model.SettlementCurrencyCode" />
             <h2 class="section-title">@(Model.Input.Id is null ? "ثبت حساب بانکی" : "ویرایش حساب بانکی")</h2>
-            <div>
-                <label asp-for="Input.CardNumber" class="form-label">شماره کارت</label>
-                <input asp-for="Input.CardNumber" class="form-control" dir="ltr" placeholder="603799..." />
-                <span asp-validation-for="Input.CardNumber" class="text-danger small"></span>
+            <div class="detail-block mb-2">
+                <span>ارز کاری</span>
+                <strong dir="ltr">@Model.SettlementCurrencyCode</strong>
             </div>
             <div>
-                <label asp-for="Input.Iban" class="form-label">شماره شبا</label>
-                <input asp-for="Input.Iban" class="form-control" dir="ltr" placeholder="IR..." />
-                <span asp-validation-for="Input.Iban" class="text-danger small"></span>
+                <label asp-for="Input.AccountHolderName" class="form-label">نام صاحب حساب</label>
+                <input asp-for="Input.AccountHolderName" class="form-control" placeholder="نام صاحب حساب" />
+                <span asp-validation-for="Input.AccountHolderName" class="text-danger small"></span>
             </div>
-            <div>
-                <label asp-for="Input.BankName" class="form-label">بانک</label>
-                <input asp-for="Input.BankName" class="form-control" placeholder="نام بانک" />
-                <span asp-validation-for="Input.BankName" class="text-danger small"></span>
-            </div>
+            @if (Model.IsIrrSettlement)
+            {
+                <input type="hidden" asp-for="Input.PayoutMethod" value="@PlannerPayoutMethod.IranianBankCard" />
+                <div>
+                    <label asp-for="Input.CardNumber" class="form-label">شماره کارت</label>
+                    <input asp-for="Input.CardNumber" class="form-control" dir="ltr" placeholder="603799..." />
+                    <span asp-validation-for="Input.CardNumber" class="text-danger small"></span>
+                </div>
+                <div>
+                    <label asp-for="Input.Iban" class="form-label">شماره شبا</label>
+                    <input asp-for="Input.Iban" class="form-control" dir="ltr" placeholder="IR..." />
+                    <span asp-validation-for="Input.Iban" class="text-danger small"></span>
+                </div>
+                <div>
+                    <label asp-for="Input.BankName" class="form-label">بانک</label>
+                    <input asp-for="Input.BankName" class="form-control" placeholder="نام بانک" />
+                    <span asp-validation-for="Input.BankName" class="text-danger small"></span>
+                </div>
+                <div>
+                    <label asp-for="Input.AccountNumber" class="form-label">شماره حساب</label>
+                    <input asp-for="Input.AccountNumber" class="form-control" dir="ltr" placeholder="اختیاری" />
+                    <span asp-validation-for="Input.AccountNumber" class="text-danger small"></span>
+                </div>
+            }
+            else
+            {
+                <div>
+                    <label asp-for="Input.PayoutMethod" class="form-label">روش دریافت وجه</label>
+                    <select asp-for="Input.PayoutMethod" class="form-select">
+                        <option value="@PlannerPayoutMethod.IbanSwift">IBAN / SWIFT</option>
+                        <option value="@PlannerPayoutMethod.BankTransfer">Bank Transfer</option>
+                        <option value="@PlannerPayoutMethod.PayPal">PayPal</option>
+                        <option value="@PlannerPayoutMethod.Wise">Wise</option>
+                        <option value="@PlannerPayoutMethod.StripeConnect">Stripe Connect</option>
+                        <option value="@PlannerPayoutMethod.Other">سایر</option>
+                    </select>
+                </div>
+                <div>
+                    <label asp-for="Input.Country" class="form-label">کشور حساب</label>
+                    <input asp-for="Input.Country" class="form-control" placeholder="مثلاً Canada" />
+                    <span asp-validation-for="Input.Country" class="text-danger small"></span>
+                </div>
+                <div>
+                    <label asp-for="Input.BankName" class="form-label">نام بانک</label>
+                    <input asp-for="Input.BankName" class="form-control" placeholder="نام بانک" />
+                    <span asp-validation-for="Input.BankName" class="text-danger small"></span>
+                </div>
+                <div>
+                    <label asp-for="Input.Iban" class="form-label">IBAN</label>
+                    <input asp-for="Input.Iban" class="form-control" dir="ltr" placeholder="اختیاری" />
+                    <span asp-validation-for="Input.Iban" class="text-danger small"></span>
+                </div>
+                <div>
+                    <label asp-for="Input.SwiftCode" class="form-label">SWIFT / BIC</label>
+                    <input asp-for="Input.SwiftCode" class="form-control" dir="ltr" placeholder="اختیاری" />
+                    <span asp-validation-for="Input.SwiftCode" class="text-danger small"></span>
+                </div>
+                <div>
+                    <label asp-for="Input.AccountIdentifier" class="form-label">شناسه حساب / ایمیل پرداخت</label>
+                    <input asp-for="Input.AccountIdentifier" class="form-control" dir="ltr" placeholder="PayPal, Wise, Stripe ID یا شماره حساب" />
+                    <span asp-validation-for="Input.AccountIdentifier" class="text-danger small"></span>
+                </div>
+                <div>
+                    <label asp-for="Input.PublicPaymentInstructions" class="form-label">توضیحات پرداخت برای شرکت‌کننده/پلتفرم</label>
+                    <textarea asp-for="Input.PublicPaymentInstructions" class="form-control" rows="4" placeholder="اطلاعات لازم برای واریز یا پرداخت دستی را وارد کنید."></textarea>
+                    <span asp-validation-for="Input.PublicPaymentInstructions" class="text-danger small"></span>
+                </div>
+            }
             <div class="form-check form-switch">
                 <input asp-for="Input.IsActive" class="form-check-input" />
                 <label asp-for="Input.IsActive" class="form-check-label">فعال</label>
@@ -60,8 +124,8 @@
                     <thead>
                         <tr>
                             <th>بانک</th>
-                            <th>شماره کارت</th>
-                            <th>شماره شبا</th>
+                            <th>ارز/روش</th>
+                            <th>اطلاعات پرداخت</th>
                             <th>وضعیت</th>
                             <th>عملیات</th>
                         </tr>
@@ -70,9 +134,26 @@
                         @foreach (var account in Model.Accounts)
                         {
                             <tr>
-                                <td>@account.BankName</td>
-                                <td dir="ltr">@account.CardNumber</td>
-                                <td dir="ltr">@account.Iban</td>
+                                <td>
+                                    <div class="fw-semibold">@(account.BankName ?? "بدون بانک")</div>
+                                    <div class="text-muted small">@account.AccountHolderName</div>
+                                </td>
+                                <td>
+                                    <div dir="ltr">@account.CurrencyCode</div>
+                                    <div class="text-muted small">@DisplayFormatter.PayoutMethod(account.PayoutMethod)</div>
+                                </td>
+                                <td class="table-wrap-cell">
+                                    @if (account.CurrencyCode == "IRR")
+                                    {
+                                        <div dir="ltr">@(account.CardNumber ?? "-")</div>
+                                        <div dir="ltr" class="text-muted small">@(account.Iban ?? "-")</div>
+                                    }
+                                    else
+                                    {
+                                        <div dir="ltr">@(account.AccountIdentifier ?? account.Iban ?? account.SwiftCode ?? "-")</div>
+                                        <div class="text-muted small">@(account.Country ?? account.PublicPaymentInstructions ?? "بدون توضیحات")</div>
+                                    }
+                                </td>
                                 <td><span class="status-badge @(account.IsActive ? "status-approved" : "status-closed")">@(account.IsActive ? "فعال" : "غیرفعال")</span></td>
                                 <td class="table-action-cell">
                                     <div class="dropdown">

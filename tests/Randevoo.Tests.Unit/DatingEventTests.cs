@@ -79,7 +79,7 @@ public class DatingEventTests
     }
 
     [Fact]
-    public void SellTicket_StoresGenderSpecificCurrency()
+    public void SellTicket_StoresSharedEventCurrency()
     {
         var datingEvent = CreateEvent(
             "Currency event",
@@ -114,7 +114,33 @@ public class DatingEventTests
         var femaleTicket = datingEvent.SellTicket(femaleBuyer, femaleProfile);
 
         Assert.Equal("USD", maleTicket.CurrencyCode);
-        Assert.Equal("CAD", femaleTicket.CurrencyCode);
+        Assert.Equal("USD", femaleTicket.CurrencyCode);
+        Assert.Equal(datingEvent.MaleTicketCurrencyCode, datingEvent.FemaleTicketCurrencyCode);
+    }
+
+    [Fact]
+    public void NewEvent_StoresOrganizerManualPaymentInstructions()
+    {
+        var datingEvent = CreateEvent(
+            "Organizer payment event",
+            DateTime.UtcNow.AddDays(3),
+            DateTime.UtcNow.AddDays(3).AddHours(3),
+            paymentCollectionMethod: EventPaymentCollectionMethod.OrganizerManualTransfer,
+            organizerPaymentInstructions: "Card number 1234-5678-9012-3456");
+
+        Assert.Equal(EventPaymentCollectionMethod.OrganizerManualTransfer, datingEvent.PaymentCollectionMethod);
+        Assert.Equal("Card number 1234-5678-9012-3456", datingEvent.OrganizerPaymentInstructions);
+    }
+
+    [Fact]
+    public void NewEvent_RequiresInstructionsForOrganizerManualPayment()
+    {
+        Assert.Throws<BusinessRuleViolationException>(() => CreateEvent(
+            "Missing payment instructions",
+            DateTime.UtcNow.AddDays(3),
+            DateTime.UtcNow.AddDays(3).AddHours(3),
+            paymentCollectionMethod: EventPaymentCollectionMethod.OrganizerManualTransfer,
+            organizerPaymentInstructions: "   "));
     }
 
     [Fact]
@@ -205,7 +231,9 @@ public class DatingEventTests
         decimal maleTicketPrice = 100m,
         decimal femaleTicketPrice = 100m,
         string maleTicketCurrencyCode = "IRR",
-        string femaleTicketCurrencyCode = "IRR")
+        string femaleTicketCurrencyCode = "IRR",
+        EventPaymentCollectionMethod paymentCollectionMethod = EventPaymentCollectionMethod.PlatformGateway,
+        string? organizerPaymentInstructions = null)
     {
         var planner = new User($"+989121{Math.Abs(title.GetHashCode()) % 1000000:000000}");
         planner.ChangeUserRole(UserRole.EventPlanner);
@@ -234,6 +262,8 @@ public class DatingEventTests
             "<p>Test event description.</p>",
             10m,
             maleTicketCurrencyCode,
-            femaleTicketCurrencyCode);
+            femaleTicketCurrencyCode,
+            paymentCollectionMethod,
+            organizerPaymentInstructions);
     }
 }

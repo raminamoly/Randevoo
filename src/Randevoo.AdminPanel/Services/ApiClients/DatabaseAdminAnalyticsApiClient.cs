@@ -102,19 +102,19 @@ public sealed class DatabaseAdminAnalyticsApiClient : IAdminAnalyticsApiClient
             [
                 new SummaryMetric { Label = "کل بلیت فروخته شده", Value = tickets.Count.ToString("N0", CultureInfo.InvariantCulture) },
                 new SummaryMetric { Label = "کل خریداران", Value = tickets.Select(ticket => ticket.UserId).Distinct().Count().ToString("N0", CultureInfo.InvariantCulture) },
-                new SummaryMetric { Label = "مجموع فروش", Value = tickets.Sum(ticket => ticket.Price).ToString("N0", CultureInfo.InvariantCulture) },
-                new SummaryMetric { Label = "میانگین قیمت بلیت", Value = tickets.Select(ticket => ticket.Price).DefaultIfEmpty(0m).Average().ToString("N0", CultureInfo.InvariantCulture) }
+                new SummaryMetric { Label = "مجموع فروش معادل ریالی", Value = tickets.Sum(ticket => ticket.ReportingPriceIrr).ToString("N0", CultureInfo.InvariantCulture) },
+                new SummaryMetric { Label = "میانگین قیمت بلیت معادل ریالی", Value = tickets.Select(ticket => ticket.ReportingPriceIrr).DefaultIfEmpty(0m).Average().ToString("N0", CultureInfo.InvariantCulture) }
             ],
-            PurchaseByMode = BuildPie(tickets, ticket => ticket.DatingEvent.EventMode?.Name ?? "نامشخص", ticket => ticket.Price),
-            PurchaseByType = BuildPie(tickets, ticket => ticket.DatingEvent.EventType.Name, ticket => ticket.Price),
-            PurchaseByCity = BuildPie(tickets, ticket => ticket.DatingEvent.City?.Name ?? ticket.DatingEvent.Location.City, ticket => ticket.Price),
-            SalesTrend = BuildTrend(tickets, ticket => ticket.CreatedAt, group => group.Sum(item => item.Price), range),
+            PurchaseByMode = BuildPie(tickets, ticket => ticket.DatingEvent.EventMode?.Name ?? "نامشخص", ticket => ticket.ReportingPriceIrr),
+            PurchaseByType = BuildPie(tickets, ticket => ticket.DatingEvent.EventType.Name, ticket => ticket.ReportingPriceIrr),
+            PurchaseByCity = BuildPie(tickets, ticket => ticket.DatingEvent.City?.Name ?? ticket.DatingEvent.Location.City, ticket => ticket.ReportingPriceIrr),
+            SalesTrend = BuildTrend(tickets, ticket => ticket.CreatedAt, group => group.Sum(item => item.ReportingPriceIrr), range),
             TopEvents = tickets
                 .GroupBy(ticket => ticket.DatingEvent.Title)
                 .Select(group => new RankingItem
                 {
                     Label = group.Key,
-                    Value = group.Sum(item => item.Price),
+                    Value = group.Sum(item => item.ReportingPriceIrr),
                     Meta = $"{group.Count():N0} بلیت"
                 })
                 .OrderByDescending(item => item.Value)
@@ -186,8 +186,8 @@ public sealed class DatabaseAdminAnalyticsApiClient : IAdminAnalyticsApiClient
             .Select(ticket => new
             {
                 Ticket = ticket,
-                PlatformIncome = ticket.Price * ticket.DatingEvent.EventPlannerCommissionPercent / 100m,
-                PlannerIncome = ticket.Price * (100m - ticket.DatingEvent.EventPlannerCommissionPercent) / 100m
+                PlatformIncome = ticket.ReportingPriceIrr * ticket.DatingEvent.EventPlannerCommissionPercent / 100m,
+                PlannerIncome = ticket.ReportingPriceIrr * (100m - ticket.DatingEvent.EventPlannerCommissionPercent) / 100m
             })
             .ToList();
 
@@ -221,7 +221,7 @@ public sealed class DatabaseAdminAnalyticsApiClient : IAdminAnalyticsApiClient
                 {
                     Label = group.Key,
                     Value = group.Sum(item => item.PlatformIncome),
-                    Meta = group.Sum(item => item.Ticket.Price).ToString("N0", CultureInfo.InvariantCulture)
+                    Meta = group.Sum(item => item.Ticket.ReportingPriceIrr).ToString("N0", CultureInfo.InvariantCulture)
                 })
                 .OrderByDescending(item => item.Value)
                 .Take(8)

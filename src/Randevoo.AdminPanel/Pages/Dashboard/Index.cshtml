@@ -18,8 +18,8 @@
 <section class="dashboard-command-grid">
     <article class="dashboard-hero-card glass-panel">
         <div class="dashboard-hero-content">
-            <span class="dashboard-hero-label">فروش کل</span>
-            <strong>@DisplayFormatter.Money(Model.Stats.TotalTicketSales, Model.IsRtl)</strong>
+            <span class="dashboard-hero-label">فروش کل معادل ریالی</span>
+            <strong>@DisplayFormatter.ReportingMoney(Model.Stats.TotalTicketSales, Model.IsRtl)</strong>
         </div>
         <div class="dashboard-hero-orbit">
             <span>@DisplayFormatter.Count(Model.Stats.TicketsSoldCount)</span>
@@ -63,7 +63,7 @@
             <div>
                 <h2 class="section-title mb-0">روند درآمد و ایجاد رویداد</h2>
             </div>
-            <span class="dashboard-soft-stat">@DisplayFormatter.Money(Model.Stats.PendingRevenue, Model.IsRtl) درآمد در جریان</span>
+            <span class="dashboard-soft-stat">@DisplayFormatter.ReportingMoney(Model.Stats.PendingRevenue, Model.IsRtl) درآمد در جریان</span>
         </div>
         <canvas id="revenueTrendChart" height="120"></canvas>
     </article>
@@ -90,7 +90,7 @@
             <div class="dashboard-map-grid"></div>
             @foreach (var point in Model.Stats.LocationPoints)
             {
-                <button type="button" class="dashboard-map-marker" style="@Model.GetMapMarkerStyle(point)" data-city="@point.City" data-events="@DisplayFormatter.Count(point.EventCount)" data-revenue="@DisplayFormatter.Money(point.Revenue, Model.IsRtl)">
+                <button type="button" class="dashboard-map-marker" style="@Model.GetMapMarkerStyle(point)" data-city="@point.City" data-events="@DisplayFormatter.Count(point.EventCount)" data-revenue="@DisplayFormatter.ReportingMoney(point.Revenue, Model.IsRtl)">
                     <span></span>
                     <strong>@DisplayFormatter.Count(point.EventCount)</strong>
                 </button>

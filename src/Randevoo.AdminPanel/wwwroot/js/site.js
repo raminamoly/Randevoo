@@ -693,6 +693,239 @@ $(function () {
                 });
         };
 
+        const reviewSummary = form.querySelector("[data-event-review-summary='true']");
+        const reviewValues = reviewSummary
+            ? Array.from(reviewSummary.querySelectorAll("[data-review-value]")).reduce(function (values, element) {
+                values[element.dataset.reviewValue] = element;
+                return values;
+            }, {})
+            : null;
+
+        const readControl = function (selector) {
+            const control = form.querySelector(selector);
+            return control ? (control.value || "").trim() : "";
+        };
+
+        const selectedText = function (selector) {
+            const select = form.querySelector(selector);
+            if (!select || !select.selectedOptions || select.selectedOptions.length === 0) {
+                return readControl(selector);
+            }
+
+            return (select.selectedOptions[0].textContent || "").trim();
+        };
+
+        const checkedRadioLabel = function (name) {
+            const checked = form.querySelector("input[name='" + name + "']:checked");
+            if (!checked) {
+                return "";
+            }
+
+            if (checked.labels && checked.labels.length > 0) {
+                return (checked.labels[0].textContent || "").trim();
+            }
+
+            return checked.value || "";
+        };
+
+        const setReviewValue = function (key, value) {
+            if (!reviewValues || !reviewValues[key]) {
+                return;
+            }
+
+            reviewValues[key].textContent = (value || "").trim() || "ثبت نشده";
+        };
+
+        const setFinancialValue = function (key, value) {
+            form.querySelectorAll("[data-financial-value='" + key + "']").forEach(function (element) {
+                element.textContent = (value || "").trim() || "0";
+            });
+        };
+
+        const readDecimal = function (selector) {
+            const value = normalizeNumericInput(readControl(selector)).replace(/[^\d.-]/g, "");
+            const parsed = Number.parseFloat(value);
+            return Number.isFinite(parsed) ? parsed : 0;
+        };
+
+        const readInteger = function (selector) {
+            const value = normalizeNumericInput(readControl(selector)).replace(/[^\d-]/g, "");
+            const parsed = Number.parseInt(value, 10);
+            return Number.isFinite(parsed) ? parsed : 0;
+        };
+
+        const formatMoney = function (amount) {
+            const currencyText = currentEventCurrencyText();
+            const rounded = Math.round((amount + Number.EPSILON) * 100) / 100;
+            const numberText = rounded.toLocaleString("fa-IR", {
+                maximumFractionDigits: rounded % 1 === 0 ? 0 : 2
+            });
+            return [numberText, currencyText].filter(Boolean).join(" ");
+        };
+
+        const currentEventCurrencyCode = function () {
+            return currencySource ? (currencySource.value || "IRR").trim().toUpperCase() : "IRR";
+        };
+
+        const currentExchangeRateToIrr = function () {
+            const config = window.randevooEventEdit || {};
+            const rates = config.currencyRates || {};
+            const rateInfo = rates[currentEventCurrencyCode()];
+            const rate = rateInfo ? Number.parseFloat(rateInfo.rateToIrr || rateInfo.RateToIrr || 1) : 1;
+            return Number.isFinite(rate) && rate > 0 ? rate : 1;
+        };
+
+        const formatReportingMoney = function (amount) {
+            const converted = Math.round(amount * currentExchangeRateToIrr());
+            return converted.toLocaleString("fa-IR", { maximumFractionDigits: 0 }) + " ریال ایران";
+        };
+
+        const paymentMethodValue = function () {
+            const checked = form.querySelector("input[name='Input.PaymentCollectionMethod']:checked");
+            return checked ? checked.value : "";
+        };
+
+        const paymentMethodLabel = function () {
+            const checked = form.querySelector("input[name='Input.PaymentCollectionMethod']:checked");
+            if (!checked) {
+                return "";
+            }
+
+            const option = checked.closest(".payment-method-option");
+            const title = option ? option.querySelector("strong") : null;
+            return title ? (title.textContent || "").trim() : checkedRadioLabel("Input.PaymentCollectionMethod");
+        };
+
+        const isOrganizerManualTransfer = function () {
+            return paymentMethodValue().includes("OrganizerManualTransfer") || paymentMethodValue() === "2";
+        };
+
+        const syncPaymentMethodFields = function () {
+            const panel = form.querySelector("[data-organizer-payment-instructions='true']");
+            if (!panel) {
+                return;
+            }
+
+            const textarea = panel.querySelector("textarea");
+            const isVisible = isOrganizerManualTransfer();
+            panel.classList.toggle("d-none", !isVisible);
+            if (textarea) {
+                textarea.disabled = !isVisible;
+                textarea.required = isVisible;
+            }
+        };
+
+        const syncFinancialPreview = function () {
+            const malePrice = readDecimal("#Input_MaleTicketPrice");
+            const femalePrice = readDecimal("#Input_FemaleTicketPrice");
+            const maleCapacity = Math.max(0, readInteger("#Input_CapacityMale"));
+            const femaleCapacity = Math.max(0, readInteger("#Input_CapacityFemale"));
+            const commissionRate = Math.min(100, Math.max(0, readDecimal("#Input_OrganizerCommissionPercent")));
+            const grossTotal = (malePrice * maleCapacity) + (femalePrice * femaleCapacity);
+            const commissionTotal = grossTotal * commissionRate / 100;
+            const organizerNetTotal = grossTotal - commissionTotal;
+            const organizerCollects = isOrganizerManualTransfer();
+
+            setFinancialValue("gross-total", formatMoney(grossTotal));
+            setFinancialValue("platform-commission-total", formatMoney(commissionTotal) + " (" + commissionRate.toLocaleString("fa-IR") + "%)");
+            setFinancialValue("organizer-net-total", formatMoney(organizerNetTotal));
+            setFinancialValue(
+                "settlement-effect",
+                organizerCollects
+                    ? "بدهی برگزارکننده: " + formatMoney(commissionTotal)
+                    : "قابل برداشت برای برگزارکننده: " + formatMoney(organizerNetTotal));
+            setFinancialValue(
+                "settlement-note",
+                organizerCollects
+                    ? "در این روش پول اول نزد برگزارکننده است؛ بعد از تایید پرداخت، فقط کمیسیون پلتفرم از حساب او کم می‌شود."
+                    : "در این روش پول اول نزد پلتفرم است؛ بعد از تایید پرداخت، سهم خالص برگزارکننده به حساب او اضافه می‌شود.");
+            setFinancialValue("gross-total-irr", formatReportingMoney(grossTotal));
+            setFinancialValue("platform-commission-total-irr", formatReportingMoney(commissionTotal));
+            setFinancialValue("organizer-net-total-irr", formatReportingMoney(organizerNetTotal));
+        };
+
+        const currencySource = form.querySelector("[data-event-currency-source='true']");
+        const currencyTargets = Array.from(form.querySelectorAll("[data-event-currency-target='true']"));
+        const currencyDisplays = Array.from(form.querySelectorAll("[data-event-currency-display='true']"));
+
+        const currentEventCurrencyText = function () {
+            if (!currencySource || !currencySource.selectedOptions || currencySource.selectedOptions.length === 0) {
+                const config = window.randevooEventEdit || {};
+                const rates = config.currencyRates || {};
+                const currencyCode = currencySource ? currencySource.value : "";
+                const rateInfo = rates[currencyCode];
+                return rateInfo && (rateInfo.displayNameFa || rateInfo.DisplayNameFa)
+                    ? (rateInfo.displayNameFa || rateInfo.DisplayNameFa) + " (" + currencyCode + ")"
+                    : currencyCode;
+            }
+
+            return (currencySource.selectedOptions[0].textContent || "").trim();
+        };
+
+        const syncEventCurrency = function () {
+            if (!currencySource) {
+                return;
+            }
+
+            const currencyCode = currencySource.value;
+            const currencyText = currentEventCurrencyText();
+
+            if (!currencyCode) {
+                return;
+            }
+
+            currencyTargets.forEach(function (control) {
+                control.value = currencyCode;
+            });
+            currencyDisplays.forEach(function (control) {
+                control.value = currencyText || currencyCode;
+            });
+        };
+
+        const syncEventReview = function () {
+            if (!reviewValues) {
+                return;
+            }
+
+            syncEventCurrency();
+            const eventModeId = readControl("input[name='Input.EventModeId']:checked");
+            const isOnline = window.randevooEventEdit && eventModeId === window.randevooEventEdit.onlineModeId;
+            const start = [readControl("#StartDateText"), readControl("#StartTimeText")].filter(Boolean).join(" ");
+            const end = [readControl("#EndDateText"), readControl("#EndTimeText")].filter(Boolean).join(" ");
+            const countryCity = [readControl("#Input_Country"), readControl("#Input_City"), readControl("#Input_Region")].filter(Boolean).join("، ");
+            const venue = readControl("#Input_VenueName");
+            const platform = selectedText("#Input_OnlineEventPlatformId");
+            const joinUrl = readControl("#Input_OnlineJoinUrl");
+            const eventCurrencyText = currentEventCurrencyText();
+            const maleTicket = [readControl("#Input_MaleTicketPrice"), eventCurrencyText].filter(Boolean).join(" ");
+            const femaleTicket = [readControl("#Input_FemaleTicketPrice"), eventCurrencyText].filter(Boolean).join(" ");
+            const selectedTags = Array.from(form.querySelectorAll("#Input_TagIds option:checked"))
+                .map(function (option) { return (option.textContent || "").trim(); })
+                .filter(Boolean);
+            const imageCount = ["1", "2", "3"].filter(function (index) {
+                const hidden = form.querySelector("#Input_Image" + index);
+                const file = form.querySelector("#Image" + index + "File");
+                return Boolean((hidden && hidden.value) || (file && file.files && file.files.length > 0));
+            }).length;
+
+            setReviewValue("title", readControl("#Input_Title"));
+            setReviewValue("event-type", selectedText("#Input_EventTypeId"));
+            setReviewValue("event-mode", checkedRadioLabel("Input.EventModeId"));
+            setReviewValue("delivery-detail", isOnline ? [platform, joinUrl].filter(Boolean).join(" / ") : [countryCity, venue].filter(Boolean).join(" / "));
+            setReviewValue("start", start);
+            setReviewValue("end", end);
+            setReviewValue("male-ticket", maleTicket);
+            setReviewValue("female-ticket", femaleTicket);
+            setReviewValue("capacity", [readControl("#Input_CapacityMale") || "0", readControl("#Input_CapacityFemale") || "0"].join(" آقا / ") + " خانم");
+            setReviewValue("age-range", [selectedText("#Input_AgeRangeForMale"), selectedText("#Input_AgeRangeForFemale")].filter(Boolean).join(" آقا / ") + (selectedText("#Input_AgeRangeForFemale") ? " خانم" : ""));
+            setReviewValue("like-limit", readControl("#Input_LikeLimit"));
+            setReviewValue("tags", selectedTags.join("، "));
+            setReviewValue("images", imageCount + " / 3");
+            setReviewValue("payment-method", paymentMethodLabel());
+            syncPaymentMethodFields();
+            syncFinancialPreview();
+        };
+
         const markStepErrors = function () {
             steps.forEach(function (step) {
                 const key = step.dataset.eventWizardTarget;
@@ -704,6 +937,7 @@ $(function () {
         };
 
         const setActiveStep = function (index) {
+            syncEventReview();
             activeIndex = Math.max(0, Math.min(index, panels.length - 1));
             const activePanel = panels[activeIndex];
             const activeKey = activePanel.dataset.eventWizardPanel;
@@ -762,6 +996,19 @@ $(function () {
             });
         }
 
+        form.addEventListener("input", syncEventReview);
+        form.addEventListener("change", function () {
+            syncEventReview();
+        });
+        form.addEventListener("click", function (event) {
+            if (event.target.closest(".image-clear-button")) {
+                window.setTimeout(syncEventReview, 0);
+            }
+            if (event.target.closest("[data-financial-calc-button='true']")) {
+                syncEventReview();
+            }
+        });
+
         form.addEventListener("submit", function () {
             window.setTimeout(function () {
                 markStepErrors();
@@ -773,6 +1020,9 @@ $(function () {
         });
 
         markStepErrors();
+        syncEventCurrency();
+        syncPaymentMethodFields();
+        syncFinancialPreview();
         const firstInvalidIndex = panels.findIndex(hasPanelErrors);
         setActiveStep(firstInvalidIndex >= 0 ? firstInvalidIndex : 0);
     });

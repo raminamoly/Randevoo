@@ -15,6 +15,12 @@ public static class DisplayFormatter
     public static string TicketMoney(decimal value, string? currencyCode, bool useRtl)
         => ToPersianDigits($"{value:N0} {CurrencyLabel(currencyCode)}");
 
+    public static string CurrencyMoney(decimal value, string? currencyCode, bool useRtl)
+        => TicketMoney(value, currencyCode, useRtl);
+
+    public static string ReportingMoney(decimal value, bool useRtl)
+        => ToPersianDigits($"{value:N0} ریال ایران");
+
     public static string CurrencyLabel(string? currencyCode)
     {
         var normalized = string.IsNullOrWhiteSpace(currencyCode) ? "IRR" : currencyCode.Trim().ToUpperInvariant();
@@ -86,12 +92,44 @@ public static class DisplayFormatter
         BalanceTransactionType.AdminAdjustment => "اصلاح مدیر",
         BalanceTransactionType.TicketPurchase => "خرید بلیت",
         BalanceTransactionType.TicketRefund => "بازگشت بلیت",
-        BalanceTransactionType.EventPlannerIncome => "درآمد کمیسیون",
+        BalanceTransactionType.EventPlannerIncome => "درآمد برگزارکننده",
         BalanceTransactionType.PlatformCommission => "کمیسیون پلتفرم",
         BalanceTransactionType.EmergencyRemovalRefund => "بازگشت حذف اضطراری",
         BalanceTransactionType.PlannerWithdrawalPayout => "تسویه برگزارکننده",
         BalanceTransactionType.EventPlannerIncomeReversal => "برگشت سهم برگزارکننده",
         _ => type.ToString()
+    };
+
+    public static string PaymentCollectionMethod(EventPaymentCollectionMethod method) => method switch
+    {
+        EventPaymentCollectionMethod.PlatformGateway => "پرداخت آنلاین از طریق درگاه پلتفرم",
+        EventPaymentCollectionMethod.PlatformManualTransfer => "واریز به حساب پلتفرم و تایید توسط پشتیبانی",
+        EventPaymentCollectionMethod.OrganizerManualTransfer => "واریز مستقیم به حساب برگزارکننده و تایید توسط برگزارکننده",
+        _ => method.ToString()
+    };
+
+    public static string PayoutMethod(string? method)
+        => Enum.TryParse<PlannerPayoutMethod>(method, out var payoutMethod)
+            ? PayoutMethod(payoutMethod)
+            : method ?? "نامشخص";
+
+    public static string PayoutMethod(PlannerPayoutMethod method) => method switch
+    {
+        PlannerPayoutMethod.IranianBankCard => "کارت/شبا ایران",
+        PlannerPayoutMethod.BankTransfer => "انتقال بانکی",
+        PlannerPayoutMethod.IbanSwift => "IBAN / SWIFT",
+        PlannerPayoutMethod.PayPal => "PayPal",
+        PlannerPayoutMethod.Wise => "Wise",
+        PlannerPayoutMethod.StripeConnect => "Stripe Connect",
+        PlannerPayoutMethod.Other => "سایر",
+        _ => method.ToString()
+    };
+
+    public static string PaymentCollectionSettlementNote(EventPaymentCollectionMethod method) => method switch
+    {
+        EventPaymentCollectionMethod.OrganizerManualTransfer => "پول مستقیم به حساب برگزارکننده واریز می‌شود و کمیسیون پلتفرم به عنوان بدهی برگزارکننده ثبت خواهد شد.",
+        EventPaymentCollectionMethod.PlatformManualTransfer => "پول به حساب پلتفرم واریز می‌شود؛ پس از تایید رسید توسط پشتیبانی، سهم برگزارکننده قابل برداشت خواهد بود.",
+        _ => "پرداخت از طریق پلتفرم انجام می‌شود و سهم برگزارکننده پس از کسر کمیسیون قابل برداشت خواهد بود."
     };
 
     public static string Gender(Gender gender) => gender switch

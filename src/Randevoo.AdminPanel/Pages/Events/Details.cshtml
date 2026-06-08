@@ -181,6 +181,19 @@
 </section>
 
 <section class="glass-panel p-4 mb-4">
+    <h2 class="section-title">پرداخت و تسویه</h2>
+    <div class="row g-3">
+        <div class="col-md-4"><div class="detail-block"><span>روش دریافت هزینه</span><strong>@DisplayFormatter.PaymentCollectionMethod(Model.Event.ActiveDraft.PaymentCollectionMethod)</strong></div></div>
+        <div class="col-md-4"><div class="detail-block"><span>کمیسیون پلتفرم</span><strong>@DisplayFormatter.Percent(Model.Event.ActiveDraft.OrganizerCommissionPercent)</strong></div></div>
+        <div class="col-md-4"><div class="detail-block"><span>اثر مالی</span><strong>@DisplayFormatter.PaymentCollectionSettlementNote(Model.Event.ActiveDraft.PaymentCollectionMethod)</strong></div></div>
+        @if (Model.Event.ActiveDraft.PaymentCollectionMethod == Randevoo.Domain.Enums.EventPaymentCollectionMethod.OrganizerManualTransfer && !string.IsNullOrWhiteSpace(Model.Event.ActiveDraft.OrganizerPaymentInstructions))
+        {
+            <div class="col-12"><div class="detail-block payment-instructions-block"><span>اطلاعات پرداخت برگزارکننده</span><strong>@Model.Event.ActiveDraft.OrganizerPaymentInstructions</strong></div></div>
+        }
+    </div>
+</section>
+
+<section class="glass-panel p-4 mb-4">
     <h2 class="section-title">محل و دسترسی</h2>
     <div class="row g-3">
         @if (Model.Event.ActiveDraft.IsOnline)

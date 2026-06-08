@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Randevoo.Infrastructure.Data;
 
@@ -11,9 +12,11 @@ using Randevoo.Infrastructure.Data;
 namespace Randevoo.Infrastructure.Data.Migrations
 {
     [DbContext(typeof(RandevooDbContext))]
-    partial class RandevooDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260608192217_AddEventPaymentCollectionMethod")]
+    partial class AddEventPaymentCollectionMethod
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -156,13 +159,6 @@ namespace Randevoo.Infrastructure.Data.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
-                    b.Property<string>("ReportingCurrencyCode")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(3)
-                        .HasColumnType("nvarchar(3)")
-                        .HasDefaultValue("IRR");
-
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
@@ -198,13 +194,6 @@ namespace Randevoo.Infrastructure.Data.Migrations
                     b.Property<long?>("CreatedByUserId")
                         .HasColumnType("bigint");
 
-                    b.Property<string>("CurrencyCode")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(3)
-                        .HasColumnType("nvarchar(3)")
-                        .HasDefaultValue("IRR");
-
                     b.Property<long?>("DatingEventId")
                         .HasColumnType("bigint");
 
@@ -216,20 +205,6 @@ namespace Randevoo.Infrastructure.Data.Migrations
                         .HasMaxLength(300)
                         .HasColumnType("nvarchar(300)");
 
-                    b.Property<DateTime>("ExchangeRateCapturedAtUtc")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETUTCDATE()");
-
-                    b.Property<long?>("ExchangeRateId")
-                        .HasColumnType("bigint");
-
-                    b.Property<decimal>("ExchangeRateToIrr")
-                        .ValueGeneratedOnAdd()
-                        .HasPrecision(18, 6)
-                        .HasColumnType("decimal(18,6)")
-                        .HasDefaultValue(1m);
-
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
@@ -239,17 +214,6 @@ namespace Randevoo.Infrastructure.Data.Migrations
                     b.Property<string>("ReferenceType")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
-
-                    b.Property<decimal>("ReportingAmountIrr")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("ReportingCurrencyCode")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(3)
-                        .HasColumnType("nvarchar(3)")
-                        .HasDefaultValue("IRR");
 
                     b.Property<int>("Type")
                         .HasColumnType("int");
@@ -263,10 +227,6 @@ namespace Randevoo.Infrastructure.Data.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("BalanceAccountId");
-
-                    b.HasIndex("CurrencyCode");
-
-                    b.HasIndex("ExchangeRateId");
 
                     b.HasIndex("UserId");
 
@@ -635,143 +595,6 @@ namespace Randevoo.Infrastructure.Data.Migrations
                             IsActive = true,
                             IsDeleted = false,
                             Name = "ترکیه"
-                        });
-                });
-
-            modelBuilder.Entity("Randevoo.Domain.Entities.CurrencyExchangeRate", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<long?>("CreatedByUserId")
-                        .HasColumnType("bigint");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime>("EffectiveFromUtc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("EffectiveToUtc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("FromCurrencyCode")
-                        .IsRequired()
-                        .HasMaxLength(3)
-                        .HasColumnType("nvarchar(3)");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<decimal>("Rate")
-                        .HasPrecision(18, 6)
-                        .HasColumnType("decimal(18,6)");
-
-                    b.Property<string>("Source")
-                        .IsRequired()
-                        .HasMaxLength(80)
-                        .HasColumnType("nvarchar(80)");
-
-                    b.Property<string>("ToCurrencyCode")
-                        .IsRequired()
-                        .HasMaxLength(3)
-                        .HasColumnType("nvarchar(3)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("FromCurrencyCode", "ToCurrencyCode", "EffectiveFromUtc")
-                        .IsUnique();
-
-                    b.HasIndex("FromCurrencyCode", "ToCurrencyCode", "EffectiveToUtc");
-
-                    b.ToTable("CurrencyExchangeRates", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1L,
-                            CreatedAt = new DateTime(2026, 6, 8, 0, 0, 0, 0, DateTimeKind.Utc),
-                            EffectiveFromUtc = new DateTime(2026, 6, 8, 0, 0, 0, 0, DateTimeKind.Utc),
-                            FromCurrencyCode = "IRR",
-                            IsDeleted = false,
-                            Rate = 1m,
-                            Source = "Seed",
-                            ToCurrencyCode = "IRR"
-                        },
-                        new
-                        {
-                            Id = 2L,
-                            CreatedAt = new DateTime(2026, 6, 8, 0, 0, 0, 0, DateTimeKind.Utc),
-                            EffectiveFromUtc = new DateTime(2026, 6, 8, 0, 0, 0, 0, DateTimeKind.Utc),
-                            FromCurrencyCode = "USD",
-                            IsDeleted = false,
-                            Rate = 1750000m,
-                            Source = "Seed",
-                            ToCurrencyCode = "IRR"
-                        },
-                        new
-                        {
-                            Id = 3L,
-                            CreatedAt = new DateTime(2026, 6, 8, 0, 0, 0, 0, DateTimeKind.Utc),
-                            EffectiveFromUtc = new DateTime(2026, 6, 8, 0, 0, 0, 0, DateTimeKind.Utc),
-                            FromCurrencyCode = "EUR",
-                            IsDeleted = false,
-                            Rate = 2000000m,
-                            Source = "Seed",
-                            ToCurrencyCode = "IRR"
-                        },
-                        new
-                        {
-                            Id = 4L,
-                            CreatedAt = new DateTime(2026, 6, 8, 0, 0, 0, 0, DateTimeKind.Utc),
-                            EffectiveFromUtc = new DateTime(2026, 6, 8, 0, 0, 0, 0, DateTimeKind.Utc),
-                            FromCurrencyCode = "CAD",
-                            IsDeleted = false,
-                            Rate = 1280000m,
-                            Source = "Seed",
-                            ToCurrencyCode = "IRR"
-                        },
-                        new
-                        {
-                            Id = 5L,
-                            CreatedAt = new DateTime(2026, 6, 8, 0, 0, 0, 0, DateTimeKind.Utc),
-                            EffectiveFromUtc = new DateTime(2026, 6, 8, 0, 0, 0, 0, DateTimeKind.Utc),
-                            FromCurrencyCode = "GBP",
-                            IsDeleted = false,
-                            Rate = 2350000m,
-                            Source = "Seed",
-                            ToCurrencyCode = "IRR"
-                        },
-                        new
-                        {
-                            Id = 6L,
-                            CreatedAt = new DateTime(2026, 6, 8, 0, 0, 0, 0, DateTimeKind.Utc),
-                            EffectiveFromUtc = new DateTime(2026, 6, 8, 0, 0, 0, 0, DateTimeKind.Utc),
-                            FromCurrencyCode = "AED",
-                            IsDeleted = false,
-                            Rate = 476500m,
-                            Source = "Seed",
-                            ToCurrencyCode = "IRR"
-                        },
-                        new
-                        {
-                            Id = 7L,
-                            CreatedAt = new DateTime(2026, 6, 8, 0, 0, 0, 0, DateTimeKind.Utc),
-                            EffectiveFromUtc = new DateTime(2026, 6, 8, 0, 0, 0, 0, DateTimeKind.Utc),
-                            FromCurrencyCode = "TRY",
-                            IsDeleted = false,
-                            Rate = 54000m,
-                            Source = "Seed",
-                            ToCurrencyCode = "IRR"
                         });
                 });
 
@@ -1754,20 +1577,6 @@ namespace Randevoo.Infrastructure.Data.Migrations
                         .HasMaxLength(4000)
                         .HasColumnType("nvarchar(4000)");
 
-                    b.Property<string>("SettlementCurrencyCode")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(3)
-                        .HasColumnType("nvarchar(3)")
-                        .HasDefaultValue("IRR");
-
-                    b.Property<string>("SettlementCurrencyLockReason")
-                        .HasMaxLength(300)
-                        .HasColumnType("nvarchar(300)");
-
-                    b.Property<DateTime?>("SettlementCurrencyLockedAtUtc")
-                        .HasColumnType("datetime2");
-
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -2024,20 +1833,6 @@ namespace Randevoo.Infrastructure.Data.Migrations
                     b.Property<long?>("EventDiscountCodeId")
                         .HasColumnType("bigint");
 
-                    b.Property<DateTime>("ExchangeRateCapturedAtUtc")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETUTCDATE()");
-
-                    b.Property<long?>("ExchangeRateId")
-                        .HasColumnType("bigint");
-
-                    b.Property<decimal>("ExchangeRateToIrr")
-                        .ValueGeneratedOnAdd()
-                        .HasPrecision(18, 6)
-                        .HasColumnType("decimal(18,6)")
-                        .HasDefaultValue(1m);
-
                     b.Property<int>("Gender")
                         .HasColumnType("int");
 
@@ -2068,14 +1863,6 @@ namespace Randevoo.Infrastructure.Data.Migrations
                     b.Property<long?>("RemovedByUserId")
                         .HasColumnType("bigint");
 
-                    b.Property<decimal>("ReportingOriginalPriceIrr")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("ReportingPriceIrr")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
@@ -2087,8 +1874,6 @@ namespace Randevoo.Infrastructure.Data.Migrations
                     b.HasIndex("CurrencyCode");
 
                     b.HasIndex("EventDiscountCodeId");
-
-                    b.HasIndex("ExchangeRateId");
 
                     b.HasIndex("UserId");
 
@@ -2512,13 +2297,6 @@ namespace Randevoo.Infrastructure.Data.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("CurrencyCode")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(3)
-                        .HasColumnType("nvarchar(3)")
-                        .HasDefaultValue("IRR");
-
                     b.Property<long?>("DatingEventId")
                         .HasColumnType("bigint");
 
@@ -2527,20 +2305,6 @@ namespace Randevoo.Infrastructure.Data.Migrations
 
                     b.Property<long?>("EventTicketId")
                         .HasColumnType("bigint");
-
-                    b.Property<DateTime>("ExchangeRateCapturedAtUtc")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETUTCDATE()");
-
-                    b.Property<long?>("ExchangeRateId")
-                        .HasColumnType("bigint");
-
-                    b.Property<decimal>("ExchangeRateToIrr")
-                        .ValueGeneratedOnAdd()
-                        .HasPrecision(18, 6)
-                        .HasColumnType("decimal(18,6)")
-                        .HasDefaultValue(1m);
 
                     b.Property<string>("FailureReason")
                         .HasMaxLength(500)
@@ -2556,10 +2320,6 @@ namespace Randevoo.Infrastructure.Data.Migrations
 
                     b.Property<DateTime?>("PaidAtUtc")
                         .HasColumnType("datetime2");
-
-                    b.Property<decimal>("ReportingAmountIrr")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("Status")
                         .HasColumnType("int");
@@ -2579,13 +2339,9 @@ namespace Randevoo.Infrastructure.Data.Migrations
 
                     b.HasIndex("BalanceTransactionId");
 
-                    b.HasIndex("CurrencyCode");
-
                     b.HasIndex("DatingEventId");
 
                     b.HasIndex("EventTicketId");
-
-                    b.HasIndex("ExchangeRateId");
 
                     b.HasIndex("TrackingCode")
                         .IsUnique();
@@ -2603,47 +2359,24 @@ namespace Randevoo.Infrastructure.Data.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
-                    b.Property<string>("AccountHolderName")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(120)
-                        .HasColumnType("nvarchar(120)")
-                        .HasDefaultValue("برگزارکننده");
-
-                    b.Property<string>("AccountIdentifier")
-                        .HasMaxLength(160)
-                        .HasColumnType("nvarchar(160)");
-
-                    b.Property<string>("AccountNumber")
-                        .HasMaxLength(80)
-                        .HasColumnType("nvarchar(80)");
-
                     b.Property<string>("BankName")
+                        .IsRequired()
                         .HasMaxLength(80)
                         .HasColumnType("nvarchar(80)");
 
                     b.Property<string>("CardNumber")
+                        .IsRequired()
                         .HasMaxLength(19)
                         .HasColumnType("nvarchar(19)");
 
-                    b.Property<string>("Country")
-                        .HasMaxLength(80)
-                        .HasColumnType("nvarchar(80)");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
-
-                    b.Property<string>("CurrencyCode")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(3)
-                        .HasColumnType("nvarchar(3)")
-                        .HasDefaultValue("IRR");
 
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Iban")
+                        .IsRequired()
                         .HasMaxLength(34)
                         .HasColumnType("nvarchar(34)");
 
@@ -2653,19 +2386,6 @@ namespace Randevoo.Infrastructure.Data.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
-                    b.Property<int>("PayoutMethod")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(0);
-
-                    b.Property<string>("PublicPaymentInstructions")
-                        .HasMaxLength(1200)
-                        .HasColumnType("nvarchar(1200)");
-
-                    b.Property<string>("SwiftCode")
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
@@ -2674,11 +2394,8 @@ namespace Randevoo.Infrastructure.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CurrencyCode");
-
                     b.HasIndex("Iban")
-                        .IsUnique()
-                        .HasFilter("[Iban] IS NOT NULL");
+                        .IsUnique();
 
                     b.HasIndex("UserId");
 
@@ -2700,36 +2417,11 @@ namespace Randevoo.Infrastructure.Data.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("CurrencyCode")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(3)
-                        .HasColumnType("nvarchar(3)")
-                        .HasDefaultValue("IRR");
-
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<DateTime>("ExchangeRateCapturedAtUtc")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETUTCDATE()");
-
-                    b.Property<long?>("ExchangeRateId")
-                        .HasColumnType("bigint");
-
-                    b.Property<decimal>("ExchangeRateToIrr")
-                        .ValueGeneratedOnAdd()
-                        .HasPrecision(18, 6)
-                        .HasColumnType("decimal(18,6)")
-                        .HasDefaultValue(1m);
-
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
-
-                    b.Property<decimal>("ReportingAmountIrr")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
 
                     b.Property<DateTime>("RequestedAtUtc")
                         .HasColumnType("datetime2");
@@ -2754,10 +2446,6 @@ namespace Randevoo.Infrastructure.Data.Migrations
                         .HasColumnType("bigint");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("CurrencyCode");
-
-                    b.HasIndex("ExchangeRateId");
 
                     b.HasIndex("ReviewedByAdminUserId");
 
@@ -3813,14 +3501,7 @@ namespace Randevoo.Infrastructure.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Randevoo.Domain.Entities.CurrencyExchangeRate", "ExchangeRate")
-                        .WithMany()
-                        .HasForeignKey("ExchangeRateId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.Navigation("BalanceAccount");
-
-                    b.Navigation("ExchangeRate");
                 });
 
             modelBuilder.Entity("Randevoo.Domain.Entities.City", b =>
@@ -4204,11 +3885,6 @@ namespace Randevoo.Infrastructure.Data.Migrations
                         .HasForeignKey("EventDiscountCodeId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("Randevoo.Domain.Entities.CurrencyExchangeRate", "ExchangeRate")
-                        .WithMany()
-                        .HasForeignKey("ExchangeRateId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.HasOne("Randevoo.Domain.Entities.User", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
@@ -4218,8 +3894,6 @@ namespace Randevoo.Infrastructure.Data.Migrations
                     b.Navigation("DatingEvent");
 
                     b.Navigation("EventDiscountCode");
-
-                    b.Navigation("ExchangeRate");
 
                     b.Navigation("User");
                 });
@@ -4281,11 +3955,6 @@ namespace Randevoo.Infrastructure.Data.Migrations
                         .HasForeignKey("EventTicketId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("Randevoo.Domain.Entities.CurrencyExchangeRate", "ExchangeRate")
-                        .WithMany()
-                        .HasForeignKey("ExchangeRateId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.HasOne("Randevoo.Domain.Entities.User", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
@@ -4297,8 +3966,6 @@ namespace Randevoo.Infrastructure.Data.Migrations
                     b.Navigation("DatingEvent");
 
                     b.Navigation("EventTicket");
-
-                    b.Navigation("ExchangeRate");
 
                     b.Navigation("User");
                 });
@@ -4316,11 +3983,6 @@ namespace Randevoo.Infrastructure.Data.Migrations
 
             modelBuilder.Entity("Randevoo.Domain.Entities.PlannerWithdrawalRequest", b =>
                 {
-                    b.HasOne("Randevoo.Domain.Entities.CurrencyExchangeRate", "ExchangeRate")
-                        .WithMany()
-                        .HasForeignKey("ExchangeRateId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.HasOne("Randevoo.Domain.Entities.User", "ReviewedByAdminUser")
                         .WithMany()
                         .HasForeignKey("ReviewedByAdminUserId")
@@ -4331,8 +3993,6 @@ namespace Randevoo.Infrastructure.Data.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-
-                    b.Navigation("ExchangeRate");
 
                     b.Navigation("ReviewedByAdminUser");
 

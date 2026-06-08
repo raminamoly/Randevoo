@@ -15,6 +15,12 @@ public class OnlinePayment : BaseEntity, IAggregateRoot
     public long? BalanceTransactionId { get; private set; }
     public BalanceTransaction? BalanceTransaction { get; private set; }
     public decimal Amount { get; private set; }
+    public string CurrencyCode { get; private set; } = "IRR";
+    public decimal ReportingAmountIrr { get; private set; }
+    public decimal ExchangeRateToIrr { get; private set; } = 1m;
+    public DateTime ExchangeRateCapturedAtUtc { get; private set; }
+    public long? ExchangeRateId { get; private set; }
+    public CurrencyExchangeRate? ExchangeRate { get; private set; }
     public string GatewayName { get; private set; } = null!;
     public string TrackingCode { get; private set; } = null!;
     public OnlinePaymentStatus Status { get; private set; }
@@ -31,11 +37,23 @@ public class OnlinePayment : BaseEntity, IAggregateRoot
         OnlinePaymentStatus status = OnlinePaymentStatus.Pending,
         DatingEvent? datingEvent = null,
         EventTicket? eventTicket = null,
-        BalanceTransaction? balanceTransaction = null)
+        BalanceTransaction? balanceTransaction = null,
+        string currencyCode = "IRR",
+        decimal? reportingAmountIrr = null,
+        decimal exchangeRateToIrr = 1m,
+        DateTime? exchangeRateCapturedAtUtc = null,
+        long? exchangeRateId = null)
     {
         User = GuardAgainst.Object.Null(user, nameof(user));
         UserId = user.Id;
         Amount = GuardAgainst.Number.OutOfRange(amount, nameof(amount), 0.01m, 10_000_000_000m);
+        CurrencyCode = CurrencyLookup.NormalizeCode(string.IsNullOrWhiteSpace(currencyCode) ? "IRR" : currencyCode);
+        ReportingAmountIrr = reportingAmountIrr ?? Amount;
+        ExchangeRateToIrr = GuardAgainst.Number.OutOfRange(exchangeRateToIrr, nameof(exchangeRateToIrr), 0.000001m, 1_000_000_000_000m);
+        ExchangeRateCapturedAtUtc = (exchangeRateCapturedAtUtc ?? DateTime.UtcNow).Kind == DateTimeKind.Utc
+            ? exchangeRateCapturedAtUtc ?? DateTime.UtcNow
+            : DateTime.SpecifyKind(exchangeRateCapturedAtUtc!.Value, DateTimeKind.Utc);
+        ExchangeRateId = exchangeRateId;
         GatewayName = GuardAgainst.String.InvalidLength(gatewayName.Trim(), nameof(gatewayName), 2, 80);
         TrackingCode = GuardAgainst.String.InvalidLength(trackingCode.Trim(), nameof(trackingCode), 2, 120);
         DatingEvent = datingEvent;

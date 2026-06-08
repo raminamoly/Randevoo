@@ -28,12 +28,12 @@ public class UpsertEventPlannerProfileHandler : IRequestHandler<UpsertEventPlann
         var profile = await _profiles.GetByUserIdAsync(request.UserId, cancellationToken);
         if (profile is null)
         {
-            profile = new EventPlannerProfile(user, request.Title, request.PictureUrl, request.Resume);
+            profile = new EventPlannerProfile(user, request.Title, request.PictureUrl, request.Resume, request.SettlementCurrencyCode);
             await _profiles.AddAsync(profile, cancellationToken);
         }
         else
         {
-            profile.Update(request.Title, request.PictureUrl, request.Resume);
+            profile.Update(request.Title, request.PictureUrl, request.Resume, request.SettlementCurrencyCode);
             await _profiles.UpdateAsync(profile, cancellationToken);
         }
 

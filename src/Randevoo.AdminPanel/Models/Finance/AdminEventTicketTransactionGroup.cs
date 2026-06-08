@@ -8,5 +8,7 @@ public sealed class AdminEventTicketTransactionGroup
     public string PlannerName { get; set; } = string.Empty;
     public int TicketCount { get; set; }
     public decimal TotalTicketAmount { get; set; }
+    public string CurrencyCode { get; set; } = "IRR";
+    public decimal TotalTicketAmountIrr { get; set; }
     public IReadOnlyList<AdminTicketTransactionItem> Transactions { get; set; } = Array.Empty<AdminTicketTransactionItem>();
 }

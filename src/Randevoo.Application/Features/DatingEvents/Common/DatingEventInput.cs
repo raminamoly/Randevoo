@@ -30,4 +30,6 @@ public record DatingEventInput(
     string EventDescriptionHtml,
     decimal? EventPlannerCommissionPercent = null,
     string MaleTicketCurrencyCode = "IRR",
-    string FemaleTicketCurrencyCode = "IRR");
+    string FemaleTicketCurrencyCode = "IRR",
+    EventPaymentCollectionMethod PaymentCollectionMethod = EventPaymentCollectionMethod.PlatformGateway,
+    string? OrganizerPaymentInstructions = null);

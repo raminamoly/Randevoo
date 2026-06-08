@@ -58,15 +58,15 @@ public sealed class DatabaseDashboardApiClient : IDashboardApiClient
         var liveEventsCount = await eventsQuery.CountAsync(item => item.IsOpenForSell && !item.IsCancelled, cancellationToken);
         var closedEventsCount = await eventsQuery.CountAsync(item => item.IsCancelled || item.DateTimeEnd <= nowUtc, cancellationToken);
         var ticketsSoldCount = await ticketsQuery.CountAsync(cancellationToken);
-        var totalTicketSales = await ticketsQuery.SumAsync(ticket => (decimal?)ticket.Price, cancellationToken) ?? 0m;
+        var totalTicketSales = await ticketsQuery.SumAsync(ticket => (decimal?)ticket.ReportingPriceIrr, cancellationToken) ?? 0m;
         var pendingRevenue = await ticketsQuery
             .Where(ticket => !ticket.DatingEvent.IsCancelled && ticket.DatingEvent.DateTimeEnd > nowUtc)
-            .SumAsync(ticket => (decimal?)ticket.Price, cancellationToken) ?? 0m;
+            .SumAsync(ticket => (decimal?)ticket.ReportingPriceIrr, cancellationToken) ?? 0m;
 
         var revenueRows = await ticketsQuery
             .Where(ticket => ticket.CreatedAt >= trendStartUtc)
             .GroupBy(ticket => ticket.CreatedAt.Date)
-            .Select(group => new { Date = group.Key, Value = group.Sum(ticket => ticket.Price) })
+            .Select(group => new { Date = group.Key, Value = group.Sum(ticket => ticket.ReportingPriceIrr) })
             .ToListAsync(cancellationToken);
 
         var eventCreatedRows = await eventsQuery
@@ -117,7 +117,7 @@ public sealed class DatabaseDashboardApiClient : IDashboardApiClient
             {
                 CityId = group.Key,
                 TicketCount = group.Count(),
-                Revenue = group.Sum(ticket => ticket.Price)
+                Revenue = group.Sum(ticket => ticket.ReportingPriceIrr)
             })
             .ToDictionaryAsync(item => item.CityId, cancellationToken);
 

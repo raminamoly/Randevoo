@@ -57,6 +57,7 @@
         <div class="detail-block"><span>پایان</span><strong>@PersianDateFormatter.Format(draft.EndAtUtc, true)</strong></div>
         <div class="detail-block"><span>نحوه برگزاری</span><strong>@draft.EventModeName</strong></div>
         <div class="detail-block"><span>حداقل تحصیلات</span><strong>@DisplayFormatter.EducationRestriction(draft.EducationLevelRestriction)</strong></div>
+        <div class="detail-block"><span>روش پرداخت</span><strong>@DisplayFormatter.PaymentCollectionMethod(draft.PaymentCollectionMethod)</strong></div>
     </section>
 
     <section id="tickets" class="public-event-section">
@@ -80,6 +81,29 @@
                     <div class="col-md-6"><div class="detail-block"><span>بازه سنی</span><strong>@draft.AgeRangeForFemale</strong></div></div>
                 </div>
             </article>
+        </div>
+    </section>
+
+    <section class="public-event-section">
+        <div class="public-section-head">
+            <h2>پرداخت و تسویه</h2>
+        </div>
+        <div class="payment-method-public-panel">
+            <div class="detail-block">
+                <span>روش دریافت هزینه</span>
+                <strong>@DisplayFormatter.PaymentCollectionMethod(draft.PaymentCollectionMethod)</strong>
+            </div>
+            <div class="detail-block">
+                <span>توضیح مالی</span>
+                <strong>@DisplayFormatter.PaymentCollectionSettlementNote(draft.PaymentCollectionMethod)</strong>
+            </div>
+            @if (draft.PaymentCollectionMethod == Randevoo.Domain.Enums.EventPaymentCollectionMethod.OrganizerManualTransfer && !string.IsNullOrWhiteSpace(draft.OrganizerPaymentInstructions))
+            {
+                <div class="detail-block payment-instructions-block">
+                    <span>اطلاعات پرداخت برگزارکننده</span>
+                    <strong>@draft.OrganizerPaymentInstructions</strong>
+                </div>
+            }
         </div>
     </section>
 

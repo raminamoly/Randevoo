@@ -143,6 +143,41 @@ public class DatingEventApiTests
     }
 
     [Fact]
+    public async Task CreateEvent_UsesOneSharedTicketCurrency()
+    {
+        await using var factory = new RandevooEventApiFactory();
+        await factory.SeedEventTypesAsync();
+        var client = factory.CreateClient();
+
+        var plannerAuth = await LoginAsync(client, "+989121111119");
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", plannerAuth.Token);
+
+        var plannerProfileResponse = await client.PutAsJsonAsync("/api/event-planner-profile/me", new
+        {
+            Title = "Currency Planner",
+            PictureUrl = "https://example.com/currency.jpg",
+            Resume = "Planner profile for currency tests.",
+            SettlementCurrencyCode = "USD"
+        });
+        Assert.Equal(HttpStatusCode.OK, plannerProfileResponse.StatusCode);
+
+        plannerAuth = await LoginAsync(client, "+989121111119");
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", plannerAuth.Token);
+
+        var createEventResponse = await client.PostAsJsonAsync(
+            "/api/dating-events",
+            CreateEventBody(maleTicketCurrencyCode: "USD", femaleTicketCurrencyCode: "CAD"));
+
+        var createEventBody = await createEventResponse.Content.ReadAsStringAsync();
+        Assert.True(createEventResponse.StatusCode == HttpStatusCode.Created, $"Create event failed with {(int)createEventResponse.StatusCode}: {createEventBody}");
+        var createdEvent = await createEventResponse.Content.ReadFromJsonAsync<DatingEventDto>();
+
+        Assert.NotNull(createdEvent);
+        Assert.Equal("USD", createdEvent.MaleTicketCurrencyCode);
+        Assert.Equal("USD", createdEvent.FemaleTicketCurrencyCode);
+    }
+
+    [Fact]
     public async Task EndUserCannotCreateDatingEvent()
     {
         await using var factory = new RandevooEventApiFactory();
@@ -243,6 +278,55 @@ public class DatingEventApiTests
         var balance = await client.GetFromJsonAsync<BalanceDto>("/api/balances/me");
         Assert.NotNull(balance);
         Assert.Equal(425m, balance.Balance);
+    }
+
+    [Fact]
+    public async Task TicketPurchase_ForOrganizerManualTransfer_DebitsPlannerForPlatformCommission()
+    {
+        await using var factory = new RandevooEventApiFactory();
+        await factory.SeedEventTypesAsync();
+        var client = factory.CreateClient();
+
+        var plannerAuth = await LoginAsync(client, "+989121111119");
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", plannerAuth.Token);
+
+        var plannerProfileResponse = await client.PutAsJsonAsync("/api/event-planner-profile/me", new
+        {
+            Title = "Manual Transfer Planner",
+            PictureUrl = "https://example.com/manual.jpg",
+            Resume = "Planner for direct payment tests."
+        });
+        Assert.Equal(HttpStatusCode.OK, plannerProfileResponse.StatusCode);
+
+        plannerAuth = await LoginAsync(client, "+989121111119");
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", plannerAuth.Token);
+
+        var createEventResponse = await client.PostAsJsonAsync(
+            "/api/dating-events",
+            CreateEventBody(
+                paymentCollectionMethod: EventPaymentCollectionMethod.OrganizerManualTransfer,
+                organizerPaymentInstructions: "Card number 1234-5678-9012-3456"));
+        var createEventBody = await createEventResponse.Content.ReadAsStringAsync();
+        Assert.True(createEventResponse.StatusCode == HttpStatusCode.Created, $"Create event failed with {(int)createEventResponse.StatusCode}: {createEventBody}");
+        var createdEvent = await createEventResponse.Content.ReadFromJsonAsync<DatingEventDto>();
+        Assert.NotNull(createdEvent);
+        Assert.Equal(EventPaymentCollectionMethod.OrganizerManualTransfer, createdEvent.PaymentCollectionMethod);
+
+        await factory.ApproveEventAsync(createdEvent.Id);
+        var openResponse = await client.PostAsync($"/api/dating-events/{createdEvent.Id}/open", null);
+        Assert.Equal(HttpStatusCode.NoContent, openResponse.StatusCode);
+
+        var buyer = await CreateUserWithProfileAsync(factory, client, "+989126999999", "DirectPaymentBuyer", Gender.Male, EducationLevel.Graduated);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", buyer.Token);
+
+        var buyResponse = await client.PostAsync($"/api/dating-events/{createdEvent.Id}/tickets", null);
+        Assert.Equal(HttpStatusCode.Created, buyResponse.StatusCode);
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", plannerAuth.Token);
+        var plannerBalance = await client.GetFromJsonAsync<BalanceDto>("/api/balances/me");
+
+        Assert.NotNull(plannerBalance);
+        Assert.Equal(-10m, plannerBalance.Balance);
     }
 
     [Fact]
@@ -516,7 +600,9 @@ public class DatingEventApiTests
     private static object CreateEventBody(
         EventEducationLevelRestriction educationLevelRestriction = EventEducationLevelRestriction.WithoutLimit,
         string maleTicketCurrencyCode = "IRR",
-        string femaleTicketCurrencyCode = "IRR") => new
+        string femaleTicketCurrencyCode = "IRR",
+        EventPaymentCollectionMethod paymentCollectionMethod = EventPaymentCollectionMethod.PlatformGateway,
+        string? organizerPaymentInstructions = null) => new
     {
         Title = "Mafia Night",
         Country = "Iran",
@@ -545,7 +631,9 @@ public class DatingEventApiTests
         EventImage2 = "https://example.com/2.jpg",
         EventImage3 = "https://example.com/3.jpg",
         EventDescriptionHtml = "<p>A friendly mafia game night.</p>",
-        EventPlannerCommissionPercent = 10m
+        EventPlannerCommissionPercent = 10m,
+        PaymentCollectionMethod = paymentCollectionMethod,
+        OrganizerPaymentInstructions = organizerPaymentInstructions
     };
 
     private static object CreateCompletableEventBody() => new
@@ -742,6 +830,8 @@ public class DatingEventApiTests
         {
             using var scope = Services.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<RandevooDbContext>();
+            await SeedCurrencyExchangeRatesAsync(db);
+
             if (await db.EventTypes.AnyAsync())
                 return;
 
@@ -756,6 +846,23 @@ public class DatingEventApiTests
                 new EventType("Workshop"),
                 new EventType("Art Night"),
                 new EventType("Music Night"));
+            await db.SaveChangesAsync();
+        }
+
+        private static async Task SeedCurrencyExchangeRatesAsync(RandevooDbContext db)
+        {
+            if (await db.CurrencyExchangeRates.AnyAsync())
+                return;
+
+            var effectiveFromUtc = new DateTime(2026, 6, 8, 0, 0, 0, DateTimeKind.Utc);
+            db.CurrencyExchangeRates.AddRange(
+                new CurrencyExchangeRate("IRR", "IRR", 1m, effectiveFromUtc, "IntegrationTest"),
+                new CurrencyExchangeRate("USD", "IRR", 1750000m, effectiveFromUtc, "IntegrationTest"),
+                new CurrencyExchangeRate("EUR", "IRR", 2000000m, effectiveFromUtc, "IntegrationTest"),
+                new CurrencyExchangeRate("CAD", "IRR", 1280000m, effectiveFromUtc, "IntegrationTest"),
+                new CurrencyExchangeRate("GBP", "IRR", 2350000m, effectiveFromUtc, "IntegrationTest"),
+                new CurrencyExchangeRate("AED", "IRR", 476500m, effectiveFromUtc, "IntegrationTest"),
+                new CurrencyExchangeRate("TRY", "IRR", 54000m, effectiveFromUtc, "IntegrationTest"));
             await db.SaveChangesAsync();
         }
 

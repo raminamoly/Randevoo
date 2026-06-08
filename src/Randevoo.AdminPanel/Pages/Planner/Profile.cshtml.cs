@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Randevoo.AdminPanel.Models.Auth;
 using Randevoo.AdminPanel.Models.Common;
 using Randevoo.AdminPanel.Models.Finance;
@@ -8,6 +9,7 @@ using Randevoo.AdminPanel.Models.Users;
 using Randevoo.AdminPanel.Services.ApiClients;
 using Randevoo.AdminPanel.Services.Auth;
 using Randevoo.AdminPanel.Services.State;
+using Randevoo.Domain.Exceptions;
 
 namespace Randevoo.AdminPanel.Pages.Planner;
 
@@ -16,13 +18,15 @@ public class ProfileModel : PageModel
 {
     private readonly IPlannerProfilesApiClient _profilesApi;
     private readonly IFinanceApiClient _financeApi;
+    private readonly IEventsApiClient _eventsApi;
     private readonly CurrentSessionState _session;
     private readonly MockAuthService _authService;
 
-    public ProfileModel(IPlannerProfilesApiClient profilesApi, IFinanceApiClient financeApi, CurrentSessionState session, MockAuthService authService)
+    public ProfileModel(IPlannerProfilesApiClient profilesApi, IFinanceApiClient financeApi, IEventsApiClient eventsApi, CurrentSessionState session, MockAuthService authService)
     {
         _profilesApi = profilesApi;
         _financeApi = financeApi;
+        _eventsApi = eventsApi;
         _session = session;
         _authService = authService;
     }
@@ -37,6 +41,8 @@ public class ProfileModel : PageModel
 
     public IReadOnlyList<PlannerBankAccountItem> BankAccounts { get; private set; } = Array.Empty<PlannerBankAccountItem>();
 
+    public SelectList CurrencyOptions { get; private set; } = new(Array.Empty<object>());
+
     public async Task<IActionResult> OnGetAsync()
     {
         var current = _session.CurrentUser ?? throw new InvalidOperationException("حساب جاری شناسایی نشد.");
@@ -45,6 +51,7 @@ public class ProfileModel : PageModel
             return RedirectToPage("/Account/Forbidden");
         }
 
+        await LoadCurrencyOptionsAsync();
         Profile = await _profilesApi.GetCurrentAsync(current);
         if (Profile is not null)
         {
@@ -55,7 +62,8 @@ public class ProfileModel : PageModel
                 City = Profile.City,
                 Title = Profile.Title,
                 PictureUrl = Profile.PictureUrl,
-                Resume = Profile.Resume
+                Resume = Profile.Resume,
+                SettlementCurrencyCode = Profile.SettlementCurrencyCode
             };
         }
         else
@@ -63,7 +71,8 @@ public class ProfileModel : PageModel
             Input = new PlannerProfileInput
             {
                 FullName = current.FullName,
-                City = "تهران"
+                City = "تهران",
+                SettlementCurrencyCode = "IRR"
             };
         }
 
@@ -78,12 +87,33 @@ public class ProfileModel : PageModel
             return RedirectToPage("/Account/Forbidden");
         }
 
+        await LoadCurrencyOptionsAsync();
+
         if (ProfileImageFile is not null)
         {
             Input.PictureUrl = await ToDataUrlAsync(ProfileImageFile);
         }
 
-        Profile = await _profilesApi.UpsertAsync(current, Input);
+        try
+        {
+            Profile = await _profilesApi.UpsertAsync(current, Input);
+        }
+        catch (InvalidOperationException ex)
+        {
+            ModelState.AddModelError(string.Empty, ex.Message);
+            Profile = await _profilesApi.GetCurrentAsync(current);
+            if (Profile is not null)
+                BankAccounts = await _financeApi.GetPlannerBankAccountsAsync(current, Profile.UserId);
+            return Page();
+        }
+        catch (BusinessRuleViolationException)
+        {
+            ModelState.AddModelError(nameof(Input.SettlementCurrencyCode), "ارز کاری بعد از شروع فعالیت مالی قابل تغییر نیست.");
+            Profile = await _profilesApi.GetCurrentAsync(current);
+            if (Profile is not null)
+                BankAccounts = await _financeApi.GetPlannerBankAccountsAsync(current, Profile.UserId);
+            return Page();
+        }
         await _authService.SignInAsync(new MockUser
         {
             Id = current.Id,
@@ -104,5 +134,15 @@ public class ProfileModel : PageModel
         await file.CopyToAsync(memory);
         var base64 = Convert.ToBase64String(memory.ToArray());
         return $"data:{file.ContentType};base64,{base64}";
+    }
+
+    private async Task LoadCurrencyOptionsAsync()
+    {
+        var currencies = await _eventsApi.GetCurrencyOptionsAsync();
+        CurrencyOptions = new SelectList(
+            currencies.Select(item => new { Code = item.Name, Title = $"{item.DisplayNameFa} ({item.Name})" }),
+            "Code",
+            "Title",
+            Input.SettlementCurrencyCode);
     }
 }

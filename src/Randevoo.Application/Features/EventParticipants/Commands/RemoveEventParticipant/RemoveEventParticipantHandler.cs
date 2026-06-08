@@ -72,7 +72,12 @@ public class RemoveEventParticipantHandler : IRequestHandler<RemoveEventParticip
             datingEvent.Id,
             nameof(EventTicket),
             ticket.Id,
-            actor.Id);
+            actor.Id,
+            ticket.CurrencyCode,
+            ticket.ReportingPriceIrr,
+            ticket.ExchangeRateToIrr,
+            ticket.ExchangeRateCapturedAtUtc,
+            ticket.ExchangeRateId);
 
         var conversations = await _conversations.ListForEventUserAsync(request.EventId, request.ParticipantUserId, cancellationToken);
         foreach (var conversation in conversations)
@@ -91,7 +96,7 @@ public class RemoveEventParticipantHandler : IRequestHandler<RemoveEventParticip
             "DatingEvent",
             datingEvent.Id.ToString(),
             null,
-            $"{{\"participantUserId\":{ticket.UserId},\"refundAmount\":{ticket.Price}}}",
+            $"{{\"participantUserId\":{ticket.UserId},\"refundAmount\":{ticket.Price},\"currencyCode\":\"{ticket.CurrencyCode}\",\"reportingRefundAmountIrr\":{ticket.ReportingPriceIrr}}}",
             request.Reason), cancellationToken);
 
         await _tickets.UpdateAsync(ticket, cancellationToken);

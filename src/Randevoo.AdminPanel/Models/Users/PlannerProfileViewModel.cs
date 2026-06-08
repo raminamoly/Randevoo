@@ -16,6 +16,14 @@ public sealed class PlannerProfileViewModel
 
     public string City { get; set; } = string.Empty;
 
+    public string SettlementCurrencyCode { get; set; } = "IRR";
+
+    public bool IsSettlementCurrencyLocked { get; set; }
+
+    public DateTime? SettlementCurrencyLockedAtUtc { get; set; }
+
+    public string? SettlementCurrencyLockReason { get; set; }
+
     public bool HasPendingChanges { get; set; }
 
     public string? PendingFullName { get; set; }

@@ -9,6 +9,12 @@ public class PlannerWithdrawalRequest : BaseEntity
     public long UserId { get; private set; }
     public User User { get; private set; } = null!;
     public decimal Amount { get; private set; }
+    public string CurrencyCode { get; private set; } = "IRR";
+    public decimal ReportingAmountIrr { get; private set; }
+    public decimal ExchangeRateToIrr { get; private set; } = 1m;
+    public DateTime ExchangeRateCapturedAtUtc { get; private set; }
+    public long? ExchangeRateId { get; private set; }
+    public CurrencyExchangeRate? ExchangeRate { get; private set; }
     public PlannerWithdrawalRequestStatus Status { get; private set; }
     public DateTime RequestedAtUtc { get; private set; }
     public DateTime? ReviewedAtUtc { get; private set; }
@@ -18,7 +24,14 @@ public class PlannerWithdrawalRequest : BaseEntity
 
     private PlannerWithdrawalRequest() { }
 
-    public PlannerWithdrawalRequest(User plannerUser, decimal amount)
+    public PlannerWithdrawalRequest(
+        User plannerUser,
+        decimal amount,
+        string currencyCode = "IRR",
+        decimal? reportingAmountIrr = null,
+        decimal exchangeRateToIrr = 1m,
+        DateTime? exchangeRateCapturedAtUtc = null,
+        long? exchangeRateId = null)
     {
         if (plannerUser.Role != UserRole.EventPlanner)
             throw new BusinessRuleViolationException("Invalid withdrawal user", "Only event planner users can request payouts");
@@ -27,6 +40,13 @@ public class PlannerWithdrawalRequest : BaseEntity
         User = GuardAgainst.Object.Null(plannerUser, nameof(plannerUser));
         UserId = plannerUser.Id;
         Amount = amount;
+        CurrencyCode = CurrencyLookup.NormalizeCode(string.IsNullOrWhiteSpace(currencyCode) ? "IRR" : currencyCode);
+        ReportingAmountIrr = reportingAmountIrr ?? amount;
+        ExchangeRateToIrr = GuardAgainst.Number.OutOfRange(exchangeRateToIrr, nameof(exchangeRateToIrr), 0.000001m, 1_000_000_000_000m);
+        ExchangeRateCapturedAtUtc = (exchangeRateCapturedAtUtc ?? DateTime.UtcNow).Kind == DateTimeKind.Utc
+            ? exchangeRateCapturedAtUtc ?? DateTime.UtcNow
+            : DateTime.SpecifyKind(exchangeRateCapturedAtUtc!.Value, DateTimeKind.Utc);
+        ExchangeRateId = exchangeRateId;
         Status = PlannerWithdrawalRequestStatus.Pending;
         RequestedAtUtc = DateTime.UtcNow;
     }

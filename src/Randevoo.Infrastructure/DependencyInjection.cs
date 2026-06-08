@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Randevoo.Application.Interfaces.Auditing;
 using Randevoo.Application.Interfaces.Auth;
+using Randevoo.Application.Interfaces.Currencies;
 using Randevoo.Application.Interfaces.Notifications;
 using Randevoo.Application.Interfaces.Privacy;
 using Randevoo.Domain.Interfaces;
@@ -43,6 +44,7 @@ public static class DependencyInjection
         services.AddSingleton<IAuthTokenPolicy, AuthTokenPolicy>();
         services.AddScoped<IPrivacyDataReader, PrivacyDataReader>();
         services.AddScoped<IAuditLogger, AuditLogger>();
+        services.AddScoped<ICurrencyExchangeRateProvider, CurrencyExchangeRateProvider>();
         services.AddScoped<IJwtTokenService, JwtTokenService>();
         services.AddSingleton<ISmsSender, ConsoleSmsSender>();
         services.AddSingleton<IEmailSender, ConsoleEmailSender>();

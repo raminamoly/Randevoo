@@ -12,6 +12,7 @@ public class BalanceAccount : BaseEntity, IAggregateRoot
     public long UserId { get; private set; }
     public User User { get; private set; } = null!;
     public decimal Balance { get; private set; }
+    public string ReportingCurrencyCode { get; private set; } = "IRR";
     public IReadOnlyList<BalanceTransaction> Transactions => _transactions.AsReadOnly();
 
     private BalanceAccount() { }
@@ -26,53 +27,120 @@ public class BalanceAccount : BaseEntity, IAggregateRoot
 
     public void Credit(decimal amount, BalanceTransactionType type, string description, long? datingEventId = null)
     {
-        ValidateAmount(amount);
-        Balance += amount;
-        AddTransaction(amount, type, description, datingEventId);
-        UpdateTimestamp();
+        Credit(amount, type, description, datingEventId, null, null, null);
     }
 
     public void Credit(decimal amount, BalanceTransactionType type, string description, long? datingEventId, string? referenceType, long? referenceId, long? createdByUserId)
     {
+        Credit(amount, type, description, datingEventId, referenceType, referenceId, createdByUserId, "IRR", amount, 1m, DateTime.UtcNow);
+    }
+
+    public void Credit(
+        decimal amount,
+        BalanceTransactionType type,
+        string description,
+        long? datingEventId,
+        string? referenceType,
+        long? referenceId,
+        long? createdByUserId,
+        string currencyCode,
+        decimal reportingAmountIrr,
+        decimal exchangeRateToIrr,
+        DateTime exchangeRateCapturedAtUtc,
+        long? exchangeRateId = null)
+    {
         ValidateAmount(amount);
-        Balance += amount;
-        AddTransaction(amount, type, description, datingEventId, referenceType, referenceId, createdByUserId);
+        ValidateAmount(reportingAmountIrr);
+        Balance += reportingAmountIrr;
+        AddTransaction(amount, type, description, datingEventId, referenceType, referenceId, createdByUserId, currencyCode, reportingAmountIrr, exchangeRateToIrr, exchangeRateCapturedAtUtc, exchangeRateId);
         UpdateTimestamp();
     }
 
     public void Debit(decimal amount, BalanceTransactionType type, string description, long? datingEventId = null)
     {
-        ValidateAmount(amount);
-        if (Balance < amount)
-            throw new BusinessRuleViolationException("Insufficient balance", "User balance is lower than the requested amount");
-
-        Balance -= amount;
-        AddTransaction(-amount, type, description, datingEventId);
-        UpdateTimestamp();
+        Debit(amount, type, description, datingEventId, null, null, null);
     }
 
     public void Debit(decimal amount, BalanceTransactionType type, string description, long? datingEventId, string? referenceType, long? referenceId, long? createdByUserId)
     {
+        Debit(amount, type, description, datingEventId, referenceType, referenceId, createdByUserId, "IRR", amount, 1m, DateTime.UtcNow);
+    }
+
+    public void Debit(
+        decimal amount,
+        BalanceTransactionType type,
+        string description,
+        long? datingEventId,
+        string? referenceType,
+        long? referenceId,
+        long? createdByUserId,
+        string currencyCode,
+        decimal reportingAmountIrr,
+        decimal exchangeRateToIrr,
+        DateTime exchangeRateCapturedAtUtc,
+        long? exchangeRateId = null)
+    {
         ValidateAmount(amount);
-        if (Balance < amount)
+        ValidateAmount(reportingAmountIrr);
+        if (Balance < reportingAmountIrr)
             throw new BusinessRuleViolationException("Insufficient balance", "User balance is lower than the requested amount");
 
-        Balance -= amount;
-        AddTransaction(-amount, type, description, datingEventId, referenceType, referenceId, createdByUserId);
+        Balance -= reportingAmountIrr;
+        AddTransaction(-amount, type, description, datingEventId, referenceType, referenceId, createdByUserId, currencyCode, -reportingAmountIrr, exchangeRateToIrr, exchangeRateCapturedAtUtc, exchangeRateId);
         UpdateTimestamp();
     }
 
     public void DebitAllowNegative(decimal amount, BalanceTransactionType type, string description, long? datingEventId, string? referenceType, long? referenceId, long? createdByUserId)
     {
+        DebitAllowNegative(amount, type, description, datingEventId, referenceType, referenceId, createdByUserId, "IRR", amount, 1m, DateTime.UtcNow);
+    }
+
+    public void DebitAllowNegative(
+        decimal amount,
+        BalanceTransactionType type,
+        string description,
+        long? datingEventId,
+        string? referenceType,
+        long? referenceId,
+        long? createdByUserId,
+        string currencyCode,
+        decimal reportingAmountIrr,
+        decimal exchangeRateToIrr,
+        DateTime exchangeRateCapturedAtUtc,
+        long? exchangeRateId = null)
+    {
         ValidateAmount(amount);
-        Balance -= amount;
-        AddTransaction(-amount, type, description, datingEventId, referenceType, referenceId, createdByUserId);
+        ValidateAmount(reportingAmountIrr);
+        Balance -= reportingAmountIrr;
+        AddTransaction(-amount, type, description, datingEventId, referenceType, referenceId, createdByUserId, currencyCode, -reportingAmountIrr, exchangeRateToIrr, exchangeRateCapturedAtUtc, exchangeRateId);
         UpdateTimestamp();
     }
 
-    private void AddTransaction(decimal amount, BalanceTransactionType type, string description, long? datingEventId, string? referenceType = null, long? referenceId = null, long? createdByUserId = null)
+    private void AddTransaction(
+        decimal amount,
+        BalanceTransactionType type,
+        string description,
+        long? datingEventId,
+        string? referenceType = null,
+        long? referenceId = null,
+        long? createdByUserId = null,
+        string currencyCode = "IRR",
+        decimal? reportingAmountIrr = null,
+        decimal exchangeRateToIrr = 1m,
+        DateTime? exchangeRateCapturedAtUtc = null,
+        long? exchangeRateId = null)
     {
-        var transaction = new BalanceTransaction(this, amount, type, description, datingEventId);
+        var transaction = new BalanceTransaction(
+            this,
+            amount,
+            type,
+            description,
+            datingEventId,
+            currencyCode,
+            reportingAmountIrr ?? amount,
+            exchangeRateToIrr,
+            exchangeRateCapturedAtUtc ?? DateTime.UtcNow,
+            exchangeRateId);
         transaction.SetReference(referenceType, referenceId, createdByUserId);
         _transactions.Add(transaction);
     }

@@ -11,4 +11,6 @@ public sealed class PlannerProfileInput
     public string? PictureUrl { get; set; }
 
     public string Resume { get; set; } = string.Empty;
+
+    public string SettlementCurrencyCode { get; set; } = "IRR";
 }

@@ -82,6 +82,7 @@ public sealed class DatabasePlannerProfilesApiClient : IPlannerProfilesApiClient
             .Include(item => item.User)
             .ThenInclude(planner => planner.Profile)
             .FirstOrDefaultAsync(item => item.UserId == currentUser.Id, cancellationToken);
+        var settlementCurrencyCode = await ResolveCurrencyCodeAsync(input.SettlementCurrencyCode, cancellationToken);
 
         if (profile is null)
         {
@@ -89,13 +90,16 @@ public sealed class DatabasePlannerProfilesApiClient : IPlannerProfilesApiClient
                 user,
                 NormalizeTitle(input.Title),
                 input.PictureUrl,
-                NormalizeResume(input.Resume));
+                NormalizeResume(input.Resume),
+                settlementCurrencyCode);
 
             _db.EventPlannerProfiles.Add(profile);
             EnsureProfile(user, input.FullName, input.City);
         }
         else
         {
+            await LockSettlementCurrencyIfNeededAsync(profile, cancellationToken);
+            profile.ChangeSettlementCurrency(settlementCurrencyCode);
             profile.SubmitChangesForApproval(
                 NormalizeFullName(user, input.FullName),
                 NormalizeCity(input.City),
@@ -166,6 +170,29 @@ public sealed class DatabasePlannerProfilesApiClient : IPlannerProfilesApiClient
         var cancelledEventCount = await _db.DatingEvents.CountAsync(item => item.EventPlannerUserId == profile.UserId && item.IsCancelled, cancellationToken);
         var completedEventCount = await _db.DatingEvents.CountAsync(item => item.EventPlannerUserId == profile.UserId && !item.IsCancelled && item.DateTimeEnd <= DateTime.UtcNow, cancellationToken);
         return DatabaseModelMapper.ToPlannerProfileViewModel(profile, hostedEventCount, cancelledEventCount, completedEventCount);
+    }
+
+    private async Task LockSettlementCurrencyIfNeededAsync(EventPlannerProfile profile, CancellationToken cancellationToken)
+    {
+        if (profile.IsSettlementCurrencyLocked)
+            return;
+
+        var hasFinancialActivity = await _db.DatingEvents.AnyAsync(item => item.EventPlannerUserId == profile.UserId, cancellationToken)
+            || await _db.BalanceTransactions.AnyAsync(item => item.UserId == profile.UserId, cancellationToken)
+            || await _db.PlannerWithdrawalRequests.AnyAsync(item => item.UserId == profile.UserId, cancellationToken);
+
+        if (hasFinancialActivity)
+            profile.LockSettlementCurrency("Locked after organizer financial activity.");
+    }
+
+    private async Task<string> ResolveCurrencyCodeAsync(string? currencyCode, CancellationToken cancellationToken)
+    {
+        var normalized = CurrencyLookup.NormalizeCode(string.IsNullOrWhiteSpace(currencyCode) ? "IRR" : currencyCode);
+        var exists = await _db.Currencies.AnyAsync(item => item.Code == normalized && item.IsActive, cancellationToken);
+        if (!exists)
+            throw new InvalidOperationException("ارز کاری انتخاب شده معتبر نیست.");
+
+        return normalized;
     }
 
     private static void EnsureProfile(User user, string fullName, string city)

@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.Extensions.Logging;
 using Randevoo.Application.Interfaces.Auditing;
+using Randevoo.Application.Interfaces.Currencies;
 using Randevoo.Domain.Entities;
 using Randevoo.Domain.Enums;
 using Randevoo.Domain.Exceptions;
@@ -18,6 +19,7 @@ public class BuyDatingEventTicketHandler : IRequestHandler<BuyDatingEventTicketC
     private readonly IEventDiscountCodeRepository _discountCodes;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IAuditLogger _auditLogger;
+    private readonly ICurrencyExchangeRateProvider _exchangeRates;
     private readonly ILogger<BuyDatingEventTicketHandler> _logger;
 
     public BuyDatingEventTicketHandler(
@@ -28,6 +30,7 @@ public class BuyDatingEventTicketHandler : IRequestHandler<BuyDatingEventTicketC
         IEventDiscountCodeRepository discountCodes,
         IUnitOfWork unitOfWork,
         IAuditLogger auditLogger,
+        ICurrencyExchangeRateProvider exchangeRates,
         ILogger<BuyDatingEventTicketHandler> logger)
     {
         _users = users;
@@ -37,6 +40,7 @@ public class BuyDatingEventTicketHandler : IRequestHandler<BuyDatingEventTicketC
         _discountCodes = discountCodes;
         _unitOfWork = unitOfWork;
         _auditLogger = auditLogger;
+        _exchangeRates = exchangeRates;
         _logger = logger;
     }
 
@@ -48,8 +52,7 @@ public class BuyDatingEventTicketHandler : IRequestHandler<BuyDatingEventTicketC
             ?? throw new BusinessRuleViolationException("Profile required", "End user must complete a profile before buying tickets");
         var datingEvent = await _events.GetByIdWithTicketsAsync(request.EventId, cancellationToken)
             ?? throw new NotFoundException("DatingEvent", request.EventId);
-        var buyerBalance = await _balances.GetByUserIdAsync(request.BuyerUserId, cancellationToken)
-            ?? throw new BusinessRuleViolationException("Balance required", "User does not have a balance account");
+        var buyerBalance = await _balances.GetByUserIdAsync(request.BuyerUserId, cancellationToken);
         var plannerBalance = await _balances.GetByUserIdAsync(datingEvent.EventPlannerUserId, cancellationToken);
         var isNewPlannerBalance = plannerBalance is null;
         if (plannerBalance is null)
@@ -68,18 +71,72 @@ public class BuyDatingEventTicketHandler : IRequestHandler<BuyDatingEventTicketC
         }
 
         var ticket = datingEvent.SellTicket(buyer, profile, discountedPrice, discountCode);
+        var exchangeRate = await _exchangeRates.GetActiveRateToIrrAsync(ticket.CurrencyCode, DateTime.UtcNow, cancellationToken);
+        ticket.CaptureExchangeRate(exchangeRate.Rate, exchangeRate.CapturedAtUtc, exchangeRate.ExchangeRateId);
         if (discountCode is not null)
         {
             discountCode.RegisterUsage(DateTime.UtcNow);
             await _discountCodes.UpdateAsync(discountCode, cancellationToken);
         }
 
-        buyerBalance.Debit(ticket.Price, BalanceTransactionType.TicketPurchase, $"Ticket purchase for {datingEvent.Title}", datingEvent.Id);
-        var plannerIncome = ticket.Price * (100 - datingEvent.EventPlannerCommissionPercent) / 100;
-        plannerBalance.Credit(plannerIncome, BalanceTransactionType.EventPlannerIncome, $"Ticket income for {datingEvent.Title}", datingEvent.Id);
+        var platformCommission = ticket.Price * datingEvent.EventPlannerCommissionPercent / 100;
+        var plannerIncome = ticket.Price - platformCommission;
+        var platformCommissionIrr = ConvertToIrr(platformCommission, exchangeRate.Rate);
+        var plannerIncomeIrr = ConvertToIrr(plannerIncome, exchangeRate.Rate);
+        var paidAmountIrr = ticket.ReportingPriceIrr;
+
+        if (datingEvent.PaymentCollectionMethod == EventPaymentCollectionMethod.OrganizerManualTransfer)
+        {
+            plannerBalance.DebitAllowNegative(
+                platformCommission,
+                BalanceTransactionType.PlatformCommission,
+                $"Platform commission debt for {datingEvent.Title}",
+                datingEvent.Id,
+                nameof(EventTicket),
+                ticket.Id,
+                buyer.Id,
+                ticket.CurrencyCode,
+                platformCommissionIrr,
+                exchangeRate.Rate,
+                exchangeRate.CapturedAtUtc,
+                exchangeRate.ExchangeRateId);
+        }
+        else
+        {
+            if (buyerBalance is null)
+                throw new BusinessRuleViolationException("Balance required", "User does not have a balance account");
+
+            buyerBalance.Debit(
+                ticket.Price,
+                BalanceTransactionType.TicketPurchase,
+                $"Ticket purchase for {datingEvent.Title}",
+                datingEvent.Id,
+                nameof(EventTicket),
+                ticket.Id,
+                buyer.Id,
+                ticket.CurrencyCode,
+                paidAmountIrr,
+                exchangeRate.Rate,
+                exchangeRate.CapturedAtUtc,
+                exchangeRate.ExchangeRateId);
+            plannerBalance.Credit(
+                plannerIncome,
+                BalanceTransactionType.EventPlannerIncome,
+                $"Ticket income for {datingEvent.Title}",
+                datingEvent.Id,
+                nameof(EventTicket),
+                ticket.Id,
+                buyer.Id,
+                ticket.CurrencyCode,
+                plannerIncomeIrr,
+                exchangeRate.Rate,
+                exchangeRate.CapturedAtUtc,
+                exchangeRate.ExchangeRateId);
+        }
 
         await _events.UpdateAsync(datingEvent, cancellationToken);
-        await _balances.UpdateAsync(buyerBalance, cancellationToken);
+        if (buyerBalance is not null)
+            await _balances.UpdateAsync(buyerBalance, cancellationToken);
         if (!isNewPlannerBalance)
             await _balances.UpdateAsync(plannerBalance, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -92,10 +149,13 @@ public class BuyDatingEventTicketHandler : IRequestHandler<BuyDatingEventTicketC
             Module: "events",
             Description: $"User purchased a ticket for {datingEvent.Title}.",
             Status: "success",
-            MetadataJson: $$"""{"ticketId":{{ticket.Id}},"amount":{{ticket.Price}},"originalPrice":{{basePrice}},"discountCode":"{{discountCode?.Code}}","discountAmount":{{(basePrice - ticket.Price)}}}"""), cancellationToken);
+            MetadataJson: $$"""{"ticketId":{{ticket.Id}},"amount":{{ticket.Price}},"currencyCode":"{{ticket.CurrencyCode}}","reportingAmountIrr":{{ticket.ReportingPriceIrr}},"exchangeRateToIrr":{{exchangeRate.Rate}},"exchangeRateId":{{exchangeRate.ExchangeRateId}},"originalPrice":{{basePrice}},"discountCode":"{{discountCode?.Code}}","discountAmount":{{(basePrice - ticket.Price)}},"paymentCollectionMethod":"{{datingEvent.PaymentCollectionMethod}}","platformCommission":{{platformCommission}},"platformCommissionIrr":{{platformCommissionIrr}},"plannerIncome":{{plannerIncome}},"plannerIncomeIrr":{{plannerIncomeIrr}}}"""), cancellationToken);
         _logger.LogInformation("User {BuyerUserId} bought ticket {TicketId} for event {EventId} at price {TicketPrice}", buyer.Id, ticket.Id, datingEvent.Id, ticket.Price);
         return ticket.Id;
     }
+
+    private static decimal ConvertToIrr(decimal amount, decimal rate)
+        => Math.Round(amount * rate, 0, MidpointRounding.AwayFromZero);
 
     private async Task<EventDiscountCode?> ResolveDiscountCodeAsync(long eventId, string? code, CancellationToken cancellationToken)
     {

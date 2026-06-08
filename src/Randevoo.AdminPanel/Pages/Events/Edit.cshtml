@@ -3,6 +3,8 @@
 @{
     ViewData["Title"] = Model.IsNew ? "ساخت رویداد" : "ویرایش رویداد";
     var actionText = Model.IsNew ? "ساخت رویداد" : "ذخیره تغییرات";
+    var currentCurrencyTitle = Model.CurrencyOptions.FirstOrDefault(item => item.Value == Model.Input.MaleTicketCurrencyCode)?.Text
+        ?? Model.Input.MaleTicketCurrencyCode;
 }
 
 <section class="page-header">
@@ -25,6 +27,7 @@
     <input type="hidden" asp-for="Input.Image3" />
     <input type="hidden" asp-for="Input.Latitude" />
     <input type="hidden" asp-for="Input.Longitude" />
+    <input type="hidden" asp-for="Input.OrganizerCommissionPercent" />
 
     <div asp-validation-summary="ModelOnly" class="alert alert-danger border-0 mb-4"></div>
 
@@ -67,7 +70,11 @@
         </button>
         <button type="button" class="event-wizard-step" data-event-wizard-target="images">
             <span class="event-wizard-step-index">5</span>
-            <span class="event-wizard-step-label">تصاویر و مرور</span>
+            <span class="event-wizard-step-label">تصاویر</span>
+        </button>
+        <button type="button" class="event-wizard-step" data-event-wizard-target="review">
+            <span class="event-wizard-step-index">6</span>
+            <span class="event-wizard-step-label">مرور و ثبت</span>
         </button>
     </nav>
 
@@ -241,57 +248,163 @@
 
             <div class="col-12">
                 <div class="gender-field-grid">
-                    <section class="gender-field-panel">
-                        <h3>آقایان</h3>
-                        <div class="row g-3">
-                            <div class="col-lg-5 col-md-6">
-                                <label asp-for="Input.MaleTicketPrice" class="form-label">مبلغ بلیت آقایان</label>
-                                <input asp-for="Input.MaleTicketPrice" class="form-control money-input" type="text" inputmode="numeric" autocomplete="off" />
-                                <span asp-validation-for="Input.MaleTicketPrice" class="text-danger small"></span>
+                    <section class="gender-field-panel gender-field-panel-male">
+                        <div class="gender-field-panel-head">
+                            <h3>
+                                <i class="bi bi-gender-male" aria-hidden="true"></i>
+                                <span>آقایان</span>
+                            </h3>
+                        </div>
+                        <div class="gender-ticket-fields">
+                            <div class="gender-ticket-row gender-ticket-row-price">
+                                <div class="gender-ticket-field">
+                                    <label asp-for="Input.MaleTicketPrice" class="form-label">مبلغ بلیت آقایان</label>
+                                    <input asp-for="Input.MaleTicketPrice" class="form-control money-input" type="text" inputmode="numeric" autocomplete="off" />
+                                    <span asp-validation-for="Input.MaleTicketPrice" class="text-danger small"></span>
+                                </div>
+                                <div class="gender-ticket-field">
+                                    <label asp-for="Input.MaleTicketCurrencyCode" class="form-label">واحد پول رویداد</label>
+                                    <input type="hidden" asp-for="Input.MaleTicketCurrencyCode" data-event-currency-source="true" />
+                                    <select id="EventCurrencyDisplaySelect" class="form-select" disabled aria-label="واحد پول رویداد">
+                                        @foreach (var option in Model.CurrencyOptions)
+                                        {
+                                            if (string.Equals(option.Value, Model.Input.MaleTicketCurrencyCode, StringComparison.OrdinalIgnoreCase))
+                                            {
+                                                <option value="@option.Value" selected>@option.Text</option>
+                                            }
+                                            else
+                                            {
+                                                <option value="@option.Value">@option.Text</option>
+                                            }
+                                        }
+                                    </select>
+                                    <div class="form-text">ارز رویداد از ارز کاری برگزارکننده خوانده می‌شود و بعد از شروع فعالیت مالی تغییر نمی‌کند.</div>
+                                    <span asp-validation-for="Input.MaleTicketCurrencyCode" class="text-danger small"></span>
+                                </div>
                             </div>
-                            <div class="col-lg-3 col-md-6">
-                                <label asp-for="Input.MaleTicketCurrencyCode" class="form-label">واحد پول</label>
-                                <select asp-for="Input.MaleTicketCurrencyCode" class="form-select" asp-items="Model.CurrencyOptions"></select>
-                                <span asp-validation-for="Input.MaleTicketCurrencyCode" class="text-danger small"></span>
-                            </div>
-                            <div class="col-lg-2 col-md-6">
-                                <label asp-for="Input.CapacityMale" class="form-label">ظرفیت</label>
-                                <input asp-for="Input.CapacityMale" class="form-control" type="number" />
-                                <span asp-validation-for="Input.CapacityMale" class="text-danger small"></span>
-                            </div>
-                            <div class="col-lg-2 col-md-6">
-                                <label asp-for="Input.AgeRangeForMale" class="form-label">بازه سنی</label>
-                                <select asp-for="Input.AgeRangeForMale" class="form-select" asp-items="Model.AgeRangeOptions"></select>
-                                <span asp-validation-for="Input.AgeRangeForMale" class="text-danger small"></span>
+                            <div class="gender-ticket-row gender-ticket-row-meta">
+                                <div class="gender-ticket-field">
+                                    <label asp-for="Input.CapacityMale" class="form-label">ظرفیت</label>
+                                    <input asp-for="Input.CapacityMale" class="form-control" type="number" />
+                                    <span asp-validation-for="Input.CapacityMale" class="text-danger small"></span>
+                                </div>
+                                <div class="gender-ticket-field">
+                                    <label asp-for="Input.AgeRangeForMale" class="form-label">بازه سنی</label>
+                                    <select asp-for="Input.AgeRangeForMale" class="form-select" asp-items="Model.AgeRangeOptions"></select>
+                                    <span asp-validation-for="Input.AgeRangeForMale" class="text-danger small"></span>
+                                </div>
                             </div>
                         </div>
                     </section>
-                    <section class="gender-field-panel">
-                        <h3>خانم‌ها</h3>
-                        <div class="row g-3">
-                            <div class="col-lg-5 col-md-6">
-                                <label asp-for="Input.FemaleTicketPrice" class="form-label">مبلغ بلیت خانم‌ها</label>
-                                <input asp-for="Input.FemaleTicketPrice" class="form-control money-input" type="text" inputmode="numeric" autocomplete="off" />
-                                <span asp-validation-for="Input.FemaleTicketPrice" class="text-danger small"></span>
+                    <section class="gender-field-panel gender-field-panel-female">
+                        <div class="gender-field-panel-head">
+                            <h3>
+                                <i class="bi bi-gender-female" aria-hidden="true"></i>
+                                <span>خانم‌ها</span>
+                            </h3>
+                        </div>
+                        <div class="gender-ticket-fields">
+                            <div class="gender-ticket-row gender-ticket-row-price">
+                                <div class="gender-ticket-field">
+                                    <label asp-for="Input.FemaleTicketPrice" class="form-label">مبلغ بلیت خانم‌ها</label>
+                                    <input asp-for="Input.FemaleTicketPrice" class="form-control money-input" type="text" inputmode="numeric" autocomplete="off" />
+                                    <span asp-validation-for="Input.FemaleTicketPrice" class="text-danger small"></span>
+                                </div>
+                                <div class="gender-ticket-field">
+                                    <label asp-for="Input.FemaleTicketCurrencyCode" class="form-label">واحد پول رویداد</label>
+                                    <input type="hidden" asp-for="Input.FemaleTicketCurrencyCode" data-event-currency-target="true" />
+                                    <input type="text" class="form-control event-currency-display" value="@currentCurrencyTitle" readonly data-event-currency-display="true" aria-label="واحد پول رویداد" />
+                                    <span asp-validation-for="Input.FemaleTicketCurrencyCode" class="text-danger small"></span>
+                                </div>
                             </div>
-                            <div class="col-lg-3 col-md-6">
-                                <label asp-for="Input.FemaleTicketCurrencyCode" class="form-label">واحد پول</label>
-                                <select asp-for="Input.FemaleTicketCurrencyCode" class="form-select" asp-items="Model.CurrencyOptions"></select>
-                                <span asp-validation-for="Input.FemaleTicketCurrencyCode" class="text-danger small"></span>
-                            </div>
-                            <div class="col-lg-2 col-md-6">
-                                <label asp-for="Input.CapacityFemale" class="form-label">ظرفیت</label>
-                                <input asp-for="Input.CapacityFemale" class="form-control" type="number" />
-                                <span asp-validation-for="Input.CapacityFemale" class="text-danger small"></span>
-                            </div>
-                            <div class="col-lg-2 col-md-6">
-                                <label asp-for="Input.AgeRangeForFemale" class="form-label">بازه سنی</label>
-                                <select asp-for="Input.AgeRangeForFemale" class="form-select" asp-items="Model.AgeRangeOptions"></select>
-                                <span asp-validation-for="Input.AgeRangeForFemale" class="text-danger small"></span>
+                            <div class="gender-ticket-row gender-ticket-row-meta">
+                                <div class="gender-ticket-field">
+                                    <label asp-for="Input.CapacityFemale" class="form-label">ظرفیت</label>
+                                    <input asp-for="Input.CapacityFemale" class="form-control" type="number" />
+                                    <span asp-validation-for="Input.CapacityFemale" class="text-danger small"></span>
+                                </div>
+                                <div class="gender-ticket-field">
+                                    <label asp-for="Input.AgeRangeForFemale" class="form-label">بازه سنی</label>
+                                    <select asp-for="Input.AgeRangeForFemale" class="form-select" asp-items="Model.AgeRangeOptions"></select>
+                                    <span asp-validation-for="Input.AgeRangeForFemale" class="text-danger small"></span>
+                                </div>
                             </div>
                         </div>
                     </section>
                 </div>
+            </div>
+
+            <div class="col-12">
+                <section class="payment-method-panel" data-payment-method-panel="true">
+                    <div class="payment-method-head">
+                        <div>
+                            <h3>روش دریافت هزینه رویداد</h3>
+                            <p>مشخص کنید پول اول به حساب پلتفرم می‌آید یا مستقیم به حساب برگزارکننده و سیستم چطور سهم‌ها را حساب کند.</p>
+                        </div>
+                        <button type="button" class="btn btn-outline-primary btn-sm" data-financial-calc-button="true">
+                            <i class="bi bi-calculator"></i>
+                            <span>محاسبه</span>
+                        </button>
+                    </div>
+
+                    <div class="payment-method-options" role="radiogroup" aria-label="روش دریافت هزینه رویداد">
+                        <label class="payment-method-option">
+                            <input asp-for="Input.PaymentCollectionMethod" id="PaymentCollectionMethod_PlatformGateway" type="radio" value="@Randevoo.Domain.Enums.EventPaymentCollectionMethod.PlatformGateway" />
+                            <span>
+                                <strong>پرداخت آنلاین از طریق درگاه پلتفرم</strong>
+                                <small>پرداخت خودکار تایید می‌شود و سهم برگزارکننده پس از کسر کمیسیون قابل برداشت است.</small>
+                            </span>
+                        </label>
+                        <label class="payment-method-option">
+                            <input asp-for="Input.PaymentCollectionMethod" id="PaymentCollectionMethod_PlatformManualTransfer" type="radio" value="@Randevoo.Domain.Enums.EventPaymentCollectionMethod.PlatformManualTransfer" />
+                            <span>
+                                <strong>واریز به حساب پلتفرم و تایید توسط پشتیبانی</strong>
+                                <small>شرکت‌کننده رسید می‌فرستد؛ بعد از تایید پشتیبانی، سهم برگزارکننده قابل برداشت می‌شود.</small>
+                            </span>
+                        </label>
+                        <label class="payment-method-option">
+                            <input asp-for="Input.PaymentCollectionMethod" id="PaymentCollectionMethod_OrganizerManualTransfer" type="radio" value="@Randevoo.Domain.Enums.EventPaymentCollectionMethod.OrganizerManualTransfer" />
+                            <span>
+                                <strong>واریز مستقیم به حساب برگزارکننده و تایید توسط برگزارکننده</strong>
+                                <small>پول مستقیم نزد برگزارکننده می‌ماند و کمیسیون پلتفرم به عنوان بدهی او ثبت می‌شود.</small>
+                            </span>
+                        </label>
+                    </div>
+                    <span asp-validation-for="Input.PaymentCollectionMethod" class="text-danger small"></span>
+
+                    <div class="organizer-payment-instructions mt-3" data-organizer-payment-instructions="true">
+                        <label asp-for="Input.OrganizerPaymentInstructions" class="form-label">اطلاعات پرداخت برگزارکننده</label>
+                        <textarea asp-for="Input.OrganizerPaymentInstructions"
+                                  class="form-control"
+                                  rows="4"
+                                  maxlength="1200"
+                                  placeholder="شماره کارت، شماره حساب، IBAN، اطلاعات Visa/MasterCard یا توضیحات پرداخت مستقیم را وارد کنید."></textarea>
+                        <span asp-validation-for="Input.OrganizerPaymentInstructions" class="text-danger small"></span>
+                    </div>
+
+                    <div class="financial-preview-grid mt-3" data-financial-preview="audience">
+                        <div class="financial-preview-item">
+                            <span>فروش کل احتمالی</span>
+                            <strong data-financial-value="gross-total">0</strong>
+                            <small data-financial-value="gross-total-irr">0</small>
+                        </div>
+                        <div class="financial-preview-item">
+                            <span>کمیسیون پلتفرم</span>
+                            <strong data-financial-value="platform-commission-total">0</strong>
+                            <small data-financial-value="platform-commission-total-irr">0</small>
+                        </div>
+                        <div class="financial-preview-item">
+                            <span>سهم خالص برگزارکننده</span>
+                            <strong data-financial-value="organizer-net-total">0</strong>
+                            <small data-financial-value="organizer-net-total-irr">0</small>
+                        </div>
+                        <div class="financial-preview-item financial-preview-note">
+                            <span>اثر روی حساب برگزارکننده</span>
+                            <strong data-financial-value="settlement-effect">ثبت نشده</strong>
+                        </div>
+                    </div>
+                    <div class="help-tip mt-2" data-financial-value="settlement-note"></div>
+                </section>
             </div>
         </div>
     </section>
@@ -337,101 +450,148 @@
         </div>
     </section>
 
-    <section class="event-wizard-panel" data-event-wizard-panel="images" aria-label="تصاویر و مرور">
+    <section class="event-wizard-panel" data-event-wizard-panel="images" aria-label="تصاویر رویداد">
         <div class="event-wizard-panel-head">
-            <h2 class="section-title">تصاویر و مرور</h2>
+            <h2 class="section-title">تصاویر رویداد</h2>
         </div>
 
-        <div class="event-review-grid">
-            <div class="event-review-summary">
-                <div class="detail-block"><span>عنوان</span><strong>@(string.IsNullOrWhiteSpace(Model.Input.Title) ? "ثبت نشده" : Model.Input.Title)</strong></div>
-                <div class="detail-block"><span>نوع</span><strong>@(string.IsNullOrWhiteSpace(Model.Input.EventTypeName) ? "انتخاب‌شده در فرم" : Model.Input.EventTypeName)</strong></div>
-                <div class="detail-block"><span>نحوه برگزاری</span><strong>@(Model.Input.IsOnline ? "آنلاین" : "حضوری")</strong></div>
-                <div class="detail-block"><span>آقایان</span><strong>@DisplayFormatter.TicketMoney(Model.Input.MaleTicketPrice, Model.Input.MaleTicketCurrencyCode, Model.IsRtl)</strong></div>
-                <div class="detail-block"><span>خانم‌ها</span><strong>@DisplayFormatter.TicketMoney(Model.Input.FemaleTicketPrice, Model.Input.FemaleTicketCurrencyCode, Model.IsRtl)</strong></div>
-                <div class="detail-block"><span>شروع</span><strong>@PersianDateFormatter.FormatDateTime(Model.Input.StartAtUtc.UtcDateTime, Model.IsRtl)</strong></div>
+        <div class="event-image-tabs-panel">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
+                <h3 class="section-title mb-0">تصاویر رویداد</h3>
+                <span class="image-manager-counter">3 / 3</span>
             </div>
 
-            <div class="event-image-tabs-panel">
-                <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
-                    <h3 class="section-title mb-0">تصاویر رویداد</h3>
-                    <span class="image-manager-counter">3 / 3</span>
+            <ul class="nav nav-pills event-image-tabs mb-4" id="eventImageTab" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="event-image-1-tab" data-bs-toggle="tab" data-bs-target="#event-image-1-pane" type="button" role="tab" aria-controls="event-image-1-pane" aria-selected="true">
+                        <span class="event-image-tab-number">1</span>
+                        <span>کاور</span>
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="event-image-2-tab" data-bs-toggle="tab" data-bs-target="#event-image-2-pane" type="button" role="tab" aria-controls="event-image-2-pane" aria-selected="false">
+                        <span class="event-image-tab-number">2</span>
+                        <span>لوکیشن</span>
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="event-image-3-tab" data-bs-toggle="tab" data-bs-target="#event-image-3-pane" type="button" role="tab" aria-controls="event-image-3-pane" aria-selected="false">
+                        <span class="event-image-tab-number">3</span>
+                        <span>تجربه</span>
+                    </button>
+                </li>
+            </ul>
+
+            <div class="tab-content event-image-tab-content" id="eventImageTabContent">
+                <div class="tab-pane fade show active" id="event-image-1-pane" role="tabpanel" aria-labelledby="event-image-1-tab" tabindex="0">
+                    <div class="image-manager-card image-manager-card-tabbed">
+                        <div class="image-slot-head">
+                            <div class="fw-semibold">تصویر اول</div>
+                            <button type="button" class="btn btn-sm btn-light image-clear-button" data-target="#preview1" data-hidden-target="#Input_Image1" data-file-target="#Image1File">حذف</button>
+                        </div>
+                        <div class="image-manager-preview-shell @(string.IsNullOrWhiteSpace(Model.Input.Image1) ? "is-empty" : string.Empty)">
+                            <img id="preview1" src="@Model.Input.Image1" alt="تصویر اول" class="image-manager-preview @(string.IsNullOrWhiteSpace(Model.Input.Image1) ? "d-none" : string.Empty)" />
+                            <div class="image-manager-placeholder">
+                                <i class="bi bi-image"></i>
+                                <span>کاور اصلی</span>
+                            </div>
+                        </div>
+                        <input type="file" class="form-control image-input" asp-for="Image1File" accept="image/*" data-target="#preview1" />
+                    </div>
                 </div>
 
-                <ul class="nav nav-pills event-image-tabs mb-4" id="eventImageTab" role="tablist">
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link active" id="event-image-1-tab" data-bs-toggle="tab" data-bs-target="#event-image-1-pane" type="button" role="tab" aria-controls="event-image-1-pane" aria-selected="true">
-                            <span class="event-image-tab-number">1</span>
-                            <span>کاور</span>
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="event-image-2-tab" data-bs-toggle="tab" data-bs-target="#event-image-2-pane" type="button" role="tab" aria-controls="event-image-2-pane" aria-selected="false">
-                            <span class="event-image-tab-number">2</span>
-                            <span>لوکیشن</span>
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="event-image-3-tab" data-bs-toggle="tab" data-bs-target="#event-image-3-pane" type="button" role="tab" aria-controls="event-image-3-pane" aria-selected="false">
-                            <span class="event-image-tab-number">3</span>
-                            <span>تجربه</span>
-                        </button>
-                    </li>
-                </ul>
-
-                <div class="tab-content event-image-tab-content" id="eventImageTabContent">
-                    <div class="tab-pane fade show active" id="event-image-1-pane" role="tabpanel" aria-labelledby="event-image-1-tab" tabindex="0">
-                        <div class="image-manager-card image-manager-card-tabbed">
-                            <div class="image-slot-head">
-                                <div class="fw-semibold">تصویر اول</div>
-                                <button type="button" class="btn btn-sm btn-light image-clear-button" data-target="#preview1" data-hidden-target="#Input_Image1" data-file-target="#Image1File">حذف</button>
-                            </div>
-                            <div class="image-manager-preview-shell @(string.IsNullOrWhiteSpace(Model.Input.Image1) ? "is-empty" : string.Empty)">
-                                <img id="preview1" src="@Model.Input.Image1" alt="تصویر اول" class="image-manager-preview @(string.IsNullOrWhiteSpace(Model.Input.Image1) ? "d-none" : string.Empty)" />
-                                <div class="image-manager-placeholder">
-                                    <i class="bi bi-image"></i>
-                                    <span>کاور اصلی</span>
-                                </div>
-                            </div>
-                            <input type="file" class="form-control image-input" asp-for="Image1File" accept="image/*" data-target="#preview1" />
+                <div class="tab-pane fade" id="event-image-2-pane" role="tabpanel" aria-labelledby="event-image-2-tab" tabindex="0">
+                    <div class="image-manager-card image-manager-card-tabbed">
+                        <div class="image-slot-head">
+                            <div class="fw-semibold">تصویر دوم</div>
+                            <button type="button" class="btn btn-sm btn-light image-clear-button" data-target="#preview2" data-hidden-target="#Input_Image2" data-file-target="#Image2File">حذف</button>
                         </div>
+                        <div class="image-manager-preview-shell @(string.IsNullOrWhiteSpace(Model.Input.Image2) ? "is-empty" : string.Empty)">
+                            <img id="preview2" src="@Model.Input.Image2" alt="تصویر دوم" class="image-manager-preview @(string.IsNullOrWhiteSpace(Model.Input.Image2) ? "d-none" : string.Empty)" />
+                            <div class="image-manager-placeholder">
+                                <i class="bi bi-geo-alt"></i>
+                                <span>لوکیشن</span>
+                            </div>
+                        </div>
+                        <input type="file" class="form-control image-input" asp-for="Image2File" accept="image/*" data-target="#preview2" />
                     </div>
+                </div>
 
-                    <div class="tab-pane fade" id="event-image-2-pane" role="tabpanel" aria-labelledby="event-image-2-tab" tabindex="0">
-                        <div class="image-manager-card image-manager-card-tabbed">
-                            <div class="image-slot-head">
-                                <div class="fw-semibold">تصویر دوم</div>
-                                <button type="button" class="btn btn-sm btn-light image-clear-button" data-target="#preview2" data-hidden-target="#Input_Image2" data-file-target="#Image2File">حذف</button>
-                            </div>
-                            <div class="image-manager-preview-shell @(string.IsNullOrWhiteSpace(Model.Input.Image2) ? "is-empty" : string.Empty)">
-                                <img id="preview2" src="@Model.Input.Image2" alt="تصویر دوم" class="image-manager-preview @(string.IsNullOrWhiteSpace(Model.Input.Image2) ? "d-none" : string.Empty)" />
-                                <div class="image-manager-placeholder">
-                                    <i class="bi bi-geo-alt"></i>
-                                    <span>لوکیشن</span>
-                                </div>
-                            </div>
-                            <input type="file" class="form-control image-input" asp-for="Image2File" accept="image/*" data-target="#preview2" />
+                <div class="tab-pane fade" id="event-image-3-pane" role="tabpanel" aria-labelledby="event-image-3-tab" tabindex="0">
+                    <div class="image-manager-card image-manager-card-tabbed">
+                        <div class="image-slot-head">
+                            <div class="fw-semibold">تصویر سوم</div>
+                            <button type="button" class="btn btn-sm btn-light image-clear-button" data-target="#preview3" data-hidden-target="#Input_Image3" data-file-target="#Image3File">حذف</button>
                         </div>
-                    </div>
-
-                    <div class="tab-pane fade" id="event-image-3-pane" role="tabpanel" aria-labelledby="event-image-3-tab" tabindex="0">
-                        <div class="image-manager-card image-manager-card-tabbed">
-                            <div class="image-slot-head">
-                                <div class="fw-semibold">تصویر سوم</div>
-                                <button type="button" class="btn btn-sm btn-light image-clear-button" data-target="#preview3" data-hidden-target="#Input_Image3" data-file-target="#Image3File">حذف</button>
+                        <div class="image-manager-preview-shell @(string.IsNullOrWhiteSpace(Model.Input.Image3) ? "is-empty" : string.Empty)">
+                            <img id="preview3" src="@Model.Input.Image3" alt="تصویر سوم" class="image-manager-preview @(string.IsNullOrWhiteSpace(Model.Input.Image3) ? "d-none" : string.Empty)" />
+                            <div class="image-manager-placeholder">
+                                <i class="bi bi-stars"></i>
+                                <span>تجربه</span>
                             </div>
-                            <div class="image-manager-preview-shell @(string.IsNullOrWhiteSpace(Model.Input.Image3) ? "is-empty" : string.Empty)">
-                                <img id="preview3" src="@Model.Input.Image3" alt="تصویر سوم" class="image-manager-preview @(string.IsNullOrWhiteSpace(Model.Input.Image3) ? "d-none" : string.Empty)" />
-                                <div class="image-manager-placeholder">
-                                    <i class="bi bi-stars"></i>
-                                    <span>تجربه</span>
-                                </div>
-                            </div>
-                            <input type="file" class="form-control image-input" asp-for="Image3File" accept="image/*" data-target="#preview3" />
                         </div>
+                        <input type="file" class="form-control image-input" asp-for="Image3File" accept="image/*" data-target="#preview3" />
                     </div>
                 </div>
             </div>
+        </div>
+    </section>
+
+    <section class="event-wizard-panel" data-event-wizard-panel="review" aria-label="مرور و ثبت">
+        <div class="event-wizard-panel-head">
+            <h2 class="section-title">مرور و ثبت</h2>
+        </div>
+
+        <div class="event-review-summary event-review-summary-wide" data-event-review-summary="true">
+            <div class="detail-block"><span>عنوان</span><strong data-review-value="title">@(string.IsNullOrWhiteSpace(Model.Input.Title) ? "ثبت نشده" : Model.Input.Title)</strong></div>
+            <div class="detail-block"><span>نوع</span><strong data-review-value="event-type">@(string.IsNullOrWhiteSpace(Model.Input.EventTypeName) ? "انتخاب‌شده در فرم" : Model.Input.EventTypeName)</strong></div>
+            <div class="detail-block"><span>نحوه برگزاری</span><strong data-review-value="event-mode">@(string.IsNullOrWhiteSpace(Model.Input.EventModeName) ? (Model.Input.IsOnline ? "آنلاین" : "حضوری") : Model.Input.EventModeName)</strong></div>
+            <div class="detail-block"><span>محل / آنلاین</span><strong data-review-value="delivery-detail">@(Model.Input.IsOnline ? (string.IsNullOrWhiteSpace(Model.Input.OnlinePlatformName) ? "آنلاین" : Model.Input.OnlinePlatformName) : $"{Model.Input.Country}، {Model.Input.City}")</strong></div>
+            <div class="detail-block"><span>شروع</span><strong data-review-value="start">@PersianDateFormatter.FormatDateTime(Model.Input.StartAtUtc.UtcDateTime, Model.IsRtl)</strong></div>
+            <div class="detail-block"><span>پایان</span><strong data-review-value="end">@PersianDateFormatter.FormatDateTime(Model.Input.EndAtUtc.UtcDateTime, Model.IsRtl)</strong></div>
+            <div class="detail-block"><span>آقایان</span><strong data-review-value="male-ticket">@DisplayFormatter.TicketMoney(Model.Input.MaleTicketPrice, Model.Input.MaleTicketCurrencyCode, Model.IsRtl)</strong></div>
+            <div class="detail-block"><span>خانم‌ها</span><strong data-review-value="female-ticket">@DisplayFormatter.TicketMoney(Model.Input.FemaleTicketPrice, Model.Input.FemaleTicketCurrencyCode, Model.IsRtl)</strong></div>
+            <div class="detail-block"><span>ظرفیت</span><strong data-review-value="capacity">@($"{Model.Input.CapacityMale} آقا / {Model.Input.CapacityFemale} خانم")</strong></div>
+            <div class="detail-block"><span>بازه سنی</span><strong data-review-value="age-range">@($"{Model.Input.AgeRangeForMale} آقا / {Model.Input.AgeRangeForFemale} خانم")</strong></div>
+            <div class="detail-block"><span>لایک مجاز</span><strong data-review-value="like-limit">@Model.Input.LikeLimit</strong></div>
+            <div class="detail-block"><span>تگ‌ها</span><strong data-review-value="tags">@(Model.Input.Tags.Count == 0 ? "ثبت نشده" : string.Join("، ", Model.Input.Tags))</strong></div>
+            <div class="detail-block"><span>تصاویر</span><strong data-review-value="images">0 / 3</strong></div>
+            <div class="detail-block"><span>روش دریافت هزینه</span><strong data-review-value="payment-method">ثبت نشده</strong></div>
+        </div>
+
+        <div class="financial-review-panel mt-4" data-financial-preview="review">
+            <div class="payment-method-head">
+                <div>
+                    <h3>مرور مالی رویداد</h3>
+                    <p>این محاسبه بر اساس ظرفیت کامل، قیمت بلیت‌ها و درصد کمیسیون فعلی انجام می‌شود.</p>
+                </div>
+                <button type="button" class="btn btn-outline-primary btn-sm" data-financial-calc-button="true">
+                    <i class="bi bi-calculator"></i>
+                    <span>محاسبه مجدد</span>
+                </button>
+            </div>
+            <div class="financial-preview-grid">
+                <div class="financial-preview-item">
+                    <span>فروش کل احتمالی</span>
+                    <strong data-financial-value="gross-total">0</strong>
+                    <small data-financial-value="gross-total-irr">0</small>
+                </div>
+                <div class="financial-preview-item">
+                    <span>کمیسیون پلتفرم</span>
+                    <strong data-financial-value="platform-commission-total">0</strong>
+                    <small data-financial-value="platform-commission-total-irr">0</small>
+                </div>
+                <div class="financial-preview-item">
+                    <span>سهم خالص برگزارکننده</span>
+                    <strong data-financial-value="organizer-net-total">0</strong>
+                    <small data-financial-value="organizer-net-total-irr">0</small>
+                </div>
+                <div class="financial-preview-item financial-preview-note">
+                    <span>اثر روی حساب برگزارکننده</span>
+                    <strong data-financial-value="settlement-effect">ثبت نشده</strong>
+                </div>
+            </div>
+            <div class="help-tip mt-2" data-financial-value="settlement-note"></div>
         </div>
     </section>
 
@@ -467,6 +627,7 @@
             eventModeSelector: 'input[name="Input.EventModeId"]',
             onlineModeId: '1',
             cityOptions: @Html.Raw(Model.CityOptionsJson),
+            currencyRates: @Html.Raw(Model.CurrencyRatesJson),
             latitudeSelector: '#Input_Latitude',
             longitudeSelector: '#Input_Longitude'
         };

@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -21,14 +22,16 @@ public class EditModel : PageModel
     private readonly IEventsApiClient _eventsApi;
     private readonly IEventTagsApiClient _eventTagsApi;
     private readonly IUsersApiClient _usersApi;
+    private readonly IPlannerProfilesApiClient _profilesApi;
     private readonly ILocationsApiClient _locationsApi;
     private readonly CurrentSessionState _session;
 
-    public EditModel(IEventsApiClient eventsApi, IEventTagsApiClient eventTagsApi, IUsersApiClient usersApi, ILocationsApiClient locationsApi, CurrentSessionState session)
+    public EditModel(IEventsApiClient eventsApi, IEventTagsApiClient eventTagsApi, IUsersApiClient usersApi, IPlannerProfilesApiClient profilesApi, ILocationsApiClient locationsApi, CurrentSessionState session)
     {
         _eventsApi = eventsApi;
         _eventTagsApi = eventTagsApi;
         _usersApi = usersApi;
+        _profilesApi = profilesApi;
         _locationsApi = locationsApi;
         _session = session;
     }
@@ -71,6 +74,8 @@ public class EditModel : PageModel
 
     public bool IsPlanner => _session.CurrentUser?.Role == AdminRole.EventPlanner;
 
+    public bool IsEventCurrencyLocked => true;
+
     public string? ReviewNote { get; set; }
 
     public string StatusText { get; set; } = AdminEventOperationalStatus.Draft.ToString();
@@ -88,6 +93,8 @@ public class EditModel : PageModel
     public SelectList CityOptions { get; private set; } = new(Array.Empty<object>());
 
     public string CityOptionsJson { get; private set; } = "[]";
+
+    public string CurrencyRatesJson { get; private set; } = "{}";
 
     private IReadOnlyList<CountryOption> Countries { get; set; } = Array.Empty<CountryOption>();
 
@@ -160,6 +167,8 @@ public class EditModel : PageModel
         }
 
         await LoadLookupOptionsAsync();
+        if (IsNew)
+            await ApplyPlannerCurrencyDefaultAsync();
         SyncFormTextFromInput();
         return Page();
     }
@@ -170,6 +179,7 @@ public class EditModel : PageModel
         await LoadLookupOptionsAsync();
 
         ApplyEventContextDefaults();
+        await ApplyPlannerCurrencyDefaultAsync();
 
         if (!TryCombineDateAndTime(StartDateText, StartTimeText, _session.IsRtl, out var startAtUtc, out var startError))
         {
@@ -177,6 +187,8 @@ public class EditModel : PageModel
         }
         else
         {
+            ModelState.Remove(nameof(StartDateText));
+            ModelState.Remove(nameof(StartTimeText));
             Input.StartAtUtc = startAtUtc;
         }
 
@@ -186,6 +198,8 @@ public class EditModel : PageModel
         }
         else
         {
+            ModelState.Remove(nameof(EndDateText));
+            ModelState.Remove(nameof(EndTimeText));
             Input.EndAtUtc = endAtUtc;
         }
 
@@ -280,10 +294,21 @@ public class EditModel : PageModel
         CurrencyLookupOptions = await _eventsApi.GetCurrencyOptionsAsync();
         Input.MaleTicketCurrencyCode = NormalizeCurrencyCodeForForm(Input.MaleTicketCurrencyCode);
         Input.FemaleTicketCurrencyCode = NormalizeCurrencyCodeForForm(Input.FemaleTicketCurrencyCode);
+        SyncSharedTicketCurrency();
         CurrencyOptions = new SelectList(
             CurrencyLookupOptions.Select(item => new { Code = item.Name, Title = $"{item.DisplayNameFa} ({item.Name})" }),
             "Code",
             "Title");
+        CurrencyRatesJson = JsonSerializer.Serialize(CurrencyLookupOptions.ToDictionary(
+            item => item.Name,
+            item => new
+            {
+                item.DisplayNameFa,
+                item.Symbol,
+                RateToIrr = item.ExchangeRateToIrr ?? 1m,
+                item.ExchangeRateEffectiveFromUtc
+            },
+            StringComparer.OrdinalIgnoreCase));
 
         Countries = await _locationsApi.GetCountriesAsync();
         Cities = await _locationsApi.GetCitiesAsync();
@@ -319,12 +344,28 @@ public class EditModel : PageModel
 
     private long? GetDefaultPlannerId() => PlannerIds.Count == 0 ? null : PlannerIds[0];
 
+    private async Task ApplyPlannerCurrencyDefaultAsync()
+    {
+        var plannerUserId = IsPlanner
+            ? _session.CurrentUser?.Id
+            : AssignedPlannerId;
+        if (plannerUserId is not long userId)
+            return;
+
+        var profile = await _profilesApi.GetByUserIdAsync(userId);
+        var settlementCurrencyCode = NormalizeCurrencyCodeForForm(profile?.SettlementCurrencyCode ?? "IRR");
+        Input.MaleTicketCurrencyCode = settlementCurrencyCode;
+        Input.FemaleTicketCurrencyCode = settlementCurrencyCode;
+        ModelState.Remove($"{nameof(Input)}.{nameof(EventDraftInput.MaleTicketCurrencyCode)}");
+        ModelState.Remove($"{nameof(Input)}.{nameof(EventDraftInput.FemaleTicketCurrencyCode)}");
+    }
+
     private void SyncFormTextFromInput()
     {
-        StartDateText = PersianDateFormatter.FormatDate(Input.StartAtUtc, _session.IsRtl);
-        StartTimeText = PersianDateFormatter.FormatTime(Input.StartAtUtc);
-        EndDateText = PersianDateFormatter.FormatDate(Input.EndAtUtc, _session.IsRtl);
-        EndTimeText = PersianDateFormatter.FormatTime(Input.EndAtUtc);
+        StartDateText = FormatDateInput(Input.StartAtUtc);
+        StartTimeText = FormatTimeInput(Input.StartAtUtc);
+        EndDateText = FormatDateInput(Input.EndAtUtc);
+        EndTimeText = FormatTimeInput(Input.EndAtUtc);
     }
 
     private void ApplyEventContextDefaults()
@@ -408,6 +449,7 @@ public class EditModel : PageModel
 
         Input.MaleTicketCurrencyCode = NormalizeCurrencyCodeForForm(Input.MaleTicketCurrencyCode);
         Input.FemaleTicketCurrencyCode = NormalizeCurrencyCodeForForm(Input.FemaleTicketCurrencyCode);
+        SyncSharedTicketCurrency();
 
         if (Input.MaleTicketPrice is < 0.01m or > 1_000_000_000m)
             ModelState.AddModelError(nameof(Input.MaleTicketPrice), "مبلغ بلیت آقایان باید بیشتر از صفر و کمتر از ۱,۰۰۰,۰۰۰,۰۰۰ باشد.");
@@ -423,6 +465,31 @@ public class EditModel : PageModel
 
         if (Input.OrganizerCommissionPercent is < 0 or > 100)
             ModelState.AddModelError(nameof(Input.OrganizerCommissionPercent), "درصد کمیسیون باید بین 0 تا 100 باشد.");
+
+        if (!Enum.IsDefined(Input.PaymentCollectionMethod))
+            ModelState.AddModelError($"{nameof(Input)}.{nameof(EventDraftInput.PaymentCollectionMethod)}", "روش دریافت هزینه رویداد معتبر نیست.");
+
+        if (Input.PaymentCollectionMethod == EventPaymentCollectionMethod.OrganizerManualTransfer)
+        {
+            var instructions = (Input.OrganizerPaymentInstructions ?? string.Empty).Trim();
+            if (string.IsNullOrWhiteSpace(instructions))
+            {
+                ModelState.AddModelError($"{nameof(Input)}.{nameof(EventDraftInput.OrganizerPaymentInstructions)}", "اطلاعات پرداخت برگزارکننده را وارد کنید.");
+            }
+            else if (instructions.Length is < 10 or > 1200)
+            {
+                ModelState.AddModelError($"{nameof(Input)}.{nameof(EventDraftInput.OrganizerPaymentInstructions)}", "اطلاعات پرداخت برگزارکننده باید بین 10 تا 1200 کاراکتر باشد.");
+            }
+            else
+            {
+                Input.OrganizerPaymentInstructions = instructions;
+            }
+        }
+        else
+        {
+            Input.OrganizerPaymentInstructions = null;
+            ModelState.Remove($"{nameof(Input)}.{nameof(EventDraftInput.OrganizerPaymentInstructions)}");
+        }
 
         if (Input.CapacityMale <= 0)
             ModelState.AddModelError(nameof(Input.CapacityMale), "ظرفیت آقایان باید بیشتر از صفر باشد.");
@@ -540,21 +607,20 @@ public class EditModel : PageModel
 
         try
         {
-            if (useShamsi)
+            if (!PersianDateFormatter.TryParseDate(normalizedDate, useShamsi, out var datePart))
             {
-                var datePart = PersianDateFormatter.Parse($"{normalizedDate} 00:00");
-                combined = new DateTimeOffset(
-                    datePart.Year,
-                    datePart.Month,
-                    datePart.Day,
-                    hour,
-                    minute,
-                    0,
-                    datePart.Offset).ToUniversalTime();
-                return true;
+                errorMessage = "تاریخ وارد شده معتبر نیست.";
+                return false;
             }
 
-            combined = DateTimeOffset.Parse($"{normalizedDate} {normalizedTime}").ToUniversalTime();
+            combined = new DateTimeOffset(
+                datePart.Year,
+                datePart.Month,
+                datePart.Day,
+                hour,
+                minute,
+                0,
+                datePart.Offset).ToUniversalTime();
             return true;
         }
         catch
@@ -590,6 +656,14 @@ public class EditModel : PageModel
     private static string NormalizeCurrencyCodeForForm(string? currencyCode)
         => string.IsNullOrWhiteSpace(currencyCode) ? "IRR" : currencyCode.Trim().ToUpperInvariant();
 
+    private string FormatDateInput(DateTimeOffset dateTime)
+        => _session.IsRtl
+            ? PersianDateFormatter.FormatDate(dateTime, useShamsi: true)
+            : dateTime.ToLocalTime().ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+    private static string FormatTimeInput(DateTimeOffset dateTime)
+        => dateTime.ToLocalTime().ToString("HH:mm", CultureInfo.InvariantCulture);
+
     private static string StripHtml(string value)
     {
         return System.Text.RegularExpressions.Regex.Replace(value ?? string.Empty, "<.*?>", string.Empty).Trim();
@@ -607,6 +681,14 @@ public class EditModel : PageModel
             return "سطح تحصیلی شرکت‌کننده با حداقل شرط تحصیلی این رویداد مطابقت ندارد.";
 
         return "اطلاعات فرم معتبر نیست. لطفاً فیلدها را بازبینی کنید.";
+    }
+
+    private void SyncSharedTicketCurrency()
+    {
+        var eventCurrencyCode = NormalizeCurrencyCodeForForm(Input.MaleTicketCurrencyCode);
+        Input.MaleTicketCurrencyCode = eventCurrencyCode;
+        Input.FemaleTicketCurrencyCode = eventCurrencyCode;
+        ModelState.Remove($"{nameof(Input)}.{nameof(EventDraftInput.FemaleTicketCurrencyCode)}");
     }
 
     private static long? MapRestrictionToEducationLevelId(EventEducationLevelRestriction restriction) => restriction switch
