@@ -1,81 +1,212 @@
 @page
 @model Randevoo.AdminPanel.Pages.Planner.IndexModel
 @{
-    ViewData["Title"] = "لیست برگزارکنندگان";
+    ViewData["Title"] = "برگزارکنندگان";
 }
 
-<section class="page-header">
+<section class="page-header planner-index-header">
     <div>
-        <h1>لیست برگزارکنندگان</h1>
-        <p>مدیریت برگزارکننده ها، پروفایل عمومی، حساب های بانکی و تراکنش های مالی هر برگزارکننده.</p>
+        <h1>برگزارکنندگان</h1>
     </div>
-    <a asp-page="/Users/Index" class="btn btn-outline-primary">
-        <i class="bi bi-person-plus"></i>ایجاد برگزارکننده
-    </a>
+    <div class="planner-index-actions">
+        <span class="status-badge status-draft">@DisplayFormatter.Count(Model.Planners.Count) برگزارکننده</span>
+        <a asp-page="/Users/Index" class="btn btn-primary">
+            <i class="bi bi-person-plus"></i>ایجاد برگزارکننده
+        </a>
+    </div>
 </section>
 
-<div class="glass-panel p-4">
-    <div class="form-section-head">
-        <div>
-            <h2 class="section-title mb-1">برگزارکننده ها</h2>
-            <p class="text-muted mb-0">این لیست فقط کاربران با نقش برگزارکننده را نمایش می دهد.</p>
-        </div>
-        <span class="status-badge status-draft">@DisplayFormatter.Count(Model.Planners.Count) برگزارکننده</span>
+@if (Model.Planners.Count == 0)
+{
+    <div class="glass-panel p-4">
+        <div class="empty-state">هنوز برگزارکننده‌ای ثبت نشده است.</div>
     </div>
+}
+else
+{
+    <section class="planner-profile-list" aria-label="فهرست برگزارکنندگان">
+        @foreach (var planner in Model.Planners)
+        {
+            var detailsUrl = Url.Page("/Planner/Details", new { id = planner.Id, modal = 1 });
+            var reviewUrl = Url.Page("/Planner/Review", new { id = planner.Id, modal = 1 });
+            var bankAccountsUrl = Url.Page("/Planner/BankAccounts", new { plannerUserId = planner.Id, modal = 1 });
+            var financeUrl = Url.Page("/Finance/User", new { userId = planner.Id, modal = 1 });
+            var editAccountUrl = Url.Page("/Users/Index", new { id = planner.Id, modal = 1 });
 
-    <div class="table-responsive mt-3">
-        <table class="table align-middle">
-            <thead>
-                <tr>
-                    <th>نام برگزارکننده</th>
-                    <th>موبایل</th>
-                    <th>وضعیت</th>
-                    <th>عملیات</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var planner in Model.Planners)
-                {
-                    <tr>
-                        <td>
-                            <div class="fw-semibold">@planner.FullName</div>
-                            <div class="text-muted small">شناسه: @DisplayFormatter.Count((int)planner.Id)</div>
-                        </td>
-                        <td dir="ltr">@planner.Mobile</td>
-                        <td>
-                            <span class="status-badge @(planner.IsActive ? "status-approved" : "status-rejected")">
+            <article class="planner-profile-row glass-panel">
+                <div class="planner-profile-person">
+                    <img src="@planner.PictureUrl" alt="@planner.FullName" class="planner-list-avatar" loading="lazy" onerror="this.src='/images/logo.png';" />
+                    <div class="planner-profile-copy">
+                        <div class="planner-profile-titleline">
+                            <h2>@planner.FullName</h2>
+                            <span class="status-badge @(planner.IsActive ? "status-approved" : "status-closed")">
                                 @(planner.IsActive ? "فعال" : "غیرفعال")
                             </span>
-                        </td>
-                        <td class="table-action-cell">
-                            <div class="dropdown">
-                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle table-action-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                    عملیات
-                                </button>
-                                <div class="dropdown-menu dropdown-menu-end action-menu shadow-sm border-0">
-                                    <a asp-page="/Planner/Details" asp-route-id="@planner.Id" class="dropdown-item">
-                                        <i class="bi bi-person-vcard"></i>پروفایل برگزارکننده
-                                    </a>
-                                    <a asp-page="/Planner/BankAccounts" asp-route-plannerUserId="@planner.Id" class="dropdown-item">
-                                        <i class="bi bi-bank2"></i>حساب های بانکی
-                                    </a>
-                                    <a asp-page="/Finance/User" asp-route-userId="@planner.Id" class="dropdown-item">
-                                        <i class="bi bi-cash-stack"></i>تراکنش های مالی
-                                    </a>
-                                    <a asp-page="/Users/Index" asp-route-id="@planner.Id" class="dropdown-item">
-                                        <i class="bi bi-pencil-square"></i>ویرایش حساب کاربری
-                                    </a>
-                                </div>
-                            </div>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    </div>
+                            @if (planner.HasPendingChanges)
+                            {
+                                <span class="status-badge status-pending">در انتظار تایید</span>
+                            }
+                        </div>
+                        <div class="planner-list-title">@planner.Title</div>
+                        <div class="planner-list-meta">
+                            <span><i class="bi bi-geo-alt"></i>@planner.City</span>
+                            <span dir="ltr"><i class="bi bi-phone"></i>@planner.Mobile</span>
+                            <span><i class="bi bi-hash"></i>@DisplayFormatter.ToPersianDigits(planner.Id.ToString())</span>
+                        </div>
+                    </div>
+                </div>
 
-    @if (Model.Planners.Count == 0)
-    {
-        <div class="empty-state">هنوز برگزارکننده ای ثبت نشده است.</div>
-    }
+                <div class="planner-list-stats" aria-label="آمار برگزارکننده">
+                    <div>
+                        <span>رویدادها</span>
+                        <strong>@DisplayFormatter.Count(planner.HostedEventCount)</strong>
+                    </div>
+                    <div>
+                        <span>تکمیل‌شده</span>
+                        <strong>@DisplayFormatter.Count(planner.CompletedEventCount)</strong>
+                    </div>
+                    <div>
+                        <span>لغوشده</span>
+                        <strong>@DisplayFormatter.Count(planner.CancelledEventCount)</strong>
+                    </div>
+                    <div>
+                        <span>امتیاز</span>
+                        <strong>@DisplayFormatter.ToPersianDigits(planner.AverageRating.ToString("0.0"))</strong>
+                    </div>
+                </div>
+
+                <div class="planner-list-actions">
+                    <a href="@detailsUrl"
+                       class="btn btn-sm btn-outline-primary"
+                       data-planner-action-modal="true"
+                       data-planner-action-title="پروفایل @planner.FullName">
+                        <i class="bi bi-person-vcard"></i>پروفایل
+                    </a>
+                    @if (planner.HasPendingChanges)
+                    {
+                        <a href="@reviewUrl"
+                           class="btn btn-sm btn-outline-warning"
+                           data-planner-action-modal="true"
+                           data-planner-action-title="بررسی @planner.FullName"
+                           data-planner-action-refresh="true">
+                            <i class="bi bi-patch-check"></i>بررسی
+                        </a>
+                    }
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle table-action-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            بیشتر
+                        </button>
+                        <div class="dropdown-menu dropdown-menu-end action-menu shadow-sm border-0">
+                            <a href="@bankAccountsUrl"
+                               class="dropdown-item"
+                               data-planner-action-modal="true"
+                               data-planner-action-title="حساب‌های بانکی @planner.FullName">
+                                <i class="bi bi-bank2"></i>حساب‌های بانکی
+                            </a>
+                            <a href="@financeUrl"
+                               class="dropdown-item"
+                               data-planner-action-modal="true"
+                               data-planner-action-title="مالی @planner.FullName">
+                                <i class="bi bi-cash-stack"></i>مالی برگزارکننده
+                            </a>
+                            <a href="@editAccountUrl"
+                               class="dropdown-item"
+                               data-planner-action-modal="true"
+                               data-planner-action-title="ویرایش حساب @planner.FullName"
+                               data-planner-action-refresh="true">
+                                <i class="bi bi-pencil-square"></i>ویرایش حساب
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </article>
+        }
+    </section>
+}
+
+<div class="modal fade planner-action-modal" id="plannerActionModal" tabindex="-1" aria-labelledby="plannerActionModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="plannerActionModalTitle">جزئیات برگزارکننده</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="بستن"></button>
+            </div>
+            <div class="modal-body">
+                <div class="planner-action-loader" data-planner-action-loader="true">
+                    <div class="spinner-border text-primary" role="status" aria-hidden="true"></div>
+                    <span>در حال بارگذاری</span>
+                </div>
+                <iframe id="plannerActionFrame"
+                        class="planner-action-frame"
+                        title="جزئیات برگزارکننده"
+                        loading="lazy"></iframe>
+            </div>
+        </div>
+    </div>
 </div>
+
+@section Scripts {
+    <script>
+        (function () {
+            const modalElement = document.getElementById("plannerActionModal");
+            const frame = document.getElementById("plannerActionFrame");
+            const title = document.getElementById("plannerActionModalTitle");
+            const loader = modalElement ? modalElement.querySelector("[data-planner-action-loader='true']") : null;
+
+            if (!modalElement || !frame || !title || !window.bootstrap) {
+                return;
+            }
+
+            const modal = window.bootstrap.Modal.getOrCreateInstance(modalElement);
+            let refreshOnClose = false;
+            let hasLoaded = false;
+
+            document.addEventListener("click", function (event) {
+                const trigger = event.target.closest("[data-planner-action-modal='true']");
+                if (!trigger) {
+                    return;
+                }
+
+                event.preventDefault();
+
+                document.querySelectorAll(".table-action-toggle.show").forEach(function (toggle) {
+                    const dropdown = window.bootstrap.Dropdown.getInstance(toggle);
+                    if (dropdown) {
+                        dropdown.hide();
+                    }
+                });
+
+                refreshOnClose = trigger.dataset.plannerActionRefresh === "true";
+                hasLoaded = false;
+                title.textContent = trigger.dataset.plannerActionTitle || "جزئیات برگزارکننده";
+                frame.title = title.textContent;
+                frame.classList.add("is-loading");
+                if (loader) {
+                    loader.classList.remove("d-none");
+                }
+
+                frame.src = trigger.href;
+                modal.show();
+            });
+
+            frame.addEventListener("load", function () {
+                hasLoaded = true;
+                frame.classList.remove("is-loading");
+                if (loader) {
+                    loader.classList.add("d-none");
+                }
+            });
+
+            modalElement.addEventListener("hidden.bs.modal", function () {
+                frame.removeAttribute("src");
+                if (loader) {
+                    loader.classList.remove("d-none");
+                }
+
+                if (refreshOnClose && hasLoaded) {
+                    window.location.reload();
+                }
+            });
+        })();
+    </script>
+}

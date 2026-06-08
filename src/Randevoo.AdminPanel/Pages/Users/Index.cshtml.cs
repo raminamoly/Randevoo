@@ -14,10 +14,12 @@ namespace Randevoo.AdminPanel.Pages.Users;
 public class IndexModel : PageModel
 {
     private readonly IUsersApiClient _usersApi;
+    private readonly ILocationsApiClient _locationsApi;
 
-    public IndexModel(IUsersApiClient usersApi)
+    public IndexModel(IUsersApiClient usersApi, ILocationsApiClient locationsApi)
     {
         _usersApi = usersApi;
+        _locationsApi = locationsApi;
     }
 
     [BindProperty]
@@ -34,11 +36,11 @@ public class IndexModel : PageModel
         set => Id = value;
     }
 
-    public SelectList RoleOptions => new(new[] { AdminRole.Admin, AdminRole.EventPlanner }
-        .Select(role => new { Value = role, Text = DisplayFormatter.Role(role) }), "Value", "Text");
+    public SelectList RoleOptions { get; private set; } = new(Array.Empty<object>());
 
     public async Task<IActionResult> OnGetAsync()
     {
+        await LoadOptionsAsync();
         Users = await _usersApi.GetUsersAsync();
 
         if (Id is long userId)
@@ -63,7 +65,16 @@ public class IndexModel : PageModel
 
     public async Task<IActionResult> OnPostAsync()
     {
+        await LoadOptionsAsync();
         await _usersApi.UpsertUserAsync(Input, UserId);
         return RedirectToPage("/Users/Index");
+    }
+
+    private async Task LoadOptionsAsync()
+    {
+        var roles = (await _locationsApi.GetUserRolesAsync())
+            .Where(role => role.Name is nameof(AdminRole.Admin) or nameof(AdminRole.EventPlanner))
+            .ToList();
+        RoleOptions = new SelectList(roles, nameof(SystemLookupOption.Value), nameof(SystemLookupOption.DisplayNameFa), Input.Role.ToString());
     }
 }

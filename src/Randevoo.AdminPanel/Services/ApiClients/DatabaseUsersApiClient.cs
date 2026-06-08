@@ -53,7 +53,7 @@ public sealed class DatabaseUsersApiClient : IUsersApiClient
             user = await _db.Users
                 .Include(item => item.Profile)
                 .FirstOrDefaultAsync(item => item.Id == userId, cancellationToken)
-                ?? throw new InvalidOperationException("کاربر مورد نظر پیدا نشد.");
+                ?? throw new InvalidOperationException("حساب مورد نظر پیدا نشد.");
 
             if (!string.Equals(user.MobileNumber, normalizedMobile, StringComparison.Ordinal))
             {

@@ -71,6 +71,7 @@ public sealed class DatabaseEventDiscountCodesApiClient : IEventDiscountCodesApi
                 OriginalPrice = ticket.OriginalPrice,
                 DiscountAmount = ticket.DiscountAmount,
                 FinalPaidAmount = ticket.Price,
+                CurrencyCode = ticket.CurrencyCode,
                 IsRefunded = ticket.IsRefunded,
                 IsRemoved = ticket.IsRemoved
             })
@@ -197,7 +198,7 @@ public sealed class DatabaseEventDiscountCodesApiClient : IEventDiscountCodesApi
         var user = await _db.Users
             .Include(item => item.Profile)
             .FirstOrDefaultAsync(item => item.Id == userId, cancellationToken)
-            ?? throw new InvalidOperationException("کاربر جاری پیدا نشد.");
+            ?? throw new InvalidOperationException("حساب جاری پیدا نشد.");
 
         if (user.Role != UserRole.Admin)
             throw new InvalidOperationException("فقط مدیر می تواند این عملیات را انجام دهد.");

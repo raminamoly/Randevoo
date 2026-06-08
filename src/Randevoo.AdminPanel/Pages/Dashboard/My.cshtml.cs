@@ -30,7 +30,7 @@ public class MyModel : PageModel
 
     public async Task OnGetAsync()
     {
-        var current = _session.CurrentUser ?? throw new InvalidOperationException("کاربر جاری شناسایی نشد.");
+        var current = _session.CurrentUser ?? throw new InvalidOperationException("حساب جاری شناسایی نشد.");
         Stats = await _dashboardApi.GetStatsAsync(current);
         Events = (await _eventsApi.GetEventsAsync(current)).Take(8).ToList();
     }

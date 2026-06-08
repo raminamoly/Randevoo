@@ -23,14 +23,19 @@ public static class RandevooSampleDataSeeder
             await db.Database.EnsureCreatedAsync(cancellationToken);
         }
 
+        await EnsureSupportRoleLookupAsync(db, cancellationToken);
+        await EnsureCurrencyLookupAsync(db, cancellationToken);
+
         var admin = await EnsureUserAsync(db, "09125177721", UserRole.Admin, cancellationToken);
         var planner = await EnsureUserAsync(db, "09125550000", UserRole.EventPlanner, cancellationToken);
         var plannerTwo = await EnsureUserAsync(db, "09125550001", UserRole.EventPlanner, cancellationToken);
         var plannerThree = await EnsureUserAsync(db, "09125550002", UserRole.EventPlanner, cancellationToken);
+        var support = await EnsureUserAsync(db, "09126660000", UserRole.PlatformSupportTeam, cancellationToken);
         var guestOne = await EnsureUserAsync(db, "09123334455", UserRole.EndUser, cancellationToken);
         var guestTwo = await EnsureUserAsync(db, "09124445566", UserRole.EndUser, cancellationToken);
 
         EnsureProfile(admin, "مدیر راندوو", new DateOnly(1988, 4, 12), Gender.Male, "تهران", "ونک");
+        EnsureProfile(support, "پشتیبان راندوو", new DateOnly(1992, 3, 18), Gender.Female, "تهران", "سهروردی");
         EnsureProfile(planner, "پویا فرهی", new DateOnly(1991, 7, 23), Gender.Male, "تهران", "ولیعصر");
         EnsureProfile(plannerTwo, "هانیه صدر", new DateOnly(1990, 10, 9), Gender.Female, "شیراز", "معالی آباد");
         EnsureProfile(plannerThree, "سام راد", new DateOnly(1989, 6, 1), Gender.Male, "اصفهان", "جلفا");
@@ -48,8 +53,8 @@ public static class RandevooSampleDataSeeder
         EnsureBalance(db, planner, 25000000m, "شارژ اولیه برگزارکننده");
         EnsureBalance(db, plannerTwo, 18000000m, "شارژ اولیه برگزارکننده");
         EnsureBalance(db, plannerThree, 18000000m, "شارژ اولیه برگزارکننده");
-        EnsureBalance(db, guestOne, 12000000m, "شارژ نمونه کاربر");
-        EnsureBalance(db, guestTwo, 12000000m, "شارژ نمونه کاربر");
+        EnsureBalance(db, guestOne, 12000000m, "شارژ نمونه شرکت‌کننده");
+        EnsureBalance(db, guestTwo, 12000000m, "شارژ نمونه شرکت‌کننده");
 
         await db.SaveChangesAsync(cancellationToken);
         await EnsurePlannerBankAccountsAsync(db, planner, cancellationToken);
@@ -149,11 +154,13 @@ public static class RandevooSampleDataSeeder
         await db.SaveChangesAsync(cancellationToken);
         await EnsureSampleOnlinePaymentsAsync(db, cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
+        await EnsureSampleSupportTicketsAsync(db, support, planner, plannerTwo, plannerThree, guestOne, guestTwo, sampleUsers, cancellationToken);
+        await db.SaveChangesAsync(cancellationToken);
 
         await EnsureEventSmsRequestsAsync(db, admin, planner, guestOne, guestTwo, cancellationToken);
         await EnsureSampleActivityLogsAsync(
             db,
-            new[] { admin, planner, plannerTwo, plannerThree, guestOne, guestTwo }.Concat(sampleUsers).ToList(),
+            new[] { admin, support, planner, plannerTwo, plannerThree, guestOne, guestTwo }.Concat(sampleUsers).ToList(),
             cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
     }
@@ -170,6 +177,84 @@ public static class RandevooSampleDataSeeder
         bool Smoking,
         string ImageUrl,
         string[] Interests);
+
+    private sealed record SupportTicketSeed(
+        User User,
+        string Title,
+        SupportTicketCategory Category,
+        string Body,
+        SupportTicketStatus Status,
+        int DaysAgo,
+        string? Reply);
+
+    private static async Task EnsureSupportRoleLookupAsync(RandevooDbContext db, CancellationToken cancellationToken)
+    {
+        var endUserRole = await db.UserRoles
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(item => item.Id == 1, cancellationToken);
+
+        if (endUserRole is not null)
+        {
+            db.Entry(endUserRole).Property(nameof(UserRoleLookup.DisplayNameFa)).CurrentValue = "شرکت‌کننده";
+        }
+
+        var supportRole = await db.UserRoles
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(item => item.Id == 4, cancellationToken);
+
+        if (supportRole is not null)
+        {
+            var entry = db.Entry(supportRole);
+            entry.Property(nameof(UserRoleLookup.Name)).CurrentValue = "platform-support-team";
+            entry.Property(nameof(UserRoleLookup.DisplayNameFa)).CurrentValue = "کارشناس پشتیبانی";
+            entry.Property(nameof(UserRoleLookup.IsActive)).CurrentValue = true;
+            entry.Property(nameof(UserRoleLookup.DisplayOrder)).CurrentValue = 4;
+        }
+
+        var waitingStatus = await db.SupportTicketStatuses
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(item => item.Id == 3, cancellationToken);
+
+        if (waitingStatus is not null)
+        {
+            db.Entry(waitingStatus).Property(nameof(SupportTicketStatusLookup.DisplayNameFa)).CurrentValue = "منتظر ثبت‌کننده";
+        }
+    }
+
+    private static async Task EnsureCurrencyLookupAsync(RandevooDbContext db, CancellationToken cancellationToken)
+    {
+        var currencies = new (string Code, string DisplayNameFa, string Symbol, int DisplayOrder)[]
+        {
+            ("IRR", "ریال ایران", "ریال", 1),
+            ("EUR", "یورو", "€", 2),
+            ("USD", "دلار آمریکا", "$", 3),
+            ("CAD", "دلار کانادا", "C$", 4),
+            ("GBP", "پوند انگلیس", "£", 5),
+            ("AED", "درهم امارات", "AED", 6),
+            ("TRY", "لیر ترکیه", "₺", 7)
+        };
+
+        foreach (var currency in currencies)
+        {
+            var existing = await db.Currencies
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(item => item.Code == currency.Code, cancellationToken);
+
+            if (existing is null)
+            {
+                db.Currencies.Add(new CurrencyLookup(currency.Code, currency.DisplayNameFa, currency.Symbol, currency.DisplayOrder));
+                continue;
+            }
+
+            var entry = db.Entry(existing);
+            entry.Property(nameof(CurrencyLookup.DisplayNameFa)).CurrentValue = currency.DisplayNameFa;
+            entry.Property(nameof(CurrencyLookup.Symbol)).CurrentValue = currency.Symbol;
+            entry.Property(nameof(CurrencyLookup.IsActive)).CurrentValue = true;
+            entry.Property(nameof(CurrencyLookup.DisplayOrder)).CurrentValue = currency.DisplayOrder;
+            entry.Property(nameof(CurrencyLookup.IsDeleted)).CurrentValue = false;
+            entry.Property(nameof(CurrencyLookup.DeletedAt)).CurrentValue = null;
+        }
+    }
 
     private static async Task<IReadOnlyList<User>> EnsureSampleEndUsersAsync(RandevooDbContext db, CancellationToken cancellationToken)
     {
@@ -739,11 +824,11 @@ public static class RandevooSampleDataSeeder
             var loginAt = DateTime.UtcNow.AddDays(-dayOffset).AddHours(9 + index % 5);
             var pagePath = importantPaths[index % importantPaths.Length];
 
-            logs.Add((CreateSeedLog(user.Id, displayName, role, "UserLogin", "login", "auth", "ورود کاربر به سیستم", "Session", $"{user.Id}-login", "/account/login", seedCorrelationId, "{\"source\":\"seed\"}"), loginAt));
+            logs.Add((CreateSeedLog(user.Id, displayName, role, "UserLogin", "login", "auth", "ورود حساب به سیستم", "Session", $"{user.Id}-login", "/account/login", seedCorrelationId, "{\"source\":\"seed\"}"), loginAt));
             logs.Add((CreateSeedLog(user.Id, displayName, role, "PageView", "page_view", "pages", "مشاهده صفحه مهم", "Page", pagePath, pagePath, seedCorrelationId, "{\"source\":\"seed\"}"), loginAt.AddMinutes(4)));
             logs.Add((CreateSeedLog(user.Id, displayName, role, "NavigationClick", "click", "pages", "کلیک روی آیتم های اصلی", "Page", pagePath, pagePath, seedCorrelationId, "{\"clicks\":4}"), loginAt.AddMinutes(9)));
             logs.Add((CreateSeedLog(user.Id, displayName, role, "TimeSpent", "time_spent", "pages", "مدت حضور در صفحه", "Page", pagePath, pagePath, seedCorrelationId, "{\"durationSeconds\":780}"), loginAt.AddMinutes(22)));
-            logs.Add((CreateSeedLog(user.Id, displayName, role, "UserLogout", "logout", "auth", "خروج کاربر از سیستم", "Session", $"{user.Id}-logout", "/account/logout", seedCorrelationId, "{\"source\":\"seed\"}"), loginAt.AddMinutes(26)));
+            logs.Add((CreateSeedLog(user.Id, displayName, role, "UserLogout", "logout", "auth", "خروج حساب از سیستم", "Session", $"{user.Id}-logout", "/account/logout", seedCorrelationId, "{\"source\":\"seed\"}"), loginAt.AddMinutes(26)));
         }
 
         for (var index = 0; index < Math.Min(4, users.Count); index++)
@@ -758,7 +843,7 @@ public static class RandevooSampleDataSeeder
                     "Heartbeat",
                     "click",
                     "activity",
-                    "فعالیت اخیر کاربر",
+                    "فعالیت اخیر حساب",
                     "Page",
                     "/dashboard/index",
                     "/dashboard/index",
@@ -953,6 +1038,63 @@ public static class RandevooSampleDataSeeder
         }
 
         db.BalanceAccounts.Add(account);
+    }
+
+    private static async Task EnsureSampleSupportTicketsAsync(
+        RandevooDbContext db,
+        User support,
+        User planner,
+        User plannerTwo,
+        User plannerThree,
+        User guestOne,
+        User guestTwo,
+        IReadOnlyList<User> sampleUsers,
+        CancellationToken cancellationToken)
+    {
+        const string samplePrefix = "نمونه پشتیبانی";
+        if (await db.SupportTickets.AnyAsync(ticket => ticket.Title.StartsWith(samplePrefix), cancellationToken))
+            return;
+
+        var submitters = sampleUsers.Concat(new[] { guestOne, guestTwo, planner, plannerTwo, plannerThree }).ToList();
+        var seeds = new SupportTicketSeed[]
+        {
+            new(submitters[0], $"{samplePrefix}: پرداخت موفق اما بلیت صادر نشده", SupportTicketCategory.FinancialProblem, "پرداخت انجام شد اما هنوز بلیت در حساب من دیده نمی شود.", SupportTicketStatus.Open, 1, null),
+            new(submitters[1], $"{samplePrefix}: سوال درباره بازگشت وجه", SupportTicketCategory.FinancialProblem, "برای رویدادی که لغو شده، زمان بازگشت وجه چقدر است؟", SupportTicketStatus.InProgress, 2, "رسید پرداخت بررسی شد و وضعیت بازگشت وجه در حال پیگیری است."),
+            new(submitters[2], $"{samplePrefix}: کد تخفیف اعمال نمی شود", SupportTicketCategory.FinancialProblem, "کد تخفیف روی رویداد فعال خطا می دهد.", SupportTicketStatus.WaitingForUser, 3, "لطفا اسکرین شات خطا و نام رویداد را ارسال کنید."),
+            new(submitters[3], $"{samplePrefix}: تغییر ساعت رویداد", SupportTicketCategory.EventProblem, "می خواهم ساعت شروع رویداد فردا اصلاح شود اما گزینه ویرایش غیرفعال است.", SupportTicketStatus.InProgress, 4, "رویداد در وضعیت فروش است؛ امکان تغییر مستقیم محدود شده و باید تایید شود."),
+            new(submitters[4], $"{samplePrefix}: شرکت کننده در لیست حضور نیست", SupportTicketCategory.EventProblem, "یکی از خریداران در لیست حضور رویداد دیده نمی شود.", SupportTicketStatus.Open, 5, null),
+            new(submitters[5], $"{samplePrefix}: پرسش درباره تکمیل پروفایل", SupportTicketCategory.GeneralQuestion, "برای تایید پروفایل چه اطلاعاتی لازم است؟", SupportTicketStatus.Closed, 6, "اطلاعات لازم ارسال شد و تیکت با تایید ثبت‌کننده بسته شد."),
+            new(submitters[6], $"{samplePrefix}: مغایرت مبلغ کیف پول", SupportTicketCategory.FinancialProblem, "موجودی کیف پول بعد از خرید کمتر از چیزی است که انتظار داشتم.", SupportTicketStatus.Reopened, 7, "تراکنش های کیف پول بررسی شد و برای بازبینی دوباره بازگشایی شد."),
+            new(submitters[7], $"{samplePrefix}: تغییر تصویر رویداد", SupportTicketCategory.EventProblem, "تصویر جدید رویداد آپلود شده اما در صفحه عمومی دیده نمی شود.", SupportTicketStatus.WaitingForUser, 8, "احتمالا تصویر در cache مرورگر است؛ لطفا لینک صفحه را ارسال کنید."),
+            new(submitters[8], $"{samplePrefix}: راهنمای ارسال پیامک", SupportTicketCategory.GeneralQuestion, "برای ارسال پیامک به شرکت کنندگان باید از کدام بخش اقدام کنم؟", SupportTicketStatus.Closed, 9, "مسیر عملیات برگزارکننده و مرکز پیامک توضیح داده شد."),
+            new(submitters[0], $"{samplePrefix}: پیگیری تسویه برگزارکننده", SupportTicketCategory.FinancialProblem, "درخواست تسویه ثبت شده اما هنوز پرداخت نشده است.", SupportTicketStatus.InProgress, 10, "درخواست تسویه در صف بررسی مالی قرار دارد."),
+            new(submitters[1], $"{samplePrefix}: مشکل نمایش نقشه", SupportTicketCategory.EventProblem, "آدرس رویداد درست است اما موقعیت نقشه اشتباه نمایش داده می شود.", SupportTicketStatus.Open, 11, null),
+            new(submitters[2], $"{samplePrefix}: سوال درباره ظرفیت", SupportTicketCategory.GeneralQuestion, "ظرفیت آقایان و خانم ها چطور جداگانه کنترل می شود؟", SupportTicketStatus.Closed, 12, "توضیح ظرفیت جنسیتی و محدودیت خرید برای ثبت‌کننده ارسال شد."),
+            new(submitters[3], $"{samplePrefix}: فایل رسید پرداخت", SupportTicketCategory.FinancialProblem, "رسید پرداخت را چطور برای پشتیبانی ارسال کنم؟", SupportTicketStatus.WaitingForUser, 13, "امکان پیوست تصویر در پاسخ تیکت فعال است."),
+            new(submitters[4], $"{samplePrefix}: بازگشایی تیکت قبلی", SupportTicketCategory.GeneralQuestion, "موضوع قبلی هنوز حل نشده و می خواهم تیکت دوباره بررسی شود.", SupportTicketStatus.Reopened, 14, "تیکت برای بررسی مجدد بازگشایی شد.")
+        };
+
+        foreach (var seed in seeds)
+        {
+            var firstMessage = new SupportTicketMessage(seed.User, seed.Body);
+            var ticket = new SupportTicket(seed.User, seed.Title, seed.Category, firstMessage, support);
+            if (!string.IsNullOrWhiteSpace(seed.Reply))
+            {
+                ticket.AddReply(support, seed.Reply);
+            }
+
+            if (seed.Status != SupportTicketStatus.Open)
+            {
+                ticket.ChangeStatus(support, seed.Status, "وضعیت نمونه برای تست داشبورد پشتیبانی");
+            }
+
+            db.SupportTickets.Add(ticket);
+            var createdAt = DateTime.UtcNow.Date.AddDays(-seed.DaysAgo).AddHours(8 + seed.DaysAgo % 8);
+            db.Entry(ticket).Property("CreatedAt").CurrentValue = createdAt;
+            db.Entry(ticket).Property("UpdatedAt").CurrentValue = createdAt.AddHours(seed.Reply is null ? 1 : 4);
+            db.Entry(firstMessage).Property("CreatedAt").CurrentValue = createdAt;
+            db.Entry(firstMessage).Property("UpdatedAt").CurrentValue = createdAt;
+        }
     }
 
     private static async Task EnsureEventSmsRequestsAsync(

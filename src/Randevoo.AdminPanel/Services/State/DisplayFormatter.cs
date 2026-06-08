@@ -12,6 +12,25 @@ public static class DisplayFormatter
     public static string Money(decimal value, bool useRtl)
         => ToPersianDigits($"{value:N0} ریال");
 
+    public static string TicketMoney(decimal value, string? currencyCode, bool useRtl)
+        => ToPersianDigits($"{value:N0} {CurrencyLabel(currencyCode)}");
+
+    public static string CurrencyLabel(string? currencyCode)
+    {
+        var normalized = string.IsNullOrWhiteSpace(currencyCode) ? "IRR" : currencyCode.Trim().ToUpperInvariant();
+        return normalized switch
+        {
+            "IRR" => "ریال ایران",
+            "EUR" => "یورو",
+            "USD" => "دلار آمریکا",
+            "CAD" => "دلار کانادا",
+            "GBP" => "پوند انگلیس",
+            "AED" => "درهم امارات",
+            "TRY" => "لیر ترکیه",
+            _ => normalized
+        };
+    }
+
     public static string Count(int value) => ToPersianDigits(value.ToString(CultureInfo.InvariantCulture));
 
     public static string Number(int value) => ToPersianDigits(value.ToString(CultureInfo.InvariantCulture));
@@ -24,7 +43,7 @@ public static class DisplayFormatter
     {
         AdminRole.Admin => "مدیر",
         AdminRole.EventPlanner => "برگزارکننده",
-        AdminRole.SupportTeam => "تیم پشتیبانی",
+        AdminRole.SupportTeam => "کارشناس پشتیبانی",
         _ => role.ToString()
     };
 

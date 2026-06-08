@@ -30,9 +30,11 @@ public static class DependencyInjection
         services.AddScoped<IEventDiscountCodeRepository, EventDiscountCodeRepository>();
         services.AddScoped<IEventTicketRepository, EventTicketRepository>();
         services.AddScoped<IEventConversationRepository, EventConversationRepository>();
+        services.AddScoped<IEventLikeRepository, EventLikeRepository>();
         services.AddScoped<IEventSurveyRepository, EventSurveyRepository>();
         services.AddScoped<IEventTypeRepository, EventTypeRepository>();
         services.AddScoped<IModerationReportRepository, ModerationReportRepository>();
+        services.AddScoped<ISupportTicketRepository, SupportTicketRepository>();
         services.AddScoped<IEventParticipantSmsRequestRepository, EventParticipantSmsRequestRepository>();
         services.AddScoped<ISmsQueueRepository, SmsQueueRepository>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();

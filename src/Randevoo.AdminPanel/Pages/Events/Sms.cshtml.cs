@@ -91,14 +91,14 @@ public class SmsModel : PageModel
 
     public async Task<IActionResult> OnGetAsync(long eventId)
     {
-        var current = _session.CurrentUser ?? throw new InvalidOperationException("کاربر جاری شناسایی نشد.");
+        var current = _session.CurrentUser ?? throw new InvalidOperationException("حساب جاری شناسایی نشد.");
         await LoadPageAsync(eventId, current);
         return Page();
     }
 
     public async Task<IActionResult> OnPostCreateAsync(long eventId)
     {
-        var current = _session.CurrentUser ?? throw new InvalidOperationException("کاربر جاری شناسایی نشد.");
+        var current = _session.CurrentUser ?? throw new InvalidOperationException("حساب جاری شناسایی نشد.");
 
         if (!TryParsePlannedSendAt(NewPlannedSendAtLocal, out var plannedSendAtUtc, out var scheduleError))
         {
@@ -130,7 +130,7 @@ public class SmsModel : PageModel
 
     public async Task<IActionResult> OnPostApproveAsync(long eventId)
     {
-        var current = _session.CurrentUser ?? throw new InvalidOperationException("کاربر جاری شناسایی نشد.");
+        var current = _session.CurrentUser ?? throw new InvalidOperationException("حساب جاری شناسایی نشد.");
 
         if (!TryParsePlannedSendAt(ReviewPlannedSendAtLocal, out var plannedSendAtUtc, out var scheduleError))
         {
@@ -176,7 +176,7 @@ public class SmsModel : PageModel
 
     public async Task<IActionResult> OnPostRejectAsync(long eventId)
     {
-        var current = _session.CurrentUser ?? throw new InvalidOperationException("کاربر جاری شناسایی نشد.");
+        var current = _session.CurrentUser ?? throw new InvalidOperationException("حساب جاری شناسایی نشد.");
 
         if (ReviewRequestId <= 0)
         {

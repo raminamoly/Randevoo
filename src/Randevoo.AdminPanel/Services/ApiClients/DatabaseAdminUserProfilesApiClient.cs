@@ -131,7 +131,7 @@ public sealed class DatabaseAdminUserProfilesApiClient : IAdminUserProfilesApiCl
             ProfileId = item.ProfileId,
             DisplayName = item.DisplayName,
             MobileNumber = item.MobileNumber,
-            RoleTitle = item.UserRole == UserRole.EventPlanner ? "برگزارکننده" : item.UserRole == UserRole.Admin ? "مدیر" : "کاربر",
+            RoleTitle = item.UserRole == UserRole.EventPlanner ? "برگزارکننده" : item.UserRole == UserRole.Admin ? "مدیر" : "شرکت‌کننده",
             GenderTitle = item.GenderLookupTitle ?? DisplayFormatter.Gender(item.Gender),
             CityTitle = item.CityName ?? (string.IsNullOrWhiteSpace(item.LocationCity) ? "ثبت نشده" : item.LocationCity),
             Age = item.Age,
@@ -155,8 +155,8 @@ public sealed class DatabaseAdminUserProfilesApiClient : IAdminUserProfilesApiCl
         EnsureAdmin(admin);
         var user = await QueryUser(userId)
             .FirstOrDefaultAsync(cancellationToken)
-            ?? throw new InvalidOperationException("کاربر پیدا نشد.");
-        var profile = user.Profile ?? throw new InvalidOperationException("پروفایل کاربر پیدا نشد.");
+            ?? throw new InvalidOperationException("شرکت‌کننده پیدا نشد.");
+        var profile = user.Profile ?? throw new InvalidOperationException("پروفایل شرکت‌کننده پیدا نشد.");
 
         var currentInterestIds = profile.Interests.Select(item => item.Id).ToList();
         var interests = await _db.Interests
@@ -205,8 +205,8 @@ public sealed class DatabaseAdminUserProfilesApiClient : IAdminUserProfilesApiCl
         EnsureAdmin(admin);
         var user = await QueryUser(userId)
             .FirstOrDefaultAsync(cancellationToken)
-            ?? throw new InvalidOperationException("کاربر پیدا نشد.");
-        var profile = user.Profile ?? throw new InvalidOperationException("پروفایل کاربر پیدا نشد.");
+            ?? throw new InvalidOperationException("شرکت‌کننده پیدا نشد.");
+        var profile = user.Profile ?? throw new InvalidOperationException("پروفایل شرکت‌کننده پیدا نشد.");
 
         var country = input.CountryId is long countryId
             ? await _db.Countries.FirstOrDefaultAsync(item => item.Id == countryId, cancellationToken)
@@ -246,7 +246,7 @@ public sealed class DatabaseAdminUserProfilesApiClient : IAdminUserProfilesApiCl
         var profile = await _db.UserProfiles
             .Include(item => item.Images)
             .FirstOrDefaultAsync(item => item.UserId == userId, cancellationToken)
-            ?? throw new InvalidOperationException("پروفایل کاربر پیدا نشد.");
+            ?? throw new InvalidOperationException("پروفایل شرکت‌کننده پیدا نشد.");
 
         var nextOrder = profile.Images.Count == 0 ? 1 : profile.Images.Max(item => item.DisplayOrder) + 1;
         profile.AddImage(input.ImageUrl.Trim(), nextOrder, profile.Images.Count == 0);
@@ -270,7 +270,7 @@ public sealed class DatabaseAdminUserProfilesApiClient : IAdminUserProfilesApiCl
         var profile = await _db.UserProfiles
             .Include(item => item.Interests)
             .FirstOrDefaultAsync(item => item.UserId == userId, cancellationToken)
-            ?? throw new InvalidOperationException("پروفایل کاربر پیدا نشد.");
+            ?? throw new InvalidOperationException("پروفایل شرکت‌کننده پیدا نشد.");
 
         var name = input.InterestName.Trim();
         var interest = await _db.Interests.FirstOrDefaultAsync(item => item.Name == name, cancellationToken);
@@ -293,7 +293,7 @@ public sealed class DatabaseAdminUserProfilesApiClient : IAdminUserProfilesApiCl
         var profile = await _db.UserProfiles
             .Include(item => item.Interests)
             .FirstOrDefaultAsync(item => item.UserId == userId, cancellationToken)
-            ?? throw new InvalidOperationException("پروفایل کاربر پیدا نشد.");
+            ?? throw new InvalidOperationException("پروفایل شرکت‌کننده پیدا نشد.");
 
         var interest = profile.Interests.FirstOrDefault(item => item.Name == interestName)
             ?? throw new InvalidOperationException("علاقه پیدا نشد.");
@@ -305,7 +305,7 @@ public sealed class DatabaseAdminUserProfilesApiClient : IAdminUserProfilesApiCl
     {
         EnsureAdmin(admin);
         var recipient = await _db.Users.FirstOrDefaultAsync(item => item.Id == userId, cancellationToken)
-            ?? throw new InvalidOperationException("کاربر پیدا نشد.");
+            ?? throw new InvalidOperationException("شرکت‌کننده پیدا نشد.");
         var adminEvent = await _db.DatingEvents.OrderBy(item => item.Id).FirstOrDefaultAsync(cancellationToken)
             ?? throw new InvalidOperationException("برای ثبت پیام فوری حداقل یک رویداد لازم است.");
 

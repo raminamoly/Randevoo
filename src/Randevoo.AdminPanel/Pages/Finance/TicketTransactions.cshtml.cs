@@ -53,7 +53,7 @@ public class TicketTransactionsModel : PageModel
 
     public async Task OnGetAsync()
     {
-        var current = _session.CurrentUser ?? throw new InvalidOperationException("کاربر جاری شناسایی نشد.");
+        var current = _session.CurrentUser ?? throw new InvalidOperationException("حساب جاری شناسایی نشد.");
         var groups = (await _financeApi.GetTicketPurchaseTransactionsByEventAsync(current)).AsEnumerable();
 
         if (EventId is long eventId)

@@ -77,6 +77,7 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("EndUserOnly", policy => policy.RequireRole("EndUser", "Admin"));
     options.AddPolicy("EventPlannerOnly", policy => policy.RequireRole("EventPlanner", "Admin"));
     options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"));
+    options.AddPolicy("SupportOrAdmin", policy => policy.RequireRole("platform-support-team", "PlatformSupportTeam", "Admin"));
 });
 
 var app = builder.Build();
@@ -137,6 +138,7 @@ app.MapEventChatEndpoints();
 app.MapEventSurveyEndpoints();
 app.MapEventTypeEndpoints();
 app.MapModerationEndpoints();
+app.MapSupportTicketEndpoints();
 app.MapPrivacyEndpoints();
 app.MapHub<EventChatHub>("/hubs/event-chat");
 

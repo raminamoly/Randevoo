@@ -28,4 +28,6 @@ public record DatingEventInput(
     string? EventImage2,
     string? EventImage3,
     string EventDescriptionHtml,
-    decimal? EventPlannerCommissionPercent = null);
+    decimal? EventPlannerCommissionPercent = null,
+    string MaleTicketCurrencyCode = "IRR",
+    string FemaleTicketCurrencyCode = "IRR");

@@ -65,12 +65,12 @@ public sealed class DatabaseAdminAnalyticsApiClient : IAdminAnalyticsApiClient
         {
             Metrics =
             [
-                new SummaryMetric { Label = "کل کاربران", Value = users.Count.ToString("N0", CultureInfo.InvariantCulture) },
-                new SummaryMetric { Label = "کاربران فعال", Value = auditLogs.Select(log => log.ActorUserId!.Value).Distinct().Count().ToString("N0", CultureInfo.InvariantCulture), Hint = range.Label },
+                new SummaryMetric { Label = "کل شرکت‌کنندگان", Value = users.Count.ToString("N0", CultureInfo.InvariantCulture) },
+                new SummaryMetric { Label = "شرکت‌کنندگان فعال", Value = auditLogs.Select(log => log.ActorUserId!.Value).Distinct().Count().ToString("N0", CultureInfo.InvariantCulture), Hint = range.Label },
                 new SummaryMetric { Label = "پروفایل ناقص", Value = users.Count(IsProfileIncomplete).ToString("N0", CultureInfo.InvariantCulture) },
-                new SummaryMetric { Label = "کاربران وفادار", Value = rangeTickets.GroupBy(ticket => ticket.UserId).Count(group => group.Count() > 1).ToString("N0", CultureInfo.InvariantCulture) },
+                new SummaryMetric { Label = "شرکت‌کنندگان وفادار", Value = rangeTickets.GroupBy(ticket => ticket.UserId).Count(group => group.Count() > 1).ToString("N0", CultureInfo.InvariantCulture) },
                 new SummaryMetric { Label = "آنلاین در ۳۰ دقیقه اخیر", Value = onlineNow.ToString("N0", CultureInfo.InvariantCulture) },
-                new SummaryMetric { Label = "میانگین کاربر به رویداد", Value = averageUsersPerEvent.ToString("N1", CultureInfo.InvariantCulture) }
+                new SummaryMetric { Label = "میانگین شرکت‌کننده به رویداد", Value = averageUsersPerEvent.ToString("N1", CultureInfo.InvariantCulture) }
             ],
             SignupTrend = BuildTrend(rangeUsers, user => user.CreatedAt, group => group.Count(), range),
             DailyActiveUsers = BuildTrend(auditLogs, log => log.CreatedAt, group => group.Select(item => item.ActorUserId).Distinct().Count(), range),
@@ -197,7 +197,7 @@ public sealed class DatabaseAdminAnalyticsApiClient : IAdminAnalyticsApiClient
             [
                 new SummaryMetric { Label = "درآمد کل پلتفرم", Value = platformIncomeRows.Sum(item => item.PlatformIncome).ToString("N0", CultureInfo.InvariantCulture) },
                 new SummaryMetric { Label = "درآمد برگزارکنندگان", Value = platformIncomeRows.Sum(item => item.PlannerIncome).ToString("N0", CultureInfo.InvariantCulture) },
-                new SummaryMetric { Label = "میانگین درآمد پلتفرم به کاربر", Value = platformIncomeRows.GroupBy(item => item.Ticket.UserId).Select(group => group.Sum(item => item.PlatformIncome)).DefaultIfEmpty(0m).Average().ToString("N0", CultureInfo.InvariantCulture) },
+                new SummaryMetric { Label = "میانگین درآمد پلتفرم به شرکت‌کننده", Value = platformIncomeRows.GroupBy(item => item.Ticket.UserId).Select(group => group.Sum(item => item.PlatformIncome)).DefaultIfEmpty(0m).Average().ToString("N0", CultureInfo.InvariantCulture) },
                 new SummaryMetric { Label = "میانگین کمیسیون", Value = tickets.Select(ticket => ticket.DatingEvent.EventPlannerCommissionPercent).DefaultIfEmpty(0m).Average().ToString("N1", CultureInfo.InvariantCulture) + "%" }
             ],
             PlatformIncomeByType = BuildPie(platformIncomeRows, item => item.Ticket.DatingEvent.EventType.Name, item => item.PlatformIncome),

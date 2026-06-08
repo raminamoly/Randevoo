@@ -24,6 +24,7 @@ builder.Services.AddRazorPages(options =>
     options.Conventions.AuthorizeFolder("/DiscountCodes");
     options.Conventions.AuthorizeFolder("/Tags");
     options.Conventions.AuthorizeFolder("/Finance");
+    options.Conventions.AuthorizeFolder("/Support", Policies.AdminPlannerOrSupport);
     options.Conventions.AuthorizeFolder("/Logs");
     options.Conventions.AuthorizeFolder("/Users");
     options.Conventions.AuthorizeFolder("/UserProfiles");
@@ -59,6 +60,7 @@ builder.Services.AddScoped<IAdminAnalyticsApiClient, DatabaseAdminAnalyticsApiCl
 builder.Services.AddScoped<IPlannerProfilesApiClient, DatabasePlannerProfilesApiClient>();
 builder.Services.AddScoped<IFinanceApiClient, DatabaseFinanceApiClient>();
 builder.Services.AddScoped<ILocationsApiClient, DatabaseLocationsApiClient>();
+builder.Services.AddScoped<ISupportTicketsApiClient, DatabaseSupportTicketsApiClient>();
 
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
@@ -79,6 +81,17 @@ builder.Services.AddAuthorization(options =>
         policy.RequireRole(
             AdminRole.Admin.ToString(),
             AdminRole.EventPlanner.ToString()));
+
+    options.AddPolicy(Policies.SupportOrAdmin, policy =>
+        policy.RequireRole(
+            AdminRole.Admin.ToString(),
+            AdminRole.SupportTeam.ToString()));
+
+    options.AddPolicy(Policies.AdminPlannerOrSupport, policy =>
+        policy.RequireRole(
+            AdminRole.Admin.ToString(),
+            AdminRole.EventPlanner.ToString(),
+            AdminRole.SupportTeam.ToString()));
 });
 
 var app = builder.Build();

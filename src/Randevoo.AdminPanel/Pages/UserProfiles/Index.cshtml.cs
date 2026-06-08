@@ -66,7 +66,7 @@ public class IndexModel : PageModel
 
     public async Task OnGetAsync()
     {
-        var current = _session.CurrentUser ?? throw new InvalidOperationException("کاربر جاری شناسایی نشد.");
+        var current = _session.CurrentUser ?? throw new InvalidOperationException("حساب جاری شناسایی نشد.");
         await LoadOptionsAsync();
         Result = await _profilesApi.GetProfilesAsync(current, new AdminUserProfileListFilter
         {

@@ -105,11 +105,15 @@ public class EditModel : PageModel
 
     public SelectList MinimumEducationLevelOptions { get; private set; } = new(Array.Empty<object>());
 
+    public SelectList CurrencyOptions { get; private set; } = new(Array.Empty<object>());
+
     public MultiSelectList TagOptions { get; private set; } = new(Array.Empty<object>());
 
     public SelectList PlannerOptions { get; private set; } = new(Array.Empty<object>());
 
     private List<long> PlannerIds { get; set; } = new();
+
+    private IReadOnlyList<SystemLookupOption> CurrencyLookupOptions { get; set; } = Array.Empty<SystemLookupOption>();
 
     public async Task<IActionResult> OnGetAsync()
     {
@@ -162,7 +166,7 @@ public class EditModel : PageModel
 
     public async Task<IActionResult> OnPostAsync()
     {
-        var current = _session.CurrentUser ?? throw new InvalidOperationException("کاربر جاری شناسایی نشد.");
+        var current = _session.CurrentUser ?? throw new InvalidOperationException("حساب جاری شناسایی نشد.");
         await LoadLookupOptionsAsync();
 
         ApplyEventContextDefaults();
@@ -273,6 +277,13 @@ public class EditModel : PageModel
         OnlinePlatformOptions = new SelectList(onlinePlatforms, "Id", "Name", Input.OnlineEventPlatformId);
         var tagOptions = await _eventTagsApi.GetActiveTagsAsync();
         TagOptions = new MultiSelectList(tagOptions, "Id", "Name", Input.TagIds);
+        CurrencyLookupOptions = await _eventsApi.GetCurrencyOptionsAsync();
+        Input.MaleTicketCurrencyCode = NormalizeCurrencyCodeForForm(Input.MaleTicketCurrencyCode);
+        Input.FemaleTicketCurrencyCode = NormalizeCurrencyCodeForForm(Input.FemaleTicketCurrencyCode);
+        CurrencyOptions = new SelectList(
+            CurrencyLookupOptions.Select(item => new { Code = item.Name, Title = $"{item.DisplayNameFa} ({item.Name})" }),
+            "Code",
+            "Title");
 
         Countries = await _locationsApi.GetCountriesAsync();
         Cities = await _locationsApi.GetCitiesAsync();
@@ -395,11 +406,20 @@ public class EditModel : PageModel
             ModelState.AddModelError(nameof(EndDateText), "زمان پایان باید بعد از زمان شروع باشد.");
         }
 
-        if (Input.MaleTicketPrice is < 0.01m or > 1_000_000m)
-            ModelState.AddModelError(nameof(Input.MaleTicketPrice), "قیمت بلیت آقایان باید بین 1 و 1,000,000 ریال باشد.");
+        Input.MaleTicketCurrencyCode = NormalizeCurrencyCodeForForm(Input.MaleTicketCurrencyCode);
+        Input.FemaleTicketCurrencyCode = NormalizeCurrencyCodeForForm(Input.FemaleTicketCurrencyCode);
 
-        if (Input.FemaleTicketPrice is < 0.01m or > 1_000_000m)
-            ModelState.AddModelError(nameof(Input.FemaleTicketPrice), "قیمت بلیت خانم ها باید بین 1 و 1,000,000 ریال باشد.");
+        if (Input.MaleTicketPrice is < 0.01m or > 1_000_000_000m)
+            ModelState.AddModelError(nameof(Input.MaleTicketPrice), "مبلغ بلیت آقایان باید بیشتر از صفر و کمتر از ۱,۰۰۰,۰۰۰,۰۰۰ باشد.");
+
+        if (Input.FemaleTicketPrice is < 0.01m or > 1_000_000_000m)
+            ModelState.AddModelError(nameof(Input.FemaleTicketPrice), "مبلغ بلیت خانم‌ها باید بیشتر از صفر و کمتر از ۱,۰۰۰,۰۰۰,۰۰۰ باشد.");
+
+        if (CurrencyLookupOptions.All(item => item.Name != Input.MaleTicketCurrencyCode))
+            ModelState.AddModelError(nameof(Input.MaleTicketCurrencyCode), "واحد پول بلیت آقایان معتبر نیست.");
+
+        if (CurrencyLookupOptions.All(item => item.Name != Input.FemaleTicketCurrencyCode))
+            ModelState.AddModelError(nameof(Input.FemaleTicketCurrencyCode), "واحد پول بلیت خانم‌ها معتبر نیست.");
 
         if (Input.OrganizerCommissionPercent is < 0 or > 100)
             ModelState.AddModelError(nameof(Input.OrganizerCommissionPercent), "درصد کمیسیون باید بین 0 تا 100 باشد.");
@@ -567,6 +587,9 @@ public class EditModel : PageModel
         .Replace('٨', '8')
         .Replace('٩', '9');
 
+    private static string NormalizeCurrencyCodeForForm(string? currencyCode)
+        => string.IsNullOrWhiteSpace(currencyCode) ? "IRR" : currencyCode.Trim().ToUpperInvariant();
+
     private static string StripHtml(string value)
     {
         return System.Text.RegularExpressions.Regex.Replace(value ?? string.Empty, "<.*?>", string.Empty).Trim();
@@ -581,7 +604,7 @@ public class EditModel : PageModel
         if (message.Contains("Each event tag must be between 2 and 30 characters", StringComparison.OrdinalIgnoreCase))
             return "طول هر تگ باید بین 2 تا 30 کاراکتر باشد.";
         if (message.Contains("education level does not meet", StringComparison.OrdinalIgnoreCase))
-            return "سطح تحصیلی کاربر با حداقل شرط تحصیلی این رویداد مطابقت ندارد.";
+            return "سطح تحصیلی شرکت‌کننده با حداقل شرط تحصیلی این رویداد مطابقت ندارد.";
 
         return "اطلاعات فرم معتبر نیست. لطفاً فیلدها را بازبینی کنید.";
     }

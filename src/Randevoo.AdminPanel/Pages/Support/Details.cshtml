@@ -1,0 +1,353 @@
+@page "{id:long}"
+@using Randevoo.AdminPanel.Models.Support
+@model Randevoo.AdminPanel.Pages.Support.DetailsModel
+@{
+    ViewData["Title"] = $"تیکت #{Model.Ticket.Id}";
+}
+
+<section class="page-header">
+    <div>
+        <h1>@Model.Ticket.Title</h1>
+    </div>
+    <a class="btn btn-outline-secondary" asp-page="@(Model.CanManage ? "/Support/Tickets" : "/Support/My")"><i class="bi bi-arrow-right"></i> بازگشت</a>
+</section>
+
+@if (!string.IsNullOrWhiteSpace(Model.StatusMessage))
+{
+    <div class="alert alert-info border-0 mb-4">@Model.StatusMessage</div>
+}
+
+<div class="glass-panel p-4 mb-4">
+    <ul class="nav nav-tabs" role="tablist">
+        <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#conversation" type="button">گفتگو</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#profile" type="button">پروفایل ثبت کننده</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#finance" type="button">مالی</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#events" type="button">رویدادها</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#previous" type="button">تیکت های قبلی</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#history" type="button">تاریخچه</button></li>
+    </ul>
+
+    <div class="tab-content pt-4">
+        <div class="tab-pane fade show active" id="conversation">
+            <div class="support-thread support-chat-thread">
+                @foreach (var message in Model.Ticket.Messages)
+                {
+                    var isSubmitterMessage = message.SenderUserId == Model.Ticket.Submitter.UserId;
+                    <article class="support-message @(isSubmitterMessage ? "submitter-message" : "agent-message")">
+                        <header>
+                            <strong>@message.SenderDisplayName</strong>
+                            <span class="text-muted small">@SupportTicketUiFormatter.FormatRole(message.SenderRole) | @PersianDateFormatter.FormatDateTime(message.CreatedAt, true)</span>
+                            @if (message.RepresentedUserId is not null)
+                            {
+                                <span class="badge text-bg-warning">از طرف @message.RepresentedDisplayName</span>
+                            }
+                        </header>
+                        <p>@message.Body</p>
+                        @if (message.Attachments.Count > 0)
+                        {
+                            <div class="support-attachments">
+                                @foreach (var attachment in message.Attachments)
+                                {
+                                    <a href="@attachment.Url" target="_blank" rel="noopener">
+                                        <img src="@attachment.Url" alt="@attachment.FileName" />
+                                    </a>
+                                }
+                            </div>
+                        }
+                    </article>
+                }
+            </div>
+
+            <form method="post" asp-page-handler="Reply" enctype="multipart/form-data" class="mt-4">
+                <input type="hidden" asp-for="ReplyInput.TicketId" value="@Model.Ticket.Id" />
+                @if (Model.IsAdmin)
+                {
+                    <label class="form-label">پاسخ از طرف</label>
+                    <select asp-for="ReplyInput.RepresentedUserId" class="form-select mb-3">
+                        <option value="">خود مدیر</option>
+                        @foreach (var supportUser in Model.SupportUsers)
+                        {
+                            <option value="@supportUser.Id">@supportUser.DisplayName</option>
+                        }
+                    </select>
+                }
+                <label class="form-label">پاسخ</label>
+                <textarea asp-for="ReplyInput.Body" class="form-control" rows="4"></textarea>
+                <div class="mt-3">
+                    <input asp-for="Attachments" class="form-control" type="file" accept="image/*" multiple />
+                </div>
+                <div class="d-flex justify-content-end mt-3">
+                    <button class="btn btn-primary" type="submit"><i class="bi bi-reply-fill"></i> ثبت پاسخ</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="tab-pane fade" id="profile">
+            <div class="support-profile-card">
+                <img src="@(Model.Ticket.Submitter.ProfileImageUrl ?? "/images/logo.png")" alt="@Model.Ticket.Submitter.DisplayName" />
+                <div>
+                    <h2>@Model.Ticket.Submitter.DisplayName</h2>
+                    <p dir="ltr">@Model.Ticket.Submitter.MobileNumber</p>
+                    <div class="support-profile-meta">
+                        <span>@SupportTicketUiFormatter.FormatRole(Model.Ticket.Submitter.Role)</span>
+                        <span>@(Model.Ticket.Submitter.IsActive ? "فعال" : "غیرفعال")</span>
+                        <span>@(Model.Ticket.Submitter.Email ?? "ایمیل ثبت نشده")</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="finance">
+            <div class="support-context-card">
+                <div>
+                    <h2>اطلاعات مالی ثبت کننده</h2>
+                </div>
+                <button class="btn btn-outline-primary" type="button" data-bs-toggle="modal" data-bs-target="#financeContextModal">
+                    <i class="bi bi-wallet2"></i>
+                    مشاهده مالی
+                </button>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="events">
+            <div class="support-context-card">
+                <div>
+                    <h2>رویدادها و رزروها</h2>
+                </div>
+                <button class="btn btn-outline-primary" type="button" data-bs-toggle="modal" data-bs-target="#eventsContextModal">
+                    <i class="bi bi-calendar-event"></i>
+                    مشاهده رویدادها
+                </button>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="previous">
+            <div class="support-context-card">
+                <div>
+                    <h2>تیکت های قبلی</h2>
+                </div>
+                <button class="btn btn-outline-primary" type="button" data-bs-toggle="modal" data-bs-target="#previousTicketsModal">
+                    <i class="bi bi-clock-history"></i>
+                    مشاهده سوابق
+                </button>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="history">
+            @foreach (var item in Model.Ticket.History)
+            {
+                <div class="border-bottom py-2">
+                    <strong>@item.Action</strong>
+                    <div class="text-muted small">@item.ActorDisplayName | @PersianDateFormatter.FormatDateTime(item.CreatedAt, true)</div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@if (Model.CanManage)
+{
+    <div class="modal fade" id="financeContextModal" tabindex="-1" aria-labelledby="financeContextModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content support-context-modal">
+                <div class="modal-header">
+                    <h2 class="modal-title fs-5" id="financeContextModalLabel">مالی @Model.Ticket.Submitter.DisplayName</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="بستن"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="support-modal-summary">
+                        <article>
+                            <span>موجودی فعلی</span>
+                            <strong>@DisplayFormatter.Money(Model.FinanceContext?.Balance ?? 0m, true)</strong>
+                        </article>
+                        <article>
+                            <span>تراکنش اخیر</span>
+                            <strong>@DisplayFormatter.Count(Model.FinanceContext?.Transactions.Count ?? 0)</strong>
+                        </article>
+                        <article>
+                            <span>پرداخت آنلاین</span>
+                            <strong>@DisplayFormatter.Count(Model.FinanceContext?.Payments.Count ?? 0)</strong>
+                        </article>
+                    </div>
+                    <h3 class="support-modal-title">تراکنش ها</h3>
+                    <div class="table-responsive mb-4">
+                        <table class="table align-middle">
+                            <thead>
+                                <tr>
+                                    <th>شناسه</th>
+                                    <th>نوع</th>
+                                    <th>رویداد</th>
+                                    <th>شرح</th>
+                                    <th>مبلغ</th>
+                                    <th>زمان</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in Model.FinanceContext?.Transactions ?? Array.Empty<SupportSubmitterTransactionItem>())
+                                {
+                                    <tr>
+                                        <td>@DisplayFormatter.Count((int)item.Id)</td>
+                                        <td>@SupportTicketUiFormatter.FormatTransactionType(item.Type)</td>
+                                        <td>@item.EventTitle</td>
+                                        <td class="table-wrap-cell">@item.Description</td>
+                                        <td class="@(item.Amount < 0 ? "text-danger" : "text-success")">@DisplayFormatter.Money(item.Amount, true)</td>
+                                        <td>@PersianDateFormatter.FormatDateTime(item.CreatedAtUtc, true)</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                    @if (Model.FinanceContext?.Transactions.Count is null or 0)
+                    {
+                        <div class="empty-state mb-4">تراکنشی برای این ثبت‌کننده ثبت نشده است.</div>
+                    }
+
+                    <h3 class="support-modal-title">پرداخت ها</h3>
+                    <div class="table-responsive">
+                        <table class="table align-middle">
+                            <thead>
+                                <tr>
+                                    <th>درگاه</th>
+                                    <th>کد پیگیری</th>
+                                    <th>رویداد</th>
+                                    <th>بلیت</th>
+                                    <th>مبلغ</th>
+                                    <th>وضعیت</th>
+                                    <th>زمان</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var payment in Model.FinanceContext?.Payments ?? Array.Empty<SupportSubmitterPaymentItem>())
+                                {
+                                    <tr>
+                                        <td>@payment.GatewayName</td>
+                                        <td dir="ltr">@payment.TrackingCode</td>
+                                        <td>@payment.EventTitle</td>
+                                        <td>@(payment.TicketId is null ? "بدون بلیت" : DisplayFormatter.Count((int)payment.TicketId.Value))</td>
+                                        <td>@DisplayFormatter.Money(payment.Amount, true)</td>
+                                        <td><span class="status-badge">@SupportTicketUiFormatter.FormatPaymentStatus(payment.Status)</span></td>
+                                        <td>@PersianDateFormatter.FormatDateTime(payment.CreatedAtUtc, true)</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                    @if (Model.FinanceContext?.Payments.Count is null or 0)
+                    {
+                        <div class="empty-state">پرداخت آنلاینی برای این ثبت‌کننده ثبت نشده است.</div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="eventsContextModal" tabindex="-1" aria-labelledby="eventsContextModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content support-context-modal">
+                <div class="modal-header">
+                    <h2 class="modal-title fs-5" id="eventsContextModalLabel">رویدادهای @Model.Ticket.Submitter.DisplayName</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="بستن"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="table-responsive">
+                        <table class="table align-middle">
+                            <thead>
+                                <tr>
+                                    <th>رویداد</th>
+                                    <th>برگزارکننده</th>
+                                    <th>قیمت بلیت</th>
+                                    <th>وضعیت</th>
+                                    <th>زمان رویداد</th>
+                                    <th>زمان خرید</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var booking in Model.EventBookings)
+                                {
+                                    <tr>
+                                        <td><div class="fw-semibold">@booking.EventTitle</div><div class="text-muted small">بلیت #@booking.TicketId</div></td>
+                                        <td>@booking.PlannerDisplayName</td>
+                                        <td>@DisplayFormatter.TicketMoney(booking.Price, booking.CurrencyCode, true)</td>
+                                        <td><span class="status-badge">@booking.Status</span></td>
+                                        <td>@PersianDateFormatter.FormatDateTime(booking.StartsAtUtc, true)</td>
+                                        <td>@PersianDateFormatter.FormatDateTime(booking.PurchasedAtUtc, true)</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                    @if (Model.EventBookings.Count == 0)
+                    {
+                        <div class="empty-state">رزرو یا خرید بلیتی برای این ثبت‌کننده پیدا نشد.</div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="previousTicketsModal" tabindex="-1" aria-labelledby="previousTicketsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content support-context-modal">
+                <div class="modal-header">
+                    <h2 class="modal-title fs-5" id="previousTicketsModalLabel">تیکت های قبلی @Model.Ticket.Submitter.DisplayName</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="بستن"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="support-previous-list">
+                        @foreach (var item in Model.PreviousTickets)
+                        {
+                            <a asp-page="/Support/Details" asp-route-id="@item.Id">
+                                <span>
+                                    <strong>@item.Title</strong>
+                                    <small>#@item.Id | @PersianDateFormatter.FormatDateTime(item.UpdatedAt ?? item.CreatedAt, true)</small>
+                                </span>
+                                <span class="status-badge">@SupportTicketUiFormatter.FormatStatus(item.Status)</span>
+                            </a>
+                        }
+                    </div>
+                    @if (Model.PreviousTickets.Count == 0)
+                    {
+                        <div class="empty-state">تیکت قبلی برای این ثبت‌کننده ثبت نشده است.</div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (Model.CanManage)
+{
+    <div class="row g-4">
+        <div class="col-12 col-lg-6">
+            <form method="post" asp-page-handler="Status" class="glass-panel p-4">
+                <h2 class="section-title">تغییر وضعیت</h2>
+                <input type="hidden" asp-for="StatusInput.TicketId" value="@Model.Ticket.Id" />
+                <select asp-for="StatusInput.Status" class="form-select mb-3" asp-items="Model.StatusOptions"></select>
+                <textarea asp-for="StatusInput.Note" class="form-control mb-3" rows="2" placeholder="یادداشت"></textarea>
+                <button class="btn btn-outline-primary" type="submit">ثبت وضعیت</button>
+            </form>
+        </div>
+        @if (Model.IsAdmin)
+        {
+            <div class="col-12 col-lg-6">
+                <form method="post" asp-page-handler="Reassign" class="glass-panel p-4">
+                    <h2 class="section-title">تخصیص دستی</h2>
+                    <input type="hidden" asp-for="ReassignInput.TicketId" value="@Model.Ticket.Id" />
+                    <select asp-for="ReassignInput.AssigneeUserId" class="form-select mb-3">
+                        <option value="">بدون مسئول</option>
+                        @foreach (var supportUser in Model.SupportUsers)
+                        {
+                            <option value="@supportUser.Id">@supportUser.DisplayName</option>
+                        }
+                    </select>
+                    <textarea asp-for="ReassignInput.Note" class="form-control mb-3" rows="2" placeholder="یادداشت"></textarea>
+                    <button class="btn btn-outline-primary" type="submit">ثبت تخصیص</button>
+                </form>
+            </div>
+        }
+    </div>
+}
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -37,7 +37,7 @@ public class SalesModel : PageModel
 
     public async Task OnGetAsync()
     {
-        var current = _session.CurrentUser ?? throw new InvalidOperationException("کاربر جاری شناسایی نشد.");
+        var current = _session.CurrentUser ?? throw new InvalidOperationException("حساب جاری شناسایی نشد.");
         Range = DashboardDateRange.Resolve(RangeKey);
         Report = await _analyticsApi.GetSalesDashboardAsync(current, Range);
     }

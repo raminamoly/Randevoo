@@ -17,6 +17,7 @@ public sealed class EventTicketBuyerItem
     public string Country { get; init; } = string.Empty;
     public string City { get; init; } = string.Empty;
     public decimal TicketPrice { get; init; }
+    public string TicketCurrencyCode { get; init; } = "IRR";
     public bool IsRefunded { get; init; }
     public bool IsRemoved { get; init; }
     public string TicketStatus { get; init; } = string.Empty;

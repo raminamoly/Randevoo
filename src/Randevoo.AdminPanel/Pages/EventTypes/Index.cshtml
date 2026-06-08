@@ -7,7 +7,6 @@
 <section class="page-header">
     <div>
         <h1>نوع رویدادها</h1>
-        <p>تعریف، ویرایش و مدیریت وضعیت نوع های رویداد برای استفاده در فرم ساخت رویداد.</p>
     </div>
 </section>
 
@@ -16,88 +15,101 @@
     <div class="alert alert-info border-0 mb-4">@Model.StatusMessage</div>
 }
 
-<div class="row g-4">
-    <div class="col-lg-4">
-        <form method="post" class="glass-panel p-4 sticky-panel">
+<div class="settings-editor-stack">
+    <section class="glass-panel p-4">
+        <form method="post">
             <input type="hidden" asp-for="Id" />
             <div asp-validation-summary="ModelOnly" class="alert alert-danger border-0 mb-3"></div>
 
             <h2 class="section-title">@((Model.IsEditing) ? "ویرایش نوع رویداد" : "ایجاد نوع رویداد")</h2>
 
-            <div class="mb-3">
-                <label asp-for="Input.Name" class="form-label">نام</label>
-                <input asp-for="Input.Name" class="form-control" />
-                <span asp-validation-for="Input.Name" class="text-danger small"></span>
-                <div class="help-tip">این نام در انتخاب نوع رویداد در فرم های مدیریتی نمایش داده می شود.</div>
-            </div>
+            <div class="row g-3 align-items-start">
+                <div class="col-lg-4">
+                    <label asp-for="Input.Name" class="form-label">نام</label>
+                    <input asp-for="Input.Name" class="form-control" />
+                    <span asp-validation-for="Input.Name" class="text-danger small"></span>
+                    <div class="help-tip">این نام در انتخاب نوع رویداد در فرم های مدیریتی نمایش داده می شود.</div>
+                </div>
 
-            <div class="mb-3">
-                <label asp-for="Input.Description" class="form-label">توضیحات</label>
-                <textarea asp-for="Input.Description" class="form-control" rows="4"></textarea>
-                <span asp-validation-for="Input.Description" class="text-danger small"></span>
-            </div>
+                <div class="col-lg-5">
+                    <label asp-for="Input.Description" class="form-label">توضیحات</label>
+                    <textarea asp-for="Input.Description" class="form-control" rows="3"></textarea>
+                    <span asp-validation-for="Input.Description" class="text-danger small"></span>
+                </div>
 
-            <div class="form-check form-switch mb-3">
-                <input asp-for="Input.IsActive" class="form-check-input" />
-                <label asp-for="Input.IsActive" class="form-check-label">فعال</label>
-            </div>
+                <div class="col-lg-3">
+                    <div class="settings-editor-actions">
+                        <div class="form-check form-switch">
+                            <input asp-for="Input.IsActive" class="form-check-input" />
+                            <label asp-for="Input.IsActive" class="form-check-label">فعال</label>
+                        </div>
 
-            <div class="d-grid gap-2">
-                <button type="submit" class="btn btn-primary">ذخیره نوع رویداد</button>
-                @if (Model.IsEditing)
-                {
-                    <a asp-page="/EventTypes/Index" class="btn btn-outline-secondary">ثبت نوع جدید</a>
-                }
+                        <div class="d-flex flex-wrap gap-2">
+                            <button type="submit" class="btn btn-primary">ذخیره نوع رویداد</button>
+                            @if (Model.IsEditing)
+                            {
+                                <a asp-page="/EventTypes/Index" class="btn btn-outline-secondary">ثبت نوع جدید</a>
+                            }
+                        </div>
+                    </div>
+                </div>
             </div>
         </form>
-    </div>
+    </section>
 
-    <div class="col-lg-8">
-        <div class="glass-panel p-4">
-            <div class="table-responsive">
-                <table class="table align-middle">
-                    <thead>
+    <section class="glass-panel p-4">
+        <div class="table-responsive">
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th>نام</th>
+                        <th>توضیحات</th>
+                        <th>وضعیت</th>
+                        <th>تعداد استفاده</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.EventTypes)
+                    {
                         <tr>
-                            <th>نام</th>
-                            <th>توضیحات</th>
-                            <th>وضعیت</th>
-                            <th>تعداد استفاده</th>
-                            <th></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var item in Model.EventTypes)
-                        {
-                            <tr>
-                                <td class="fw-semibold">@item.Name</td>
-                                <td class="table-wrap-cell">@(string.IsNullOrWhiteSpace(item.Description) ? "بدون توضیح" : item.Description)</td>
-                                <td><span class="status-badge @(item.IsActive ? "status-approved" : "status-closed")">@(item.IsActive ? "فعال" : "غیرفعال")</span></td>
-                                <td>@DisplayFormatter.Count(item.EventUsageCount)</td>
-                                <td class="text-end table-action-cell">
-                                    <div class="dropdown">
-                                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle table-action-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                            عملیات
-                                        </button>
-                                        <div class="dropdown-menu dropdown-menu-end action-menu shadow-sm border-0">
-                                            <a asp-page="/EventTypes/Index" asp-route-id="@item.Id" class="dropdown-item">
-                                                <i class="bi bi-pencil-square"></i>ویرایش نوع رویداد
-                                            </a>
+                            <td class="fw-semibold">@item.Name</td>
+                            <td class="table-wrap-cell">@(string.IsNullOrWhiteSpace(item.Description) ? "بدون توضیح" : item.Description)</td>
+                            <td><span class="status-badge @(item.IsActive ? "status-approved" : "status-closed")">@(item.IsActive ? "فعال" : "غیرفعال")</span></td>
+                            <td>@DisplayFormatter.Count(item.EventUsageCount)</td>
+                            <td class="text-end table-action-cell">
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle table-action-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        عملیات
+                                    </button>
+                                    <div class="dropdown-menu dropdown-menu-end action-menu shadow-sm border-0">
+                                        <a asp-page="/EventTypes/Index" asp-route-id="@item.Id" class="dropdown-item">
+                                            <i class="bi bi-pencil-square"></i>ویرایش نوع رویداد
+                                        </a>
+                                        @if (item.EventUsageCount > 0)
+                                        {
+                                            <button class="dropdown-item disabled text-muted" type="button" aria-disabled="true" title="این نوع رویداد در رویدادها استفاده شده است و قابل حذف نیست.">
+                                                <i class="bi bi-lock"></i>حذف غیرفعال است
+                                            </button>
+                                        }
+                                        else
+                                        {
                                             <form method="post" asp-page-handler="Delete" onsubmit="return confirm('نوع رویداد حذف شود؟');">
                                                 <input type="hidden" name="id" value="@item.Id" />
                                                 <button class="dropdown-item text-danger" type="submit">
                                                     <i class="bi bi-trash3"></i>حذف نوع رویداد
                                                 </button>
                                             </form>
-                                        </div>
+                                        }
                                     </div>
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
         </div>
-    </div>
+    </section>
 </div>
 
 <partial name="_ValidationScriptsPartial" />

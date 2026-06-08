@@ -68,14 +68,14 @@ public class DetailsModel : PageModel
 
     public async Task<IActionResult> OnPostApproveAsync(long id, decimal commissionPercent, string? note)
     {
-        var current = _session.CurrentUser ?? throw new InvalidOperationException("کاربر جاری شناسایی نشد.");
+        var current = _session.CurrentUser ?? throw new InvalidOperationException("حساب جاری شناسایی نشد.");
         await _eventsApi.ApproveAsync(id, current, commissionPercent, note);
         return RedirectToPage(new { id });
     }
 
     public async Task<IActionResult> OnPostApproveAndOpenAsync(long id, decimal commissionPercent, string? note)
     {
-        var current = _session.CurrentUser ?? throw new InvalidOperationException("کاربر جاری شناسایی نشد.");
+        var current = _session.CurrentUser ?? throw new InvalidOperationException("حساب جاری شناسایی نشد.");
         await _eventsApi.ApproveAsync(id, current, commissionPercent, note);
         await _eventsApi.ToggleSaleAsync(id, current, true);
         return RedirectToPage(new { id });
@@ -83,28 +83,28 @@ public class DetailsModel : PageModel
 
     public async Task<IActionResult> OnPostRejectAsync(long id, string note)
     {
-        var current = _session.CurrentUser ?? throw new InvalidOperationException("کاربر جاری شناسایی نشد.");
+        var current = _session.CurrentUser ?? throw new InvalidOperationException("حساب جاری شناسایی نشد.");
         await _eventsApi.RejectAsync(id, current, note);
         return RedirectToPage(new { id });
     }
 
     public async Task<IActionResult> OnPostOpenSaleAsync(long id)
     {
-        var current = _session.CurrentUser ?? throw new InvalidOperationException("کاربر جاری شناسایی نشد.");
+        var current = _session.CurrentUser ?? throw new InvalidOperationException("حساب جاری شناسایی نشد.");
         await _eventsApi.ToggleSaleAsync(id, current, true);
         return RedirectToPage(new { id });
     }
 
     public async Task<IActionResult> OnPostCloseSaleAsync(long id)
     {
-        var current = _session.CurrentUser ?? throw new InvalidOperationException("کاربر جاری شناسایی نشد.");
+        var current = _session.CurrentUser ?? throw new InvalidOperationException("حساب جاری شناسایی نشد.");
         await _eventsApi.ToggleSaleAsync(id, current, false);
         return RedirectToPage(new { id });
     }
 
     public async Task<IActionResult> OnPostCancelAsync(long id)
     {
-        var current = _session.CurrentUser ?? throw new InvalidOperationException("کاربر جاری شناسایی نشد.");
+        var current = _session.CurrentUser ?? throw new InvalidOperationException("حساب جاری شناسایی نشد.");
         await _eventsApi.CancelAsync(id, current);
         return RedirectToPage(new { id });
     }

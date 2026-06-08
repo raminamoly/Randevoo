@@ -7,7 +7,6 @@
 <section class="page-header">
     <div>
         <h1>کدهای تخفیف</h1>
-        <p>تعریف، ویرایش و مدیریت کدهای تخفیف مخصوص هر رویداد با محدودیت جنسیت، بازه زمانی و سقف مصرف.</p>
     </div>
 </section>
 
@@ -16,9 +15,9 @@
     <div class="alert alert-info border-0 mb-4">@Model.StatusMessage</div>
 }
 
-<div class="row g-4">
-    <div class="col-lg-4">
-        <form method="post" class="glass-panel p-4 sticky-panel">
+<div class="settings-editor-stack">
+    <section class="glass-panel p-4">
+        <form method="post">
             <input type="hidden" asp-for="Id" />
             <div asp-validation-summary="ModelOnly" class="alert alert-danger border-0 mb-3"></div>
 
@@ -57,10 +56,12 @@
                 <div class="col-md-6">
                     <label class="form-label">نوع تخفیف</label>
                     <div class="choice-group" data-discount-type-group="true">
-                        <input class="btn-check" type="radio" asp-for="Input.DiscountType" id="discountTypeFixed" value="@Randevoo.Domain.Enums.EventDiscountType.FixedAmount" />
-                        <label class="btn btn-outline-primary" for="discountTypeFixed">مبلغ</label>
-                        <input class="btn-check" type="radio" asp-for="Input.DiscountType" id="discountTypePercent" value="@Randevoo.Domain.Enums.EventDiscountType.Percentage" />
-                        <label class="btn btn-outline-primary" for="discountTypePercent">درصد</label>
+                        @foreach (var option in Model.DiscountTypeOptions)
+                        {
+                            var optionId = $"discountType_{option.Value}";
+                            <input class="btn-check" type="radio" asp-for="Input.DiscountType" id="@optionId" value="@option.Value" />
+                            <label class="btn btn-outline-primary" for="@optionId">@option.Text</label>
+                        }
                     </div>
                 </div>
                 <div class="col-md-6" data-discount-value-panel="fixed">
@@ -103,9 +104,9 @@
                 }
             </div>
         </form>
-    </div>
+    </section>
 
-    <div class="col-lg-8">
+    <section>
         <div class="glass-panel p-4 mb-4">
             <form method="get" class="row g-3 align-items-end">
                 <div class="col-md-4">
@@ -214,7 +215,7 @@
                 </table>
             </div>
         </div>
-    </div>
+    </section>
 </div>
 
 @if (Model.UsageDiscountCode is not null)
@@ -263,9 +264,9 @@
                                             <td class="table-wrap-cell">@usage.EventTitle</td>
                                             <td>@(usage.BuyerGender == Randevoo.Domain.Enums.Gender.Male ? "آقا" : usage.BuyerGender == Randevoo.Domain.Enums.Gender.Female ? "خانم" : "نامشخص")</td>
                                             <td>@PersianDateFormatter.FormatDateTime(usage.PurchasedAtUtc, Model.IsRtl)</td>
-                                            <td>@DisplayFormatter.Money(usage.OriginalPrice, Model.IsRtl)</td>
-                                            <td>@DisplayFormatter.Money(usage.DiscountAmount, Model.IsRtl)</td>
-                                            <td>@DisplayFormatter.Money(usage.FinalPaidAmount, Model.IsRtl)</td>
+                                            <td>@DisplayFormatter.TicketMoney(usage.OriginalPrice, usage.CurrencyCode, Model.IsRtl)</td>
+                                            <td>@DisplayFormatter.TicketMoney(usage.DiscountAmount, usage.CurrencyCode, Model.IsRtl)</td>
+                                            <td>@DisplayFormatter.TicketMoney(usage.FinalPaidAmount, usage.CurrencyCode, Model.IsRtl)</td>
                                             <td>@(usage.IsRefunded || usage.IsRemoved ? "برگشت خورده" : "موفق")</td>
                                         </tr>
                                     }

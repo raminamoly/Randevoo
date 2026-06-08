@@ -30,14 +30,14 @@ public class MoneyModel : PageModel
     public DashboardFilterViewModel FilterModel => new()
     {
         Title = "داشبورد مالی",
-        Description = "درآمد پلتفرم، سهم برگزارکنندگان و تمرکز درآمد بر کاربران و رویدادها.",
+        Description = "درآمد پلتفرم، سهم برگزارکنندگان و تمرکز درآمد بر شرکت‌کنندگان و رویدادها.",
         CurrentRangeKey = Range.Key,
         PagePath = "/Dashboard/Money"
     };
 
     public async Task OnGetAsync()
     {
-        var current = _session.CurrentUser ?? throw new InvalidOperationException("کاربر جاری شناسایی نشد.");
+        var current = _session.CurrentUser ?? throw new InvalidOperationException("حساب جاری شناسایی نشد.");
         Range = DashboardDateRange.Resolve(RangeKey);
         Report = await _analyticsApi.GetMoneyDashboardAsync(current, Range);
     }

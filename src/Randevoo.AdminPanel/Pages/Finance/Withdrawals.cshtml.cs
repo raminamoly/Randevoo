@@ -52,7 +52,7 @@ public class WithdrawalsModel : PageModel
 
     public async Task<IActionResult> OnPostConfirmWithdrawalAsync()
     {
-        var current = _session.CurrentUser ?? throw new InvalidOperationException("کاربر جاری شناسایی نشد.");
+        var current = _session.CurrentUser ?? throw new InvalidOperationException("حساب جاری شناسایی نشد.");
         try
         {
             await _financeApi.ConfirmWithdrawalAsync(current, ReviewInput.RequestId, ReviewInput.ReviewNote);
@@ -68,7 +68,7 @@ public class WithdrawalsModel : PageModel
 
     public async Task<IActionResult> OnPostRejectWithdrawalAsync()
     {
-        var current = _session.CurrentUser ?? throw new InvalidOperationException("کاربر جاری شناسایی نشد.");
+        var current = _session.CurrentUser ?? throw new InvalidOperationException("حساب جاری شناسایی نشد.");
         try
         {
             await _financeApi.RejectWithdrawalAsync(current, ReviewInput.RequestId, ReviewInput.ReviewNote);
@@ -91,7 +91,7 @@ public class WithdrawalsModel : PageModel
 
     private async Task LoadAsync()
     {
-        var current = _session.CurrentUser ?? throw new InvalidOperationException("کاربر جاری شناسایی نشد.");
+        var current = _session.CurrentUser ?? throw new InvalidOperationException("حساب جاری شناسایی نشد.");
         var requests = (await _financeApi.GetWithdrawalRequestsAsync(current)).AsEnumerable();
         if (!string.IsNullOrWhiteSpace(Search))
         {

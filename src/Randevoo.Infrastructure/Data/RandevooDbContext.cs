@@ -20,6 +20,11 @@ public class RandevooDbContext : DbContext
     public DbSet<EducationLevelLookup> EducationLevels => Set<EducationLevelLookup>();
     public DbSet<GenderLookup> Genders => Set<GenderLookup>();
     public DbSet<ZodiacSignLookup> ZodiacSigns => Set<ZodiacSignLookup>();
+    public DbSet<UserRoleLookup> UserRoles => Set<UserRoleLookup>();
+    public DbSet<EventReviewStatusLookup> EventReviewStatuses => Set<EventReviewStatusLookup>();
+    public DbSet<EventDiscountTypeLookup> EventDiscountTypes => Set<EventDiscountTypeLookup>();
+    public DbSet<BalanceTransactionTypeLookup> BalanceTransactionTypes => Set<BalanceTransactionTypeLookup>();
+    public DbSet<CurrencyLookup> Currencies => Set<CurrencyLookup>();
     public DbSet<BalanceAccount> BalanceAccounts => Set<BalanceAccount>();
     public DbSet<BalanceTransaction> BalanceTransactions => Set<BalanceTransaction>();
     public DbSet<OnlinePayment> OnlinePayments => Set<OnlinePayment>();
@@ -33,6 +38,7 @@ public class RandevooDbContext : DbContext
     public DbSet<Tag> Tags => Set<Tag>();
     public DbSet<EventTag> EventTags => Set<EventTag>();
     public DbSet<EventTicket> EventTickets => Set<EventTicket>();
+    public DbSet<EventLike> EventLikes => Set<EventLike>();
     public DbSet<EventConversation> EventConversations => Set<EventConversation>();
     public DbSet<EventChatMessage> EventChatMessages => Set<EventChatMessage>();
     public DbSet<EventChatBlock> EventChatBlocks => Set<EventChatBlock>();
@@ -40,6 +46,13 @@ public class RandevooDbContext : DbContext
     public DbSet<EventSurveyRating> EventSurveyRatings => Set<EventSurveyRating>();
     public DbSet<EventType> EventTypes => Set<EventType>();
     public DbSet<ModerationReport> ModerationReports => Set<ModerationReport>();
+    public DbSet<SupportTicket> SupportTickets => Set<SupportTicket>();
+    public DbSet<SupportTicketMessage> SupportTicketMessages => Set<SupportTicketMessage>();
+    public DbSet<SupportTicketAttachment> SupportTicketAttachments => Set<SupportTicketAttachment>();
+    public DbSet<SupportTicketHistoryEntry> SupportTicketHistoryEntries => Set<SupportTicketHistoryEntry>();
+    public DbSet<SupportTicketAssignmentCursor> SupportTicketAssignmentCursors => Set<SupportTicketAssignmentCursor>();
+    public DbSet<SupportTicketStatusLookup> SupportTicketStatuses => Set<SupportTicketStatusLookup>();
+    public DbSet<SupportTicketCategoryLookup> SupportTicketCategories => Set<SupportTicketCategoryLookup>();
     public DbSet<EventParticipantSmsRequest> EventParticipantSmsRequests => Set<EventParticipantSmsRequest>();
     public DbSet<SmsQueueItem> SmsQueueItems => Set<SmsQueueItem>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
@@ -108,6 +121,97 @@ public class RandevooDbContext : DbContext
             b.HasIndex(log => new { log.Status, log.CreatedAt });
             b.HasIndex(log => new { log.TargetType, log.TargetId });
             b.HasIndex(log => log.CreatedAt);
+        });
+
+        modelBuilder.Entity<UserRoleLookup>(b =>
+        {
+            b.ToTable("UserRoles");
+            b.HasKey(role => role.Id);
+            b.Property(role => role.Name).IsRequired().HasMaxLength(50);
+            b.Property(role => role.DisplayNameFa).IsRequired().HasMaxLength(80);
+            b.Property(role => role.IsActive).IsRequired();
+            b.Property(role => role.DisplayOrder).IsRequired();
+            b.HasIndex(role => role.Name).IsUnique();
+            b.HasQueryFilter(role => !role.IsDeleted);
+            b.HasData(
+                new { Id = 1L, Name = "EndUser", DisplayNameFa = "شرکت‌کننده", IsActive = true, DisplayOrder = 1, CreatedAt = new DateTime(2026, 6, 7, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 2L, Name = "EventPlanner", DisplayNameFa = "برگزارکننده", IsActive = true, DisplayOrder = 2, CreatedAt = new DateTime(2026, 6, 7, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 3L, Name = "Admin", DisplayNameFa = "مدیر", IsActive = true, DisplayOrder = 3, CreatedAt = new DateTime(2026, 6, 7, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 4L, Name = "platform-support-team", DisplayNameFa = "کارشناس پشتیبانی", IsActive = true, DisplayOrder = 4, CreatedAt = new DateTime(2026, 6, 8, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false });
+        });
+
+        modelBuilder.Entity<EventReviewStatusLookup>(b =>
+        {
+            b.ToTable("ReviewStatuses");
+            b.HasKey(status => status.Id);
+            b.Property(status => status.Name).IsRequired().HasMaxLength(50);
+            b.Property(status => status.DisplayNameFa).IsRequired().HasMaxLength(80);
+            b.Property(status => status.IsActive).IsRequired();
+            b.Property(status => status.DisplayOrder).IsRequired();
+            b.HasIndex(status => status.Name).IsUnique();
+            b.HasQueryFilter(status => !status.IsDeleted);
+            b.HasData(
+                new { Id = 1L, Name = "NotSubmitted", DisplayNameFa = "ارسال نشده", IsActive = true, DisplayOrder = 1, CreatedAt = new DateTime(2026, 6, 7, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 2L, Name = "PendingReview", DisplayNameFa = "در انتظار بررسی", IsActive = true, DisplayOrder = 2, CreatedAt = new DateTime(2026, 6, 7, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 3L, Name = "Approved", DisplayNameFa = "تایید شده توسط مدیر", IsActive = true, DisplayOrder = 3, CreatedAt = new DateTime(2026, 6, 7, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 4L, Name = "Rejected", DisplayNameFa = "رد شده توسط مدیر", IsActive = true, DisplayOrder = 4, CreatedAt = new DateTime(2026, 6, 7, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false });
+        });
+
+        modelBuilder.Entity<EventDiscountTypeLookup>(b =>
+        {
+            b.ToTable("DiscountTypes");
+            b.HasKey(type => type.Id);
+            b.Property(type => type.Name).IsRequired().HasMaxLength(50);
+            b.Property(type => type.DisplayNameFa).IsRequired().HasMaxLength(80);
+            b.Property(type => type.IsActive).IsRequired();
+            b.Property(type => type.DisplayOrder).IsRequired();
+            b.HasIndex(type => type.Name).IsUnique();
+            b.HasQueryFilter(type => !type.IsDeleted);
+            b.HasData(
+                new { Id = 1L, Name = "FixedAmount", DisplayNameFa = "مبلغ ثابت", IsActive = true, DisplayOrder = 1, CreatedAt = new DateTime(2026, 6, 7, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 2L, Name = "Percentage", DisplayNameFa = "درصدی", IsActive = true, DisplayOrder = 2, CreatedAt = new DateTime(2026, 6, 7, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false });
+        });
+
+        modelBuilder.Entity<BalanceTransactionTypeLookup>(b =>
+        {
+            b.ToTable("BalanceTransactionTypes");
+            b.HasKey(type => type.Id);
+            b.Property(type => type.Name).IsRequired().HasMaxLength(80);
+            b.Property(type => type.DisplayNameFa).IsRequired().HasMaxLength(120);
+            b.Property(type => type.IsActive).IsRequired();
+            b.Property(type => type.DisplayOrder).IsRequired();
+            b.HasIndex(type => type.Name).IsUnique();
+            b.HasQueryFilter(type => !type.IsDeleted);
+            b.HasData(
+                new { Id = 1L, Name = "AdminAdjustment", DisplayNameFa = "اصلاح مدیر", IsActive = true, DisplayOrder = 1, CreatedAt = new DateTime(2026, 6, 7, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 2L, Name = "TicketPurchase", DisplayNameFa = "خرید بلیت", IsActive = true, DisplayOrder = 2, CreatedAt = new DateTime(2026, 6, 7, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 3L, Name = "TicketRefund", DisplayNameFa = "بازگشت بلیت", IsActive = true, DisplayOrder = 3, CreatedAt = new DateTime(2026, 6, 7, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 4L, Name = "EventPlannerIncome", DisplayNameFa = "درآمد برگزارکننده", IsActive = true, DisplayOrder = 4, CreatedAt = new DateTime(2026, 6, 7, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 5L, Name = "PlatformCommission", DisplayNameFa = "کمیسیون پلتفرم", IsActive = true, DisplayOrder = 5, CreatedAt = new DateTime(2026, 6, 7, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 6L, Name = "EmergencyRemovalRefund", DisplayNameFa = "بازگشت حذف اضطراری", IsActive = true, DisplayOrder = 6, CreatedAt = new DateTime(2026, 6, 7, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 7L, Name = "PlannerWithdrawalPayout", DisplayNameFa = "تسویه برگزارکننده", IsActive = true, DisplayOrder = 7, CreatedAt = new DateTime(2026, 6, 7, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 8L, Name = "EventPlannerIncomeReversal", DisplayNameFa = "برگشت درآمد برگزارکننده", IsActive = true, DisplayOrder = 8, CreatedAt = new DateTime(2026, 6, 7, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false });
+        });
+
+        modelBuilder.Entity<CurrencyLookup>(b =>
+        {
+            b.ToTable("Currencies");
+            b.HasKey(currency => currency.Id);
+            b.Property(currency => currency.Code).IsRequired().HasMaxLength(3);
+            b.Property(currency => currency.DisplayNameFa).IsRequired().HasMaxLength(80);
+            b.Property(currency => currency.Symbol).IsRequired().HasMaxLength(12);
+            b.Property(currency => currency.IsActive).IsRequired();
+            b.Property(currency => currency.DisplayOrder).IsRequired();
+            b.HasIndex(currency => currency.Code).IsUnique();
+            b.HasQueryFilter(currency => !currency.IsDeleted);
+            b.HasData(
+                new { Id = 1L, Code = "IRR", DisplayNameFa = "ریال ایران", Symbol = "ریال", IsActive = true, DisplayOrder = 1, CreatedAt = new DateTime(2026, 6, 8, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 2L, Code = "EUR", DisplayNameFa = "یورو", Symbol = "€", IsActive = true, DisplayOrder = 2, CreatedAt = new DateTime(2026, 6, 8, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 3L, Code = "USD", DisplayNameFa = "دلار آمریکا", Symbol = "$", IsActive = true, DisplayOrder = 3, CreatedAt = new DateTime(2026, 6, 8, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 4L, Code = "CAD", DisplayNameFa = "دلار کانادا", Symbol = "C$", IsActive = true, DisplayOrder = 4, CreatedAt = new DateTime(2026, 6, 8, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 5L, Code = "GBP", DisplayNameFa = "پوند انگلیس", Symbol = "£", IsActive = true, DisplayOrder = 5, CreatedAt = new DateTime(2026, 6, 8, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 6L, Code = "AED", DisplayNameFa = "درهم امارات", Symbol = "AED", IsActive = true, DisplayOrder = 6, CreatedAt = new DateTime(2026, 6, 8, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 7L, Code = "TRY", DisplayNameFa = "لیر ترکیه", Symbol = "₺", IsActive = true, DisplayOrder = 7, CreatedAt = new DateTime(2026, 6, 8, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false });
         });
 
         modelBuilder.Entity<Country>(b =>
@@ -468,17 +572,26 @@ public class RandevooDbContext : DbContext
             b.HasIndex(e => e.CountryId);
             b.HasIndex(e => e.CityId);
             b.HasIndex(e => e.MinimumEducationLevelId);
+            b.HasIndex(e => new { e.IsCancelled, e.DateTimeEnd });
+            b.HasIndex(e => new { e.IsCancelled, e.IsOpenForSell, e.DateTimeEnd });
+            b.HasIndex(e => new { e.ReviewStatus, e.DateTimeStart });
+            b.HasIndex(e => new { e.DateTimeStart, e.Id });
+            b.HasIndex(e => new { e.UpdatedAt, e.Id });
             b.Property(e => e.EventPlannerCommissionPercent).HasPrecision(5, 2).IsRequired();
             b.Property(e => e.NumberOfLikesAllowed).HasColumnName("NumberOfLikesAllowed").IsRequired();
             b.Property(e => e.ReviewStatus).IsRequired();
             b.Property(e => e.MaleTicketPrice).HasPrecision(18, 2).IsRequired();
+            b.Property(e => e.MaleTicketCurrencyCode).IsRequired().HasMaxLength(3).HasDefaultValue("IRR");
             b.Property(e => e.FemaleTicketPrice).HasPrecision(18, 2).IsRequired();
+            b.Property(e => e.FemaleTicketCurrencyCode).IsRequired().HasMaxLength(3).HasDefaultValue("IRR");
             b.Property(e => e.EducationLevelRestriction).IsRequired();
             b.Property(e => e.EventImage1).HasMaxLength(500);
             b.Property(e => e.EventImage2).HasMaxLength(500);
             b.Property(e => e.EventImage3).HasMaxLength(500);
             b.Property(e => e.EventDescriptionHtml).IsRequired().HasMaxLength(10000);
             b.HasIndex(e => e.EventPlannerUserId);
+            b.HasIndex(e => e.MaleTicketCurrencyCode);
+            b.HasIndex(e => e.FemaleTicketCurrencyCode);
             b.HasQueryFilter(e => !e.IsDeleted);
             b.HasOne(e => e.EventPlannerUser)
                 .WithMany()
@@ -591,6 +704,28 @@ public class RandevooDbContext : DbContext
             b.HasQueryFilter(discountCode => !discountCode.IsDeleted && (discountCode.DatingEvent == null || !discountCode.DatingEvent.IsDeleted));
         });
 
+        modelBuilder.Entity<EventLike>(b =>
+        {
+            b.ToTable("EventLikes");
+            b.HasKey(like => like.Id);
+            b.Property(like => like.Status).IsRequired();
+            b.HasIndex(like => new { like.DatingEventId, like.FromUserId, like.ToUserId }).IsUnique();
+            b.HasIndex(like => new { like.DatingEventId, like.ToUserId, like.Status });
+            b.HasQueryFilter(like => !like.IsDeleted && !like.DatingEvent.IsDeleted);
+            b.HasOne(like => like.DatingEvent)
+                .WithMany()
+                .HasForeignKey(like => like.DatingEventId)
+                .OnDelete(DeleteBehavior.Cascade);
+            b.HasOne(like => like.FromUser)
+                .WithMany()
+                .HasForeignKey(like => like.FromUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            b.HasOne(like => like.ToUser)
+                .WithMany()
+                .HasForeignKey(like => like.ToUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
         modelBuilder.Entity<Tag>(b =>
         {
             b.HasKey(tag => tag.Id);
@@ -627,11 +762,13 @@ public class RandevooDbContext : DbContext
         {
             b.HasKey(t => t.Id);
             b.Property(t => t.OriginalPrice).HasPrecision(18, 2).IsRequired();
+            b.Property(t => t.CurrencyCode).IsRequired().HasMaxLength(3).HasDefaultValue("IRR");
             b.Property(t => t.DiscountAmount).HasPrecision(18, 2).IsRequired();
             b.Property(t => t.DiscountCode).HasMaxLength(50);
             b.Property(t => t.Price).HasPrecision(18, 2).IsRequired();
             b.Property(t => t.RemovalReason).HasMaxLength(500);
             b.HasIndex(t => new { t.DatingEventId, t.UserId }).IsUnique();
+            b.HasIndex(t => t.CurrencyCode);
             b.HasIndex(t => t.EventDiscountCodeId);
             b.HasQueryFilter(t => !t.DatingEvent.IsDeleted);
             b.HasOne(t => t.User)
@@ -778,6 +915,118 @@ public class RandevooDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(report => report.ReviewedByAdminUserId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<SupportTicket>(b =>
+        {
+            b.ToTable("SupportTickets");
+            b.HasKey(ticket => ticket.Id);
+            b.Property(ticket => ticket.Title).IsRequired().HasMaxLength(180);
+            b.Property(ticket => ticket.Category).IsRequired();
+            b.Property(ticket => ticket.Status).IsRequired();
+            b.Property(ticket => ticket.SubmitterRole).IsRequired();
+            b.HasIndex(ticket => new { ticket.Status, ticket.Category, ticket.CreatedAt });
+            b.HasIndex(ticket => ticket.SubmitterUserId);
+            b.HasIndex(ticket => ticket.AssignedSupportUserId);
+            b.HasQueryFilter(ticket => !ticket.IsDeleted);
+            b.HasOne(ticket => ticket.SubmitterUser)
+                .WithMany()
+                .HasForeignKey(ticket => ticket.SubmitterUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            b.HasOne(ticket => ticket.AssignedSupportUser)
+                .WithMany()
+                .HasForeignKey(ticket => ticket.AssignedSupportUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            b.HasMany(ticket => ticket.Messages)
+                .WithOne(message => message.SupportTicket)
+                .HasForeignKey(message => message.SupportTicketId)
+                .OnDelete(DeleteBehavior.Cascade);
+            b.HasMany(ticket => ticket.History)
+                .WithOne(history => history.SupportTicket)
+                .HasForeignKey(history => history.SupportTicketId)
+                .OnDelete(DeleteBehavior.Cascade);
+            b.Navigation(ticket => ticket.Messages).UsePropertyAccessMode(PropertyAccessMode.Field);
+            b.Navigation(ticket => ticket.History).UsePropertyAccessMode(PropertyAccessMode.Field);
+        });
+
+        modelBuilder.Entity<SupportTicketStatusLookup>(b =>
+        {
+            b.ToTable("SupportTicketStatuses");
+            b.HasKey(status => status.Id);
+            b.Property(status => status.Name).IsRequired().HasMaxLength(80);
+            b.Property(status => status.DisplayNameFa).IsRequired().HasMaxLength(120);
+            b.Property(status => status.IsActive).IsRequired();
+            b.Property(status => status.DisplayOrder).IsRequired();
+            b.HasIndex(status => status.Name).IsUnique();
+            b.HasQueryFilter(status => !status.IsDeleted);
+        });
+
+        modelBuilder.Entity<SupportTicketCategoryLookup>(b =>
+        {
+            b.ToTable("SupportTicketCategories");
+            b.HasKey(category => category.Id);
+            b.Property(category => category.Name).IsRequired().HasMaxLength(80);
+            b.Property(category => category.DisplayNameFa).IsRequired().HasMaxLength(120);
+            b.Property(category => category.IsActive).IsRequired();
+            b.Property(category => category.DisplayOrder).IsRequired();
+            b.HasIndex(category => category.Name).IsUnique();
+            b.HasQueryFilter(category => !category.IsDeleted);
+        });
+
+        modelBuilder.Entity<SupportTicketMessage>(b =>
+        {
+            b.ToTable("SupportTicketMessages");
+            b.HasKey(message => message.Id);
+            b.Property(message => message.Body).IsRequired().HasMaxLength(4000);
+            b.Property(message => message.SenderRole).IsRequired();
+            b.HasIndex(message => message.SupportTicketId);
+            b.HasQueryFilter(message => !message.SupportTicket.IsDeleted);
+            b.HasOne(message => message.SenderUser)
+                .WithMany()
+                .HasForeignKey(message => message.SenderUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            b.HasOne(message => message.RepresentedUser)
+                .WithMany()
+                .HasForeignKey(message => message.RepresentedUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            b.HasMany(message => message.Attachments)
+                .WithOne(attachment => attachment.Message)
+                .HasForeignKey(attachment => attachment.SupportTicketMessageId)
+                .OnDelete(DeleteBehavior.Cascade);
+            b.Navigation(message => message.Attachments).UsePropertyAccessMode(PropertyAccessMode.Field);
+        });
+
+        modelBuilder.Entity<SupportTicketAttachment>(b =>
+        {
+            b.ToTable("SupportTicketAttachments");
+            b.HasKey(attachment => attachment.Id);
+            b.Property(attachment => attachment.FileName).IsRequired().HasMaxLength(260);
+            b.Property(attachment => attachment.ContentType).IsRequired().HasMaxLength(100);
+            b.Property(attachment => attachment.Url).IsRequired().HasMaxLength(1000);
+            b.Property(attachment => attachment.SizeBytes).IsRequired();
+            b.HasQueryFilter(attachment => !attachment.Message.SupportTicket.IsDeleted);
+        });
+
+        modelBuilder.Entity<SupportTicketHistoryEntry>(b =>
+        {
+            b.ToTable("SupportTicketHistoryEntries");
+            b.HasKey(history => history.Id);
+            b.Property(history => history.Action).IsRequired().HasMaxLength(80);
+            b.Property(history => history.Note).HasMaxLength(1000);
+            b.HasIndex(history => history.SupportTicketId);
+            b.HasQueryFilter(history => !history.SupportTicket.IsDeleted);
+            b.HasOne(history => history.ActorUser)
+                .WithMany()
+                .HasForeignKey(history => history.ActorUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<SupportTicketAssignmentCursor>(b =>
+        {
+            b.ToTable("SupportTicketAssignmentCursors");
+            b.HasKey(cursor => cursor.Id);
+            b.Property(cursor => cursor.QueueName).IsRequired().HasMaxLength(80);
+            b.HasIndex(cursor => cursor.QueueName).IsUnique();
         });
 
         modelBuilder.Entity<EventParticipantSmsRequest>(b =>

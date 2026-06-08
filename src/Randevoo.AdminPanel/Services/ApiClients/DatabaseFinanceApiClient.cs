@@ -267,7 +267,7 @@ public sealed class DatabaseFinanceApiClient : IFinanceApiClient
         var user = await _db.Users
             .Include(item => item.Profile)
             .FirstOrDefaultAsync(item => item.Id == userId, cancellationToken)
-            ?? throw new InvalidOperationException("کاربر پیدا نشد.");
+            ?? throw new InvalidOperationException("شرکت‌کننده پیدا نشد.");
 
         var account = await _db.BalanceAccounts
             .Include(item => item.Transactions)

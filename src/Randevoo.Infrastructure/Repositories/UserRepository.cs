@@ -1,6 +1,7 @@
 ﻿ 
 using Microsoft.EntityFrameworkCore;
 using Randevoo.Domain.Entities;
+using Randevoo.Domain.Enums;
 using Randevoo.Domain.Interfaces.Repositories;
 using Randevoo.Infrastructure.Data;
 
@@ -22,6 +23,14 @@ public class UserRepository : IUserRepository
     public async Task<bool> ExistsByEmailAsync(string email, CancellationToken cancellationToken = default)
     {
         return await _db.Users.AnyAsync(u => u.Email == email || u.PendingEmail == email, cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<User>> ListActiveSupportUsersAsync(CancellationToken cancellationToken = default)
+    {
+        return await _db.Users
+            .Where(user => user.Role == UserRole.PlatformSupportTeam && user.IsActive)
+            .OrderBy(user => user.Id)
+            .ToListAsync(cancellationToken);
     }
 
     public async Task AddAsync(User user, CancellationToken cancellationToken = default)

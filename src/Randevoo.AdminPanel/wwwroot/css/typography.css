@@ -1,0 +1,322 @@
+@font-face {
+    font-family: "IRANSansXFaNum";
+    src:
+        url("../fonts/iransansx/fanum/woff2/IRANSansXFaNum-Thin.woff2") format("woff2"),
+        url("../fonts/iransansx/fanum/woff/IRANSansXFaNum-Thin.woff") format("woff");
+    font-style: normal;
+    font-weight: 100;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "IRANSansXFaNum";
+    src:
+        url("../fonts/iransansx/fanum/woff2/IRANSansXFaNum-UltraLight.woff2") format("woff2"),
+        url("../fonts/iransansx/fanum/woff/IRANSansXFaNum-UltraLight.woff") format("woff");
+    font-style: normal;
+    font-weight: 200;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "IRANSansXFaNum";
+    src:
+        url("../fonts/iransansx/fanum/woff2/IRANSansXFaNum-Light.woff2") format("woff2"),
+        url("../fonts/iransansx/fanum/woff/IRANSansXFaNum-Light.woff") format("woff");
+    font-style: normal;
+    font-weight: 300;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "IRANSansXFaNum";
+    src:
+        url("../fonts/iransansx/fanum/woff2/IRANSansXFaNum-Regular.woff2") format("woff2"),
+        url("../fonts/iransansx/fanum/woff/IRANSansXFaNum-Regular.woff") format("woff");
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "IRANSansXFaNum";
+    src:
+        url("../fonts/iransansx/fanum/woff2/IRANSansXFaNum-Medium.woff2") format("woff2"),
+        url("../fonts/iransansx/fanum/woff/IRANSansXFaNum-Medium.woff") format("woff");
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "IRANSansXFaNum";
+    src:
+        url("../fonts/iransansx/fanum/woff2/IRANSansXFaNum-DemiBold.woff2") format("woff2"),
+        url("../fonts/iransansx/fanum/woff/IRANSansXFaNum-DemiBold.woff") format("woff");
+    font-style: normal;
+    font-weight: 600;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "IRANSansXFaNum";
+    src:
+        url("../fonts/iransansx/fanum/woff2/IRANSansXFaNum-Bold.woff2") format("woff2"),
+        url("../fonts/iransansx/fanum/woff/IRANSansXFaNum-Bold.woff") format("woff");
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "IRANSansXFaNum";
+    src:
+        url("../fonts/iransansx/fanum/woff2/IRANSansXFaNum-ExtraBold.woff2") format("woff2"),
+        url("../fonts/iransansx/fanum/woff/IRANSansXFaNum-ExtraBold.woff") format("woff");
+    font-style: normal;
+    font-weight: 800;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "IRANSansXFaNum";
+    src:
+        url("../fonts/iransansx/fanum/woff2/IRANSansXFaNum-Black.woff2") format("woff2"),
+        url("../fonts/iransansx/fanum/woff/IRANSansXFaNum-Black.woff") format("woff");
+    font-style: normal;
+    font-weight: 900;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "IRANSansX";
+    src:
+        url("../fonts/iransansx/standard/woff2/IRANSansX-Thin.woff2") format("woff2"),
+        url("../fonts/iransansx/standard/woff/IRANSansX-Thin.woff") format("woff");
+    font-style: normal;
+    font-weight: 100;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "IRANSansX";
+    src:
+        url("../fonts/iransansx/standard/woff2/IRANSansX-UltraLight.woff2") format("woff2"),
+        url("../fonts/iransansx/standard/woff/IRANSansX-UltraLight.woff") format("woff");
+    font-style: normal;
+    font-weight: 200;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "IRANSansX";
+    src:
+        url("../fonts/iransansx/standard/woff2/IRANSansX-Light.woff2") format("woff2"),
+        url("../fonts/iransansx/standard/woff/IRANSansX-Light.woff") format("woff");
+    font-style: normal;
+    font-weight: 300;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "IRANSansX";
+    src:
+        url("../fonts/iransansx/standard/woff2/IRANSansX-Regular.woff2") format("woff2"),
+        url("../fonts/iransansx/standard/woff/IRANSansX-Regular.woff") format("woff");
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "IRANSansX";
+    src:
+        url("../fonts/iransansx/standard/woff2/IRANSansX-Medium.woff2") format("woff2"),
+        url("../fonts/iransansx/standard/woff/IRANSansX-Medium.woff") format("woff");
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "IRANSansX";
+    src:
+        url("../fonts/iransansx/standard/woff2/IRANSansX-DemiBold.woff2") format("woff2"),
+        url("../fonts/iransansx/standard/woff/IRANSansX-DemiBold.woff") format("woff");
+    font-style: normal;
+    font-weight: 600;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "IRANSansX";
+    src:
+        url("../fonts/iransansx/standard/woff2/IRANSansX-Bold.woff2") format("woff2"),
+        url("../fonts/iransansx/standard/woff/IRANSansX-Bold.woff") format("woff");
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "IRANSansX";
+    src:
+        url("../fonts/iransansx/standard/woff2/IRANSansX-ExtraBold.woff2") format("woff2"),
+        url("../fonts/iransansx/standard/woff/IRANSansX-ExtraBold.woff") format("woff");
+    font-style: normal;
+    font-weight: 800;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "IRANSansX";
+    src:
+        url("../fonts/iransansx/standard/woff2/IRANSansX-Black.woff2") format("woff2"),
+        url("../fonts/iransansx/standard/woff/IRANSansX-Black.woff") format("woff");
+    font-style: normal;
+    font-weight: 900;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "IRANSansXV";
+    src:
+        url("../fonts/iransansx/variable/IRANSansXV.woff2") format("woff2"),
+        url("../fonts/iransansx/variable/IRANSansXV.woff") format("woff");
+    font-style: normal;
+    font-weight: 100 900;
+    font-display: swap;
+}
+
+:root {
+    --rv-font-primary: "IRANSansXFaNum", "IRANSansX", "Tahoma", "Segoe UI", Arial, sans-serif;
+    --rv-font-text: var(--rv-font-primary);
+    --rv-font-display: var(--rv-font-primary);
+    --rv-font-data: var(--rv-font-primary);
+    --rv-font-chart: "IRANSansXFaNum", "IRANSansX", "Tahoma", "Segoe UI", Arial, sans-serif;
+    --rv-font-latin: "IRANSansX", "Segoe UI", Arial, sans-serif;
+    --rv-font-mono: "Cascadia Mono", Consolas, "Courier New", monospace;
+    --rv-font-weight-thin: 100;
+    --rv-font-weight-light: 300;
+    --rv-font-weight-regular: 400;
+    --rv-font-weight-medium: 500;
+    --rv-font-weight-semibold: 600;
+    --rv-font-weight-bold: 700;
+    --rv-font-weight-extrabold: 800;
+    --rv-font-weight-black: 900;
+    --bs-font-sans-serif: var(--rv-font-primary);
+    --bs-body-font-family: var(--rv-font-primary);
+}
+
+html,
+body {
+    font-family: var(--rv-font-text);
+}
+
+body,
+button,
+input,
+select,
+textarea,
+.btn,
+.form-control,
+.form-select,
+.dropdown-menu,
+.modal,
+.popover,
+.tooltip,
+.table,
+.card,
+.glass-panel,
+.ql-container,
+.ql-editor {
+    font-family: var(--rv-font-text);
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "ss03";
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.brand-name,
+.topbar-title,
+.page-header h1,
+.auth-brand h1,
+.section-title {
+    font-family: var(--rv-font-display);
+    font-weight: var(--rv-font-weight-extrabold);
+    letter-spacing: 0;
+}
+
+strong,
+b,
+.fw-bold {
+    font-weight: var(--rv-font-weight-bold);
+}
+
+.fw-semibold {
+    font-weight: var(--rv-font-weight-semibold) !important;
+}
+
+.rv-font-ui {
+    font-family: var(--rv-font-text) !important;
+}
+
+.rv-font-display {
+    font-family: var(--rv-font-display) !important;
+}
+
+.rv-font-data,
+.stat-card strong,
+.support-kpi-card strong,
+.dashboard-hero-metric strong,
+.dashboard-location-row strong,
+.money-amount,
+.ltr-value-number {
+    font-family: var(--rv-font-data) !important;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "ss03";
+}
+
+[dir="ltr"],
+input[dir="ltr"],
+textarea[dir="ltr"],
+.ltr-value,
+.font-latin,
+.code,
+code,
+kbd,
+pre,
+samp {
+    font-family: var(--rv-font-latin);
+    font-feature-settings: normal;
+    font-variant-numeric: tabular-nums;
+}
+
+pre,
+code,
+kbd,
+samp {
+    font-family: var(--rv-font-mono);
+}
+
+canvas,
+.chartjs-render-monitor {
+    font-family: var(--rv-font-chart);
+}
+
+.datepicker-plot-area,
+.datepicker-plot-area *,
+.jalali-date-picker {
+    font-family: var(--rv-font-data) !important;
+    font-feature-settings: "ss03";
+}
+
+.bi,
+[class^="bi-"],
+[class*=" bi-"] {
+    font-family: bootstrap-icons !important;
+}

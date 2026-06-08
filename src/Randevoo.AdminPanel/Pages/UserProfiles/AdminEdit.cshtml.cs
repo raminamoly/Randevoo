@@ -92,7 +92,7 @@ public class AdminEditModel : PageModel
         }
 
         await _adminProfilesApi.SaveProfileAsync(userId, CurrentAdmin(), ProfileInput);
-        StatusMessage = "پروفایل کاربر به روز شد.";
+        StatusMessage = "پروفایل شرکت‌کننده به‌روز شد.";
         return RedirectToPage(new { userId });
     }
 
@@ -127,14 +127,14 @@ public class AdminEditModel : PageModel
         }
 
         await _adminProfilesApi.AddInterestAsync(userId, CurrentAdmin(), interestInput);
-        StatusMessage = "علاقه کاربر اضافه شد.";
+        StatusMessage = "علاقه شرکت‌کننده اضافه شد.";
         return RedirectToPage(new { userId });
     }
 
     public async Task<IActionResult> OnPostRemoveInterestAsync(long userId, string interestName)
     {
         await _adminProfilesApi.RemoveInterestAsync(userId, CurrentAdmin(), interestName);
-        StatusMessage = "علاقه کاربر حذف شد.";
+        StatusMessage = "علاقه شرکت‌کننده حذف شد.";
         return RedirectToPage(new { userId });
     }
 
@@ -167,7 +167,7 @@ public class AdminEditModel : PageModel
         ZodiacSigns = await _locationsApi.GetZodiacSignsAsync();
     }
 
-    private MockUser CurrentAdmin() => _session.CurrentUser ?? throw new InvalidOperationException("کاربر جاری شناسایی نشد.");
+    private MockUser CurrentAdmin() => _session.CurrentUser ?? throw new InvalidOperationException("حساب جاری شناسایی نشد.");
 
     private void SyncDateText()
     {

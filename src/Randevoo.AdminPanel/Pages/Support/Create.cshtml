@@ -1,0 +1,48 @@
+@page
+@model Randevoo.AdminPanel.Pages.Support.CreateModel
+@{
+    ViewData["Title"] = "ثبت تیکت پشتیبانی";
+}
+
+<section class="page-header">
+    <div>
+        <h1>ثبت تیکت پشتیبانی</h1>
+    </div>
+    <a class="btn btn-outline-secondary" asp-page="/Support/My"><i class="bi bi-ticket-perforated"></i> تیکت های من</a>
+</section>
+
+@if (!string.IsNullOrWhiteSpace(Model.StatusMessage))
+{
+    <div class="alert alert-info border-0 mb-4">@Model.StatusMessage</div>
+}
+
+<form method="post" enctype="multipart/form-data" class="glass-panel p-4 support-form">
+    <div class="row g-3">
+        <div class="col-12 col-lg-8">
+            <label asp-for="Input.Title" class="form-label">عنوان</label>
+            <input asp-for="Input.Title" class="form-control" />
+            <span asp-validation-for="Input.Title" class="text-danger small"></span>
+        </div>
+        <div class="col-12 col-lg-4">
+            <label asp-for="Input.Category" class="form-label">دسته بندی</label>
+            <select asp-for="Input.Category" class="form-select" asp-items="Html.GetEnumSelectList<Randevoo.Domain.Enums.SupportTicketCategory>()"></select>
+        </div>
+        <div class="col-12">
+            <label asp-for="Input.Body" class="form-label">پیام</label>
+            <textarea asp-for="Input.Body" class="form-control" rows="7"></textarea>
+            <span asp-validation-for="Input.Body" class="text-danger small"></span>
+        </div>
+        <div class="col-12">
+            <label class="form-label">تصویر پیوست</label>
+            <input asp-for="Attachments" class="form-control" type="file" accept="image/*" multiple />
+            <div class="form-text">حداکثر ۵ مگابایت برای هر تصویر.</div>
+        </div>
+    </div>
+    <div class="d-flex justify-content-end mt-4">
+        <button type="submit" class="btn btn-primary"><i class="bi bi-send"></i> ارسال تیکت</button>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

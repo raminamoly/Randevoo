@@ -66,7 +66,7 @@
         <div class="gender-field-grid">
             <article class="gender-field-panel public-ticket-panel">
                 <h3>آقایان</h3>
-                <div class="public-ticket-price">@DisplayFormatter.Money(draft.MaleTicketPrice, true)</div>
+                <div class="public-ticket-price">@DisplayFormatter.TicketMoney(draft.MaleTicketPrice, draft.MaleTicketCurrencyCode, true)</div>
                 <div class="row g-3">
                     <div class="col-md-6"><div class="detail-block"><span>ظرفیت</span><strong>@DisplayFormatter.Count(draft.CapacityMale)</strong></div></div>
                     <div class="col-md-6"><div class="detail-block"><span>بازه سنی</span><strong>@draft.AgeRangeForMale</strong></div></div>
@@ -74,7 +74,7 @@
             </article>
             <article class="gender-field-panel public-ticket-panel">
                 <h3>خانم ها</h3>
-                <div class="public-ticket-price">@DisplayFormatter.Money(draft.FemaleTicketPrice, true)</div>
+                <div class="public-ticket-price">@DisplayFormatter.TicketMoney(draft.FemaleTicketPrice, draft.FemaleTicketCurrencyCode, true)</div>
                 <div class="row g-3">
                     <div class="col-md-6"><div class="detail-block"><span>ظرفیت</span><strong>@DisplayFormatter.Count(draft.CapacityFemale)</strong></div></div>
                     <div class="col-md-6"><div class="detail-block"><span>بازه سنی</span><strong>@draft.AgeRangeForFemale</strong></div></div>

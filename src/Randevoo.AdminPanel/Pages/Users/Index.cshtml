@@ -1,13 +1,12 @@
 @page "{id?}"
 @model Randevoo.AdminPanel.Pages.Users.IndexModel
 @{
-    ViewData["Title"] = "کاربران";
+    ViewData["Title"] = "حساب‌های دسترسی";
 }
 
 <section class="page-header">
     <div>
-        <h1>کاربران</h1>
-        <p>ایجاد و ویرایش مدیرها و برگزارکننده ها از یک نقطه کنترل واقعی روی داده های پایگاه داده.</p>
+        <h1>حساب‌های دسترسی</h1>
     </div>
 </section>
 
@@ -15,7 +14,7 @@
     <div class="col-lg-4">
         <form method="post" class="glass-panel p-4 sticky-panel">
             <input type="hidden" asp-for="UserId" />
-            <h2 class="section-title">@((Model.UserId is null) ? "ایجاد کاربر" : "ویرایش کاربر")</h2>
+            <h2 class="section-title">@((Model.UserId is null) ? "ایجاد حساب" : "ویرایش حساب")</h2>
 
             <div class="mb-3">
                 <label asp-for="Input.FullName" class="form-label">نام کامل</label>
@@ -25,7 +24,7 @@
             <div class="mb-3">
                 <label asp-for="Input.Mobile" class="form-label">موبایل</label>
                 <input asp-for="Input.Mobile" class="form-control" type="tel" inputmode="tel" autocomplete="tel" dir="ltr" />
-                <div class="help-tip">شماره موبایل برای ورود و پیگیری اعلان های کاربر استفاده می شود.</div>
+                <div class="help-tip">شماره موبایل برای ورود و پیگیری اعلان‌های این حساب استفاده می‌شود.</div>
             </div>
             <div class="mb-3">
                 <label asp-for="Input.Role" class="form-label">نقش</label>
@@ -36,7 +35,7 @@
                 <input asp-for="Input.IsActive" class="form-check-input" />
                 <label asp-for="Input.IsActive" class="form-check-label">فعال</label>
             </div>
-            <button type="submit" class="btn btn-primary w-100">ذخیره کاربر</button>
+            <button type="submit" class="btn btn-primary w-100">ذخیره حساب</button>
         </form>
     </div>
 
@@ -68,7 +67,7 @@
                                         </button>
                                         <div class="dropdown-menu dropdown-menu-end action-menu shadow-sm border-0">
                                             <a asp-page="/Users/Index" asp-route-id="@user.Id" class="dropdown-item">
-                                                <i class="bi bi-pencil-square"></i>ویرایش کاربر
+                                                <i class="bi bi-pencil-square"></i>ویرایش حساب
                                             </a>
                                             @if (user.Role == Randevoo.AdminPanel.Models.Auth.AdminRole.EventPlanner)
                                             {

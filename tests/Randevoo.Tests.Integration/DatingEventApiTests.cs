@@ -60,6 +60,8 @@ public class DatingEventApiTests
         var createdEvent = await createEventResponse.Content.ReadFromJsonAsync<DatingEventDto>();
         Assert.NotNull(createdEvent);
         Assert.Equal(EventEducationLevelRestriction.WithoutLimit, createdEvent.EducationLevelRestriction);
+        Assert.Equal("IRR", createdEvent.MaleTicketCurrencyCode);
+        Assert.Equal("IRR", createdEvent.FemaleTicketCurrencyCode);
 
         await factory.ApproveEventAsync(createdEvent.Id);
         var openResponse = await client.PostAsync($"/api/dating-events/{createdEvent.Id}/open", null);
@@ -361,10 +363,25 @@ public class DatingEventApiTests
         {
             ParticipantUserId = secondUser.UserId
         });
-        Assert.Equal(HttpStatusCode.Created, startConversationResponse.StatusCode);
-        var conversation = await startConversationResponse.Content.ReadFromJsonAsync<EventConversationDto>();
+        Assert.Equal(HttpStatusCode.Accepted, startConversationResponse.StatusCode);
+        var pendingLike = await startConversationResponse.Content.ReadFromJsonAsync<EventLikeResultDto>();
+        Assert.NotNull(pendingLike);
+        Assert.Equal(EventLikeStatus.Pending, pendingLike.Status);
+        Assert.Null(pendingLike.Conversation);
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", secondUser.Token);
+        var matchConversationResponse = await client.PostAsJsonAsync($"/api/event-chats/events/{createdEvent.Id}/conversations", new
+        {
+            ParticipantUserId = firstUser.UserId
+        });
+        Assert.Equal(HttpStatusCode.Created, matchConversationResponse.StatusCode);
+        var matchedLike = await matchConversationResponse.Content.ReadFromJsonAsync<EventLikeResultDto>();
+        Assert.NotNull(matchedLike);
+        Assert.Equal(EventLikeStatus.Matched, matchedLike.Status);
+        var conversation = matchedLike.Conversation;
         Assert.NotNull(conversation);
 
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", firstUser.Token);
         var messageResponse = await client.PostAsJsonAsync($"/api/event-chats/conversations/{conversation.Id}/messages", new
         {
             Body = "Nice to meet you at the event."
@@ -496,7 +513,10 @@ public class DatingEventApiTests
         Assert.Equal(UserRole.EventPlanner, await factory.GetUserRoleAsync(auth.UserId));
     }
 
-    private static object CreateEventBody(EventEducationLevelRestriction educationLevelRestriction = EventEducationLevelRestriction.WithoutLimit) => new
+    private static object CreateEventBody(
+        EventEducationLevelRestriction educationLevelRestriction = EventEducationLevelRestriction.WithoutLimit,
+        string maleTicketCurrencyCode = "IRR",
+        string femaleTicketCurrencyCode = "IRR") => new
     {
         Title = "Mafia Night",
         Country = "Iran",
@@ -516,7 +536,9 @@ public class DatingEventApiTests
         FemaleCapacity = 10,
         NumberOfLikesAllowed = 3,
         MaleTicketPrice = 100m,
+        MaleTicketCurrencyCode = maleTicketCurrencyCode,
         FemaleTicketPrice = 100m,
+        FemaleTicketCurrencyCode = femaleTicketCurrencyCode,
         EducationLevelRestriction = educationLevelRestriction,
         Tags = new[] { "Mafia", "Night", "Friendly" },
         EventImage1 = "https://example.com/1.jpg",
@@ -546,7 +568,9 @@ public class DatingEventApiTests
         FemaleCapacity = 10,
         NumberOfLikesAllowed = 1,
         MaleTicketPrice = 100m,
+        MaleTicketCurrencyCode = "IRR",
         FemaleTicketPrice = 100m,
+        FemaleTicketCurrencyCode = "IRR",
         EducationLevelRestriction = EventEducationLevelRestriction.WithoutLimit,
         Tags = new[] { "Social", "Completed" },
         EventImage1 = "https://example.com/past1.jpg",

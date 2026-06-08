@@ -24,7 +24,7 @@ public sealed class CurrentSessionState
             CurrentUser = new MockUser
             {
                 Id = long.TryParse(principal.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : 0,
-                FullName = principal.Identity?.Name ?? "کاربر",
+                FullName = principal.Identity?.Name ?? "حساب پنل",
                 Mobile = principal.FindFirstValue("mobile") ?? string.Empty,
                 Role = role,
                 IsActive = true

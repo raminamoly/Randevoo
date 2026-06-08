@@ -78,7 +78,9 @@ internal static class DatabaseModelMapper
             AgeRangeForFemale = $"{datingEvent.AgeRangeForFemale.Min}-{datingEvent.AgeRangeForFemale.Max}",
             IsOpenForSell = datingEvent.IsOpenForSell,
             MaleTicketPrice = datingEvent.MaleTicketPrice,
+            MaleTicketCurrencyCode = datingEvent.MaleTicketCurrencyCode,
             FemaleTicketPrice = datingEvent.FemaleTicketPrice,
+            FemaleTicketCurrencyCode = datingEvent.FemaleTicketCurrencyCode,
             EducationLevelRestriction = datingEvent.EducationLevelRestriction,
             MinimumEducationLevelId = datingEvent.MinimumEducationLevelId,
             OrganizerCommissionPercent = datingEvent.EventPlannerCommissionPercent,
@@ -160,6 +162,7 @@ internal static class DatabaseModelMapper
     public static AdminRole ToAdminRole(UserRole role) => role switch
     {
         UserRole.Admin => AdminRole.Admin,
+        UserRole.PlatformSupportTeam => AdminRole.SupportTeam,
         UserRole.EventPlanner => AdminRole.EventPlanner,
         _ => AdminRole.EventPlanner
     };
@@ -167,7 +170,7 @@ internal static class DatabaseModelMapper
     public static UserRole ToDomainRole(AdminRole role) => role switch
     {
         AdminRole.Admin => UserRole.Admin,
-        AdminRole.SupportTeam => UserRole.Admin,
+        AdminRole.SupportTeam => UserRole.PlatformSupportTeam,
         _ => UserRole.EventPlanner
     };
 

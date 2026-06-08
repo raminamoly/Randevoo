@@ -1,13 +1,12 @@
 @page
 @model Randevoo.AdminPanel.Pages.Events.IndexModel
 @{
-    ViewData["Title"] = "رویدادها";
+    ViewData["Title"] = Model.PageTitle;
 }
 
 <section class="page-header">
     <div>
-        <h1>رویدادها</h1>
-        <p>صف بررسی مدیر، تایید تغییرات و کنترل وضعیت انتشار رویدادها.</p>
+        <h1>@Model.PageTitle</h1>
     </div>
     <a asp-page="/Events/Edit" class="btn btn-primary">ساخت رویداد</a>
 </section>
@@ -23,6 +22,7 @@
         </button>
     </div>
     <div id="eventFilterPanel" class="collapse @(Model.HasActiveFilters ? "show" : string.Empty)">
+        <input type="hidden" asp-for="Scope" />
         <input type="hidden" name="PageNumber" value="1" />
         <div class="row g-3 align-items-end">
             <div class="col-xl-3 col-md-6">
@@ -75,7 +75,7 @@
                 <button class="btn btn-primary" type="submit"><i class="bi bi-search"></i>اعمال فیلتر</button>
             </div>
             <div class="col-xl-2 col-md-6 d-grid">
-                <a asp-page="/Events/Index" class="btn btn-outline-secondary"><i class="bi bi-x-circle"></i>پاک کردن</a>
+                <a asp-page="/Events/Index" asp-route-Scope="@Model.Scope" class="btn btn-outline-secondary"><i class="bi bi-x-circle"></i>پاک کردن</a>
             </div>
         </div>
     </div>
@@ -100,46 +100,55 @@
                 </tr>
             </thead>
             <tbody>
-                @foreach (var item in Model.Events)
+                @if (Model.Events.Count == 0)
                 {
                     <tr>
-                        <td>
-                            <div class="fw-semibold">@item.DisplayTitle</div>
-                            <div class="text-muted small">@(item.ActiveDraft.IsOnline ? "آنلاین" : $"{item.ActiveDraft.City}، {item.ActiveDraft.Country}")</div>
-                            <div class="text-muted small">@DisplayFormatter.EducationRestriction(item.ActiveDraft.EducationLevelRestriction)</div>
-                            @if (item.ActiveDraft.Tags.Count > 0)
-                            {
-                                <div class="event-chip-list mt-2">
-                                    @foreach (var tag in item.ActiveDraft.Tags.Take(3))
-                                    {
-                                        <span class="event-chip">@tag</span>
-                                    }
-                                </div>
-                            }
-                        </td>
-                        <td>@item.PlannerName</td>
-                        <td>@PersianDateFormatter.Format(item.ActiveDraft.StartAtUtc, Model.IsRtl)</td>
-                        <td><span class="status-badge @Model.GetOperationalStatusClass(item.OperationalStatus)">@DisplayFormatter.OperationalStatus(item.OperationalStatus)</span></td>
-                        <td><span class="status-badge @Model.GetReviewStatusClass(item.ReviewStatus)">@DisplayFormatter.ReviewStatus(item.ReviewStatus)</span></td>
-                        <td>@DisplayFormatter.Percent(item.ActiveDraft.OrganizerCommissionPercent)</td>
-                        <td class="text-end table-action-cell">
-                            <div class="dropdown">
-                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle table-action-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                    عملیات
-                                </button>
-                                <div class="dropdown-menu dropdown-menu-end action-menu shadow-sm border-0">
-                                    <a asp-page="/Events/Details" asp-route-id="@item.Id" class="dropdown-item"><i class="bi bi-eye"></i>بررسی رویداد</a>
-                                    <a asp-page="/Events/Edit" asp-route-id="@item.Id" class="dropdown-item"><i class="bi bi-pencil-square"></i>ویرایش رویداد</a>
-                                    <a asp-page="/Events/Faqs" asp-route-eventId="@item.Id" class="dropdown-item"><i class="bi bi-question-circle"></i>سوالات متداول</a>
-                                    <a asp-page="/Events/Buyers" asp-route-eventId="@item.Id" class="dropdown-item"><i class="bi bi-ticket-perforated"></i>خریداران بلیت</a>
-                                    <a asp-page="/Events/Sms" asp-route-eventId="@item.Id" class="dropdown-item"><i class="bi bi-chat-dots"></i>پیام به شرکت کنندگان</a>
-                                    <div class="dropdown-divider"></div>
-                                    <a asp-page="/Events/SurveyRatings" asp-route-eventId="@item.Id" class="dropdown-item"><i class="bi bi-star-half"></i>نظرسنجی ها</a>
-                                    <a asp-page="/Events/Conversations" asp-route-eventId="@item.Id" class="dropdown-item"><i class="bi bi-chat-square-text"></i>مانیتور گفتگوها</a>
-                                </div>
-                            </div>
-                        </td>
+                        <td colspan="7" class="text-center text-muted py-4">برای این فیلتر رویدادی پیدا نشد.</td>
                     </tr>
+                }
+                else
+                {
+                    @foreach (var item in Model.Events)
+                    {
+                        <tr>
+                            <td>
+                                <div class="fw-semibold">@item.DisplayTitle</div>
+                                <div class="text-muted small">@(item.ActiveDraft.IsOnline ? "آنلاین" : $"{item.ActiveDraft.City}، {item.ActiveDraft.Country}")</div>
+                                <div class="text-muted small">@DisplayFormatter.EducationRestriction(item.ActiveDraft.EducationLevelRestriction)</div>
+                                @if (item.ActiveDraft.Tags.Count > 0)
+                                {
+                                    <div class="event-chip-list mt-2">
+                                        @foreach (var tag in item.ActiveDraft.Tags.Take(3))
+                                        {
+                                            <span class="event-chip">@tag</span>
+                                        }
+                                    </div>
+                                }
+                            </td>
+                            <td>@item.PlannerName</td>
+                            <td>@PersianDateFormatter.Format(item.ActiveDraft.StartAtUtc, Model.IsRtl)</td>
+                            <td><span class="status-badge @Model.GetOperationalStatusClass(item.OperationalStatus)">@DisplayFormatter.OperationalStatus(item.OperationalStatus)</span></td>
+                            <td><span class="status-badge @Model.GetReviewStatusClass(item.ReviewStatus)">@DisplayFormatter.ReviewStatus(item.ReviewStatus)</span></td>
+                            <td>@DisplayFormatter.Percent(item.ActiveDraft.OrganizerCommissionPercent)</td>
+                            <td class="text-end table-action-cell">
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle table-action-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        عملیات
+                                    </button>
+                                    <div class="dropdown-menu dropdown-menu-end action-menu shadow-sm border-0">
+                                        <a asp-page="/Events/Details" asp-route-id="@item.Id" class="dropdown-item"><i class="bi bi-eye"></i>بررسی رویداد</a>
+                                        <a asp-page="/Events/Edit" asp-route-id="@item.Id" class="dropdown-item"><i class="bi bi-pencil-square"></i>ویرایش رویداد</a>
+                                        <a asp-page="/Events/Faqs" asp-route-eventId="@item.Id" class="dropdown-item"><i class="bi bi-question-circle"></i>سوالات متداول</a>
+                                        <a asp-page="/Events/Buyers" asp-route-eventId="@item.Id" class="dropdown-item"><i class="bi bi-ticket-perforated"></i>خریداران بلیت</a>
+                                        <a asp-page="/Events/Sms" asp-route-eventId="@item.Id" class="dropdown-item"><i class="bi bi-chat-dots"></i>پیام به شرکت کنندگان</a>
+                                        <div class="dropdown-divider"></div>
+                                        <a asp-page="/Events/SurveyRatings" asp-route-eventId="@item.Id" class="dropdown-item"><i class="bi bi-star-half"></i>نظرسنجی ها</a>
+                                        <a asp-page="/Events/Conversations" asp-route-eventId="@item.Id" class="dropdown-item"><i class="bi bi-chat-square-text"></i>مانیتور گفتگوها</a>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    }
                 }
             </tbody>
         </table>
@@ -147,6 +156,7 @@
     <nav class="d-flex justify-content-between align-items-center flex-wrap gap-3 mt-4" aria-label="صفحه بندی رویدادها">
         <a class="btn btn-outline-secondary @(Model.HasPreviousPage ? string.Empty : "disabled")"
            asp-page="/Events/Index"
+           asp-route-Scope="@Model.Scope"
            asp-route-Search="@Model.Search"
            asp-route-TagId="@Model.TagId"
            asp-route-City="@Model.City"
@@ -162,6 +172,7 @@
         <span class="text-muted small">صفحه @DisplayFormatter.Count(Model.PageNumber) از @DisplayFormatter.Count(Model.TotalPages)</span>
         <a class="btn btn-outline-secondary @(Model.HasNextPage ? string.Empty : "disabled")"
            asp-page="/Events/Index"
+           asp-route-Scope="@Model.Scope"
            asp-route-Search="@Model.Search"
            asp-route-TagId="@Model.TagId"
            asp-route-City="@Model.City"

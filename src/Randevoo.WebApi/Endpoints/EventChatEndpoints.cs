@@ -2,6 +2,7 @@ using System.Security.Claims;
 using MediatR;
 using Microsoft.AspNetCore.SignalR;
 using Randevoo.Application.Features.EventChats.Commands.BlockEventChatUser;
+using Randevoo.Application.Features.EventChats.Commands.RejectEventLike;
 using Randevoo.Application.Features.EventChats.Commands.SendEventChatMessage;
 using Randevoo.Application.Features.EventChats.Commands.StartEventConversation;
 using Randevoo.Application.Features.EventChats.Queries.ListMyEventConversations;
@@ -20,6 +21,7 @@ public static class EventChatEndpoints
 
         group.MapGet("/me/conversations", ListMineAsync).WithName("ListMyEventConversations");
         group.MapPost("/events/{eventId:long}/conversations", StartConversationAsync).WithName("StartEventConversation");
+        group.MapPost("/events/{eventId:long}/likes/reject", RejectLikeAsync).WithName("RejectEventLike");
         group.MapPost("/conversations/{conversationId:long}/messages", SendMessageAsync).WithName("SendEventChatMessage");
         group.MapPost("/conversations/{conversationId:long}/blocks", BlockUserAsync).WithName("BlockEventChatUser");
         return group;
@@ -42,7 +44,22 @@ public static class EventChatEndpoints
         try
         {
             var result = await sender.Send(new StartEventConversationCommand(EndpointHelpers.GetUserId(principal), eventId, request.ParticipantUserId), cancellationToken);
-            return Results.Created($"/api/event-chats/conversations/{result.Id}", result);
+            return result.Conversation is null
+                ? Results.Accepted(value: result)
+                : Results.Created($"/api/event-chats/conversations/{result.Conversation.Id}", result);
+        }
+        catch (Exception ex) when (ex is DomainException or UnauthorizedAccessException)
+        {
+            return EndpointHelpers.ToProblem(ex);
+        }
+    }
+
+    private static async Task<IResult> RejectLikeAsync(long eventId, RejectLikeRequest request, ClaimsPrincipal principal, ISender sender, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await sender.Send(new RejectEventLikeCommand(EndpointHelpers.GetUserId(principal), eventId, request.FromUserId), cancellationToken);
+            return Results.NoContent();
         }
         catch (Exception ex) when (ex is DomainException or UnauthorizedAccessException)
         {
@@ -85,6 +102,7 @@ public static class EventChatEndpoints
     }
 
     public record StartConversationRequest(long ParticipantUserId);
+    public record RejectLikeRequest(long FromUserId);
     public record SendMessageRequest(string Body);
     public record BlockUserRequest(long BlockedUserId);
 }

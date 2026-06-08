@@ -8,7 +8,6 @@
 <section class="page-header">
     <div>
         <h1>خریداران بلیت</h1>
-        <p>پروفایل کاربرانی که برای این رویداد بلیت خریده اند. شماره موبایل فقط برای مدیر نمایش داده می شود.</p>
     </div>
     <div class="d-flex flex-wrap gap-2">
         @if (Model.IsAdmin)
@@ -128,7 +127,7 @@
                                 <img src="@(item.ProfileImageUrl ?? "/images/logo.png")" alt="@item.DisplayName" class="buyer-avatar" loading="lazy" />
                                 <div>
                                     <div class="fw-semibold">@item.DisplayName</div>
-                                    <div class="text-muted small">شناسه کاربر: @DisplayFormatter.Count((int)item.UserId)</div>
+                                    <div class="text-muted small">شناسه شرکت‌کننده: @DisplayFormatter.Count((int)item.UserId)</div>
                                 </div>
                             </div>
                         </td>
@@ -143,7 +142,7 @@
                         {
                             <td dir="ltr">@item.MobileNumber</td>
                         }
-                        <td>@DisplayFormatter.Money(item.TicketPrice, Model.IsRtl)</td>
+                        <td>@DisplayFormatter.TicketMoney(item.TicketPrice, item.TicketCurrencyCode, Model.IsRtl)</td>
                         <td>@PersianDateFormatter.FormatDateTime(item.PurchasedAtUtc, Model.IsRtl)</td>
                         <td>
                             <span class="status-badge @Model.GetTicketStatusClass(item)">@item.TicketStatus</span>
@@ -159,15 +158,15 @@
                                 </button>
                                 <div class="dropdown-menu dropdown-menu-end action-menu shadow-sm border-0">
                                     <a asp-page="/UserProfiles/Details" asp-route-userId="@item.UserId" class="dropdown-item">
-                                        <i class="bi bi-person-bounding-box"></i>نمایش پروفایل کاربر
+                                        <i class="bi bi-person-bounding-box"></i>نمایش پروفایل شرکت‌کننده
                                     </a>
                                     @if (Model.IsAdmin)
                                     {
                                         <a asp-page="/Finance/User" asp-route-userId="@item.UserId" asp-route-view="balance" class="dropdown-item">
-                                            <i class="bi bi-wallet2"></i>موجودی کلی کاربر
+                                            <i class="bi bi-wallet2"></i>موجودی کلی شرکت‌کننده
                                         </a>
                                         <a asp-page="/Finance/User" asp-route-userId="@item.UserId" asp-route-view="payments" class="dropdown-item">
-                                            <i class="bi bi-credit-card"></i>پرداخت های کلی کاربر
+                                            <i class="bi bi-credit-card"></i>پرداخت‌های کلی شرکت‌کننده
                                         </a>
                                         <a asp-page="/UserProfiles/AdminEdit" asp-route-userId="@item.UserId" class="dropdown-item">
                                             <i class="bi bi-person-gear"></i>ویرایش کامل پروفایل
@@ -217,7 +216,7 @@
                         <div class="buyer-card-meta">
                             <span><i class="bi bi-mortarboard"></i>@item.EducationLevelTitle</span>
                             <span><i class="bi bi-geo-alt"></i>@item.City، @item.Country</span>
-                            <span><i class="bi bi-ticket-perforated"></i>@DisplayFormatter.Money(item.TicketPrice, Model.IsRtl)</span>
+                            <span><i class="bi bi-ticket-perforated"></i>@DisplayFormatter.TicketMoney(item.TicketPrice, item.TicketCurrencyCode, Model.IsRtl)</span>
                             @if (Model.IsAdmin && !string.IsNullOrWhiteSpace(item.MobileNumber))
                             {
                                 <span dir="ltr"><i class="bi bi-phone"></i>@item.MobileNumber</span>

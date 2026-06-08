@@ -64,7 +64,9 @@ public class CreateDatingEventHandler : IRequestHandler<CreateDatingEventCommand
             input.EventImage2,
             input.EventImage3,
             input.EventDescriptionHtml,
-            input.EventPlannerCommissionPercent ?? 10);
+            input.EventPlannerCommissionPercent ?? 10,
+            input.MaleTicketCurrencyCode,
+            input.FemaleTicketCurrencyCode);
         var (countryId, cityId) = MapLocationIds(input.Country, input.City);
         datingEvent.SetLocationLookup(countryId, cityId);
         datingEvent.SubmitForReview();

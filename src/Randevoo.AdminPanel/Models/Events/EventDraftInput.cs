@@ -47,7 +47,11 @@ public sealed class EventDraftInput
 
     public decimal MaleTicketPrice { get; set; } = 950000m;
 
+    public string MaleTicketCurrencyCode { get; set; } = "IRR";
+
     public decimal FemaleTicketPrice { get; set; } = 850000m;
+
+    public string FemaleTicketCurrencyCode { get; set; } = "IRR";
 
     public EventEducationLevelRestriction EducationLevelRestriction { get; set; } = EventEducationLevelRestriction.WithoutLimit;
 
@@ -84,4 +88,8 @@ public sealed class EventDraftInput
     public DateTimeOffset StartAtUtc { get; set; } = DateTimeOffset.UtcNow.AddDays(14);
 
     public DateTimeOffset EndAtUtc { get; set; } = DateTimeOffset.UtcNow.AddDays(14).AddHours(3);
+
+    public decimal LowestTicketPrice => MaleTicketPrice <= FemaleTicketPrice ? MaleTicketPrice : FemaleTicketPrice;
+
+    public string LowestTicketCurrencyCode => MaleTicketPrice <= FemaleTicketPrice ? MaleTicketCurrencyCode : FemaleTicketCurrencyCode;
 }

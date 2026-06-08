@@ -61,7 +61,7 @@ public class EventDiscountCode : BaseEntity
         DiscountType = GuardAgainst.Number.AgainstInvalidEnum<EventDiscountType>((int)discountType, nameof(discountType));
         Value = discountType switch
         {
-            EventDiscountType.FixedAmount => GuardAgainst.Number.OutOfRange(value, nameof(value), 1m, 1_000_000m),
+            EventDiscountType.FixedAmount => GuardAgainst.Number.OutOfRange(value, nameof(value), 1m, 1_000_000_000m),
             EventDiscountType.Percentage => GuardAgainst.Number.OutOfRange(value, nameof(value), 1m, 100m),
             _ => throw new BusinessRuleViolationException("Invalid discount type", "Discount type is not supported.")
         };
@@ -75,7 +75,7 @@ public class EventDiscountCode : BaseEntity
 
     public decimal CalculateDiscountedPrice(decimal originalPrice)
     {
-        var normalizedOriginalPrice = GuardAgainst.Number.OutOfRange(originalPrice, nameof(originalPrice), 0.01m, 1_000_000m);
+        var normalizedOriginalPrice = GuardAgainst.Number.OutOfRange(originalPrice, nameof(originalPrice), 0.01m, 1_000_000_000m);
         var discounted = DiscountType switch
         {
             EventDiscountType.FixedAmount => normalizedOriginalPrice - Value,

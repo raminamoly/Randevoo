@@ -33,25 +33,19 @@ public sealed class MockAuthService
             return MockAuthResult.Fail("شماره موبایل را وارد کنید.");
         }
 
-        if (requestedRole == AdminRole.SupportTeam)
-        {
-            await LogAsync(null, "AdminLoginCodeRequestFailed", "login_code_request", "account", normalizedMobile, "نقش انتخاب شده پشتیبانی بود.", "failed");
-            return MockAuthResult.Fail("نقش تیم پشتیبانی در نسخه واقعی پنل فعال نشده است.");
-        }
-
         var user = await _db.Users
             .Include(item => item.Profile)
             .FirstOrDefaultAsync(item => item.MobileNumber == normalizedMobile);
 
         if (user is null)
         {
-            await LogAsync(null, "AdminLoginCodeRequestFailed", "login_code_request", "account", normalizedMobile, "کاربر پیدا نشد.", "failed");
+            await LogAsync(null, "AdminLoginCodeRequestFailed", "login_code_request", "account", normalizedMobile, "حساب پیدا نشد.", "failed");
             return MockAuthResult.Fail("این شماره موبایل هنوز در پایگاه داده ثبت نشده است.");
         }
 
         if (user.Role == UserRole.EndUser)
         {
-            await LogAsync(user.Id, "AdminLoginCodeRequestFailed", "login_code_request", "account", normalizedMobile, "کاربر نقش پنل مدیریت ندارد.", "failed");
+            await LogAsync(user.Id, "AdminLoginCodeRequestFailed", "login_code_request", "account", normalizedMobile, "حساب نقش پنل مدیریت ندارد.", "failed");
             return MockAuthResult.Fail("این حساب برای پنل مدیریت دسترسی ندارد.");
         }
 

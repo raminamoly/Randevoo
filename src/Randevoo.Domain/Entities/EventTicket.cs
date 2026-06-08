@@ -12,6 +12,7 @@ public class EventTicket : BaseEntity
     public User User { get; private set; } = null!;
     public Gender Gender { get; private set; }
     public decimal OriginalPrice { get; private set; }
+    public string CurrencyCode { get; private set; } = "IRR";
     public decimal DiscountAmount { get; private set; }
     public long? EventDiscountCodeId { get; private set; }
     public EventDiscountCode? EventDiscountCode { get; private set; }
@@ -32,14 +33,16 @@ public class EventTicket : BaseEntity
         Gender gender,
         decimal originalPrice,
         decimal finalPrice,
+        string currencyCode,
         EventDiscountCode? discountCode = null)
     {
         DatingEvent = datingEvent;
         User = user;
         UserId = user.Id;
         Gender = gender;
-        OriginalPrice = GuardAgainst.Number.OutOfRange(originalPrice, nameof(originalPrice), 0.01m, 1_000_000m);
+        OriginalPrice = GuardAgainst.Number.OutOfRange(originalPrice, nameof(originalPrice), 0.01m, 1_000_000_000m);
         Price = GuardAgainst.Number.OutOfRange(finalPrice, nameof(finalPrice), 0.01m, OriginalPrice);
+        CurrencyCode = CurrencyLookup.NormalizeCode(string.IsNullOrWhiteSpace(currencyCode) ? "IRR" : currencyCode);
         DiscountAmount = OriginalPrice - Price;
         EventDiscountCode = discountCode;
         EventDiscountCodeId = discountCode?.Id;

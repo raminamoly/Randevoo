@@ -30,6 +30,14 @@ public class IndexModel : PageModel
 
     public bool IsRtl => _session.IsRtl;
 
+    public bool IsArchive => Scope == EventListScope.Archive;
+
+    public string PageTitle => IsArchive ? "آرشیو و تمام شده" : "فعال و در حال آماده سازی";
+
+    public string PageDescription => IsArchive
+        ? "رویدادهای تمام شده یا لغو شده را با فیلتر و صفحه بندی سمت سرور بررسی کنید."
+        : "رویدادهای فعال، در حال فروش یا در حال آماده سازی را با فیلتر و صفحه بندی سمت سرور مدیریت کنید.";
+
     public bool HasActiveFilters => !string.IsNullOrWhiteSpace(Search)
         || TagId is not null
         || !string.IsNullOrWhiteSpace(City)
@@ -42,6 +50,9 @@ public class IndexModel : PageModel
 
     [BindProperty(SupportsGet = true)]
     public string? Search { get; set; }
+
+    [BindProperty(SupportsGet = true)]
+    public EventListScope Scope { get; set; } = EventListScope.Active;
 
     [BindProperty(SupportsGet = true)]
     public long? TagId { get; set; }
@@ -70,7 +81,7 @@ public class IndexModel : PageModel
     [BindProperty(SupportsGet = true)]
     public int PageNumber { get; set; } = 1;
 
-    public int PageSize { get; } = 10;
+    public int PageSize { get; } = 25;
 
     public int TotalCount { get; private set; }
 
@@ -94,56 +105,32 @@ public class IndexModel : PageModel
 
     public async Task OnGetAsync()
     {
-        var current = _session.CurrentUser ?? throw new InvalidOperationException("کاربر جاری شناسایی نشد.");
+        var current = _session.CurrentUser ?? throw new InvalidOperationException("حساب جاری شناسایی نشد.");
+        NormalizeScopeFilters();
         await LoadFilterOptionsAsync();
 
-        var events = (await _eventsApi.GetEventsAsync(current)).AsEnumerable();
-        if (!string.IsNullOrWhiteSpace(Search))
+        var hasFromDate = PersianDateFormatter.TryParseDate(FromDate, IsRtl, out var fromDate);
+        var hasToDate = PersianDateFormatter.TryParseDate(ToDate, IsRtl, out var toDate);
+
+        var result = await _eventsApi.GetEventsPageAsync(current, new EventListFilter
         {
-            var query = Search.Trim();
-            events = events.Where(item =>
-                item.DisplayTitle.Contains(query, StringComparison.OrdinalIgnoreCase)
-                || item.PlannerName.Contains(query, StringComparison.OrdinalIgnoreCase));
-        }
+            Search = Search,
+            TagId = TagId,
+            City = City,
+            EventModeId = EventModeId,
+            OperationalStatus = OperationalStatus,
+            ReviewStatus = ReviewStatus,
+            FromDateUtc = hasFromDate ? fromDate : null,
+            ToDateUtc = hasToDate ? toDate : null,
+            Sort = Sort,
+            PageNumber = PageNumber,
+            PageSize = PageSize,
+            Scope = Scope
+        });
 
-        if (TagId is long tagId)
-            events = events.Where(item => item.ActiveDraft.TagIds.Contains(tagId));
-
-        if (!string.IsNullOrWhiteSpace(City))
-            events = events.Where(item => string.Equals(item.ActiveDraft.City, City, StringComparison.OrdinalIgnoreCase));
-
-        if (EventModeId is long eventModeId)
-            events = events.Where(item => item.ActiveDraft.EventModeId == eventModeId);
-
-        if (OperationalStatus is EventOperationalStatus operationalStatus)
-            events = events.Where(item => item.OperationalStatus == operationalStatus);
-
-        if (ReviewStatus is EventReviewStatus reviewStatus)
-            events = events.Where(item => item.ReviewStatus == reviewStatus);
-
-        if (PersianDateFormatter.TryParseDate(FromDate, IsRtl, out var fromDate))
-            events = events.Where(item => item.ActiveDraft.StartAtUtc.Date >= fromDate.UtcDateTime.Date);
-
-        if (PersianDateFormatter.TryParseDate(ToDate, IsRtl, out var toDate))
-            events = events.Where(item => item.ActiveDraft.StartAtUtc.Date <= toDate.UtcDateTime.Date);
-
-        events = Sort switch
-        {
-            "start-asc" => events.OrderBy(item => item.ActiveDraft.StartAtUtc),
-            "start-desc" => events.OrderByDescending(item => item.ActiveDraft.StartAtUtc),
-            "title-asc" => events.OrderBy(item => item.DisplayTitle),
-            "price-desc" => events.OrderByDescending(item => Math.Max(item.ActiveDraft.MaleTicketPrice, item.ActiveDraft.FemaleTicketPrice)),
-            "price-asc" => events.OrderBy(item => Math.Min(item.ActiveDraft.MaleTicketPrice, item.ActiveDraft.FemaleTicketPrice)),
-            _ => events.OrderByDescending(item => item.UpdatedAtUtc)
-        };
-
-        var filtered = events.ToList();
-        TotalCount = filtered.Count;
+        TotalCount = result.TotalCount;
         PageNumber = Math.Clamp(PageNumber, 1, TotalPages);
-        Events = filtered
-            .Skip((PageNumber - 1) * PageSize)
-            .Take(PageSize)
-            .ToList();
+        Events = result.Items;
     }
 
     private async Task LoadFilterOptionsAsync()
@@ -157,20 +144,23 @@ public class IndexModel : PageModel
             .ToList();
         CityOptions = new SelectList(cities, "Name", "Name", City);
         EventModeOptions = new SelectList(await _eventsApi.GetEventModesAsync(), "Id", "Name", EventModeId);
-        OperationalStatusOptions = new SelectList(new[]
-        {
-            new { Value = EventOperationalStatus.Draft.ToString(), Text = "پیش‌نویس" },
-            new { Value = EventOperationalStatus.Selling.ToString(), Text = "در حال فروش" },
-            new { Value = EventOperationalStatus.Closed.ToString(), Text = "تمام شده" },
-            new { Value = EventOperationalStatus.Cancelled.ToString(), Text = "لغو شده" }
-        }, "Value", "Text", OperationalStatus?.ToString());
-        ReviewStatusOptions = new SelectList(new[]
-        {
-            new { Value = EventReviewStatus.NotSubmitted.ToString(), Text = "ارسال نشده" },
-            new { Value = EventReviewStatus.PendingReview.ToString(), Text = "در انتظار بررسی" },
-            new { Value = EventReviewStatus.Approved.ToString(), Text = "تایید شده توسط مدیر" },
-            new { Value = EventReviewStatus.Rejected.ToString(), Text = "رد شده توسط مدیر" }
-        }, "Value", "Text", ReviewStatus?.ToString());
+        var operationalStatuses = IsArchive
+            ? new[]
+            {
+                new { Value = EventOperationalStatus.Closed.ToString(), Text = "تمام شده" },
+                new { Value = EventOperationalStatus.Cancelled.ToString(), Text = "لغو شده" }
+            }
+            : new[]
+            {
+                new { Value = EventOperationalStatus.Draft.ToString(), Text = "پیش‌نویس" },
+                new { Value = EventOperationalStatus.Selling.ToString(), Text = "در حال فروش" }
+            };
+        OperationalStatusOptions = new SelectList(operationalStatuses, "Value", "Text", OperationalStatus?.ToString());
+        ReviewStatusOptions = new SelectList(
+            await _locationsApi.GetReviewStatusesAsync(),
+            nameof(SystemLookupOption.Value),
+            nameof(SystemLookupOption.DisplayNameFa),
+            ReviewStatus?.ToString());
         SortOptions = new SelectList(new[]
         {
             new { Value = "updated-desc", Text = "آخرین تغییر" },
@@ -180,6 +170,19 @@ public class IndexModel : PageModel
             new { Value = "price-desc", Text = "قیمت بیشتر" },
             new { Value = "price-asc", Text = "قیمت کمتر" }
         }, "Value", "Text", Sort);
+    }
+
+    private void NormalizeScopeFilters()
+    {
+        if (Scope == EventListScope.Archive)
+        {
+            if (OperationalStatus is EventOperationalStatus.Draft or EventOperationalStatus.Selling)
+                OperationalStatus = null;
+            return;
+        }
+
+        if (OperationalStatus is EventOperationalStatus.Closed or EventOperationalStatus.Cancelled)
+            OperationalStatus = null;
     }
 
     public string GetOperationalStatusClass(EventOperationalStatus status) => DisplayFormatter.OperationalStatusClass(status);

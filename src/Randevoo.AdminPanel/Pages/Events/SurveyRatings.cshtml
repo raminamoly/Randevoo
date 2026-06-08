@@ -7,7 +7,6 @@
 <section class="page-header">
     <div>
         <h1>نظرسنجی های رویداد</h1>
-        <p>@Model.EventTitle</p>
     </div>
     <a asp-page="/Events/Index" class="btn btn-outline-secondary"><i class="bi bi-arrow-right"></i>بازگشت به رویدادها</a>
 </section>
@@ -24,7 +23,7 @@
 </div>
 
 <div class="glass-panel p-4">
-    <h2 class="section-title">بازخورد کاربران</h2>
+    <h2 class="section-title">بازخورد شرکت‌کنندگان</h2>
     <div class="survey-response-list">
         @foreach (var response in Model.Responses)
         {

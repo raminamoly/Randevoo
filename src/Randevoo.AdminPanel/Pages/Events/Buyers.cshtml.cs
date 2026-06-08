@@ -60,7 +60,7 @@ public class BuyersModel : PageModel
     public async Task<IActionResult> OnPostRefundAsync(long eventId)
     {
         EventId = eventId;
-        var current = _session.CurrentUser ?? throw new InvalidOperationException("کاربر جاری شناسایی نشد.");
+        var current = _session.CurrentUser ?? throw new InvalidOperationException("حساب جاری شناسایی نشد.");
         if (!IsAdmin)
         {
             ModelState.AddModelError(string.Empty, "فقط مدیر می تواند بازگشت وجه اضطراری ثبت کند.");
@@ -87,7 +87,7 @@ public class BuyersModel : PageModel
 
     private async Task LoadBuyersAsync(long eventId)
     {
-        var current = _session.CurrentUser ?? throw new InvalidOperationException("کاربر جاری شناسایی نشد.");
+        var current = _session.CurrentUser ?? throw new InvalidOperationException("حساب جاری شناسایی نشد.");
         var buyers = await _eventsApi.GetEventTicketBuyersAsync(eventId, current);
 
         if (!string.IsNullOrWhiteSpace(Search))

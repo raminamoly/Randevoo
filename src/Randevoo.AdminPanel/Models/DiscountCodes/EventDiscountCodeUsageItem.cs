@@ -13,6 +13,7 @@ public sealed class EventDiscountCodeUsageItem
     public decimal OriginalPrice { get; init; }
     public decimal DiscountAmount { get; init; }
     public decimal FinalPaidAmount { get; init; }
+    public string CurrencyCode { get; init; } = "IRR";
     public bool IsRefunded { get; init; }
     public bool IsRemoved { get; init; }
 }

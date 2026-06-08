@@ -87,4 +87,60 @@ public sealed class DatabaseLocationsApiClient : ILocationsApiClient
             })
             .ToListAsync(cancellationToken);
     }
+
+    public async Task<IReadOnlyList<SystemLookupOption>> GetUserRolesAsync(CancellationToken cancellationToken = default)
+    {
+        return await _db.UserRoles
+            .Where(item => item.IsActive)
+            .OrderBy(item => item.DisplayOrder)
+            .Select(item => new SystemLookupOption
+            {
+                Id = item.Id,
+                Name = item.Name,
+                DisplayNameFa = item.DisplayNameFa
+            })
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<SystemLookupOption>> GetReviewStatusesAsync(CancellationToken cancellationToken = default)
+    {
+        return await _db.EventReviewStatuses
+            .Where(item => item.IsActive)
+            .OrderBy(item => item.DisplayOrder)
+            .Select(item => new SystemLookupOption
+            {
+                Id = item.Id,
+                Name = item.Name,
+                DisplayNameFa = item.DisplayNameFa
+            })
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<SystemLookupOption>> GetDiscountTypesAsync(CancellationToken cancellationToken = default)
+    {
+        return await _db.EventDiscountTypes
+            .Where(item => item.IsActive)
+            .OrderBy(item => item.DisplayOrder)
+            .Select(item => new SystemLookupOption
+            {
+                Id = item.Id,
+                Name = item.Name,
+                DisplayNameFa = item.DisplayNameFa
+            })
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<SystemLookupOption>> GetBalanceTransactionTypesAsync(CancellationToken cancellationToken = default)
+    {
+        return await _db.BalanceTransactionTypes
+            .Where(item => item.IsActive)
+            .OrderBy(item => item.DisplayOrder)
+            .Select(item => new SystemLookupOption
+            {
+                Id = item.Id,
+                Name = item.Name,
+                DisplayNameFa = item.DisplayNameFa
+            })
+            .ToListAsync(cancellationToken);
+    }
 }

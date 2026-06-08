@@ -62,7 +62,7 @@ public class FaqsModel : PageModel
             return Page();
         }
 
-        var current = _session.CurrentUser ?? throw new InvalidOperationException("کاربر جاری شناسایی نشد.");
+        var current = _session.CurrentUser ?? throw new InvalidOperationException("حساب جاری شناسایی نشد.");
         var draft = Event.ActiveDraft;
         draft.Faqs = Faqs
             .Where(item => !string.IsNullOrWhiteSpace(item.Question) && !string.IsNullOrWhiteSpace(item.Answer))

@@ -41,6 +41,7 @@ public sealed class DatabaseUserProfilesApiClient : IUserProfilesApiClient
                 EventTitle = item.DatingEvent.Title,
                 StartAtUtc = DateTime.SpecifyKind(item.DatingEvent.DateTimeStart, DateTimeKind.Utc),
                 Price = item.Price,
+                CurrencyCode = item.CurrencyCode,
                 IsRefunded = item.IsRefunded,
                 IsRemoved = item.IsRemoved
             })

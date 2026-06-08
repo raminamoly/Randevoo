@@ -1,0 +1,200 @@
+@page
+@using System.Text.Json
+@using Randevoo.Domain.Enums
+@using Randevoo.AdminPanel.Models.Support
+@model Randevoo.AdminPanel.Pages.Support.IndexModel
+@{
+    ViewData["Title"] = "داشبورد پشتیبانی";
+    var chartPayload = JsonSerializer.Serialize(new
+    {
+        status = Model.Dashboard.StatusChart,
+        category = Model.Dashboard.CategoryChart,
+        daily = Model.Dashboard.DailyCreatedChart
+    });
+}
+
+<section class="page-header support-dashboard-header">
+    <div>
+        <h1>داشبورد تیکت ها</h1>
+    </div>
+    <a class="btn btn-primary" asp-page="/Support/Tickets">
+        <i class="bi bi-inboxes-fill"></i>
+        تیکت های سیستم
+    </a>
+</section>
+
+<form method="get" class="glass-panel support-filter-panel">
+    <div class="support-filter-grid">
+        <div>
+            <label class="form-label" asp-for="CreatedFromJalali">از تاریخ</label>
+            <input class="form-control jalali-date-picker" asp-for="CreatedFromJalali" autocomplete="off" placeholder="۱۴۰۵/۰۳/۰۱" />
+        </div>
+        <div>
+            <label class="form-label" asp-for="CreatedToJalali">تا تاریخ</label>
+            <input class="form-control jalali-date-picker" asp-for="CreatedToJalali" autocomplete="off" placeholder="۱۴۰۵/۰۳/۳۱" />
+        </div>
+        <div>
+            <label class="form-label" asp-for="Status">وضعیت</label>
+            <select class="form-select" asp-for="Status" asp-items="Model.StatusOptions">
+                <option value="">همه وضعیت ها</option>
+            </select>
+        </div>
+        <div>
+            <label class="form-label" asp-for="Category">دسته بندی</label>
+            <select class="form-select" asp-for="Category" asp-items="Model.CategoryOptions">
+                <option value="">همه دسته ها</option>
+            </select>
+        </div>
+        <div>
+            <label class="form-label" asp-for="SubmitterRole">نوع ثبت کننده</label>
+            <select class="form-select" asp-for="SubmitterRole">
+                <option value="">همه</option>
+                <option value="@((int)UserRole.EndUser)">شرکت‌کننده</option>
+                <option value="@((int)UserRole.EventPlanner)">برگزارکننده</option>
+            </select>
+        </div>
+        <div>
+            <label class="form-label" asp-for="AssigneeUserId">پشتیبان</label>
+            @if (Model.IsAdmin)
+            {
+                <select class="form-select" asp-for="AssigneeUserId">
+                    <option value="">همه پشتیبان ها</option>
+                    @foreach (var supportUser in Model.SupportUsers)
+                    {
+                        <option value="@supportUser.Id">@supportUser.DisplayName</option>
+                    }
+                </select>
+            }
+            else
+            {
+                <input type="hidden" asp-for="AssigneeUserId" value="@Model.AssigneeUserId" />
+                <input class="form-control" value="@Model.CurrentSupportDisplayName" readonly />
+            }
+        </div>
+        <div class="support-filter-actions">
+            <button class="btn btn-primary" type="submit"><i class="bi bi-funnel"></i> اعمال فیلتر</button>
+            <a class="btn btn-light" asp-page="/Support/Index"><i class="bi bi-arrow-counterclockwise"></i> پاک کردن</a>
+        </div>
+    </div>
+</form>
+
+<section class="support-kpi-grid" aria-label="خلاصه وضعیت تیکت ها">
+    <article class="support-kpi-card primary">
+        <span>کل تیکت ها</span>
+        <strong>@Model.Dashboard.TotalTickets</strong>
+    </article>
+    <article class="support-kpi-card">
+        <span>باز</span>
+        <strong>@Model.Dashboard.OpenTickets</strong>
+    </article>
+    <article class="support-kpi-card">
+        <span>در حال رسیدگی</span>
+        <strong>@Model.Dashboard.InProgressTickets</strong>
+    </article>
+    <article class="support-kpi-card">
+        <span>منتظر ثبت‌کننده</span>
+        <strong>@Model.Dashboard.WaitingForUserTickets</strong>
+    </article>
+    <article class="support-kpi-card success">
+        <span>بسته شده</span>
+        <strong>@Model.Dashboard.ClosedTickets</strong>
+    </article>
+</section>
+
+<section class="support-chart-grid">
+    <article class="glass-panel support-chart-card">
+        <div class="support-chart-heading">
+            <span>وضعیت تیکت ها</span>
+            <strong>@Model.Dashboard.ReopenedTickets بازگشایی</strong>
+        </div>
+        <canvas id="supportStatusChart" height="210"></canvas>
+    </article>
+    <article class="glass-panel support-chart-card">
+        <div class="support-chart-heading">
+            <span>دسته بندی</span>
+            <strong>@Model.Dashboard.FinancialTickets مالی</strong>
+        </div>
+        <canvas id="supportCategoryChart" height="210"></canvas>
+    </article>
+    <article class="glass-panel support-chart-card wide">
+        <div class="support-chart-heading">
+            <span>روند ثبت تیکت</span>
+            <strong>@Model.Dashboard.UnassignedTickets بدون مسئول</strong>
+        </div>
+        <canvas id="supportDailyChart" height="150"></canvas>
+    </article>
+</section>
+
+<section class="glass-panel support-dashboard-action">
+    <div>
+        <h2>مدیریت و پاسخ گویی تیکت ها</h2>
+    </div>
+    <a class="btn btn-outline-primary" asp-page="/Support/Tickets">
+        <i class="bi bi-arrow-left"></i>
+        رفتن به تیکت های سیستم
+    </a>
+</section>
+
+@section Scripts {
+    <script src="~/lib/chart.js/dist/chart.umd.min.js"></script>
+    <script>
+        (() => {
+            const payload = @Html.Raw(chartPayload);
+            const palette = ["#1765ff", "#ff3d7f", "#21b573", "#ffb547", "#7157ff"];
+            const chartFont = getComputedStyle(document.documentElement).getPropertyValue("--rv-font-chart").trim()
+                || '"IRANSansXFaNum", "IRANSansX", "Tahoma", "Segoe UI", Arial, sans-serif';
+            const makeLabels = (items) => items.map(item => item.Label);
+            const makeValues = (items) => items.map(item => item.Value);
+
+            Chart.defaults.font.family = chartFont;
+            Chart.defaults.font.size = 12;
+
+            const baseOptions = {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: "bottom",
+                        labels: {
+                            usePointStyle: true,
+                            boxWidth: 8,
+                            font: { family: chartFont, weight: "600" }
+                        }
+                    },
+                    tooltip: {
+                        rtl: true,
+                        textDirection: "rtl",
+                        bodyFont: { family: chartFont, weight: "500" },
+                        titleFont: { family: chartFont, weight: "600" }
+                    }
+                }
+            };
+
+            const statusCanvas = document.getElementById("supportStatusChart");
+            if (statusCanvas) {
+                new Chart(statusCanvas, {
+                    type: "doughnut",
+                    data: { labels: makeLabels(payload.status), datasets: [{ data: makeValues(payload.status), backgroundColor: palette, borderWidth: 0 }] },
+                    options: { ...baseOptions, cutout: "68%" }
+                });
+            }
+
+            const categoryCanvas = document.getElementById("supportCategoryChart");
+            if (categoryCanvas) {
+                new Chart(categoryCanvas, {
+                    type: "bar",
+                    data: { labels: makeLabels(payload.category), datasets: [{ data: makeValues(payload.category), backgroundColor: palette.slice(0, 3), borderRadius: 8 }] },
+                    options: { ...baseOptions, scales: { y: { beginAtZero: true, ticks: { precision: 0, font: { family: chartFont } } } } }
+                });
+            }
+
+            const dailyCanvas = document.getElementById("supportDailyChart");
+            if (dailyCanvas) {
+                new Chart(dailyCanvas, {
+                    type: "line",
+                    data: { labels: makeLabels(payload.daily), datasets: [{ label: "تیکت جدید", data: makeValues(payload.daily), borderColor: "#1765ff", backgroundColor: "rgba(23, 101, 255, .16)", fill: true, tension: .35, pointRadius: 3 }] },
+                    options: { ...baseOptions, scales: { y: { beginAtZero: true, ticks: { precision: 0, font: { family: chartFont } } } } }
+                });
+            }
+        })();
+    </script>
+}

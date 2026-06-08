@@ -29,7 +29,7 @@ public class UserModel : PageModel
 
     public async Task OnGetAsync(long userId, string? view = null)
     {
-        var current = _session.CurrentUser ?? throw new InvalidOperationException("کاربر جاری شناسایی نشد.");
+        var current = _session.CurrentUser ?? throw new InvalidOperationException("حساب جاری شناسایی نشد.");
         Overview = await _financeApi.GetUserFinanceAsync(current, userId);
         ViewMode = string.Equals(view, "payments", StringComparison.OrdinalIgnoreCase) ? "payments" : "balance";
     }

@@ -4,9 +4,144 @@ $(function () {
     });
 
     const sidebar = document.getElementById("sidebarCollapse");
+    const adminShell = document.querySelector(".admin-shell");
+    const desktopSidebarQuery = window.matchMedia("(min-width: 992px)");
+    const isDesktopSidebarCollapsed = function () {
+        return Boolean(adminShell && adminShell.classList.contains("sidebar-collapsed") && desktopSidebarQuery.matches);
+    };
+
+    const getNavLabel = function (element) {
+        return (element.innerText || element.getAttribute("aria-label") || element.getAttribute("title") || "")
+            .replace(/\s+/g, " ")
+            .trim();
+    };
+
+    const setSidebarCollapsed = function (collapsed) {
+        if (!adminShell || !desktopSidebarQuery.matches) {
+            return;
+        }
+
+        adminShell.classList.toggle("sidebar-collapsed", collapsed);
+        localStorage.setItem("randevoo.sidebarCollapsed", collapsed ? "true" : "false");
+        syncSidebarRail();
+    };
+
+    const syncSidebarRail = function () {
+        if (!adminShell) {
+            return;
+        }
+
+        const collapsed = isDesktopSidebarCollapsed();
+        document.querySelectorAll("[data-sidebar-rail-toggle='true']").forEach(function (button) {
+            button.setAttribute("aria-expanded", collapsed ? "false" : "true");
+            button.setAttribute("aria-label", collapsed ? "باز کردن منو" : "کوچک کردن منو");
+            button.setAttribute("title", collapsed ? "باز کردن منو" : "کوچک کردن منو");
+            const icon = button.querySelector("i.bi");
+            if (icon) {
+                icon.className = "bi bi-list";
+            }
+        });
+
+        if (!sidebar) {
+            return;
+        }
+
+        sidebar.querySelectorAll(".sidebar-nav a.nav-link, .sidebar-nav .nav-tree-toggle").forEach(function (item) {
+            const label = getNavLabel(item);
+            if (label) {
+                item.setAttribute("title", label);
+                item.setAttribute("aria-label", label);
+            }
+
+            if (!item.matches("a.nav-link") || !window.bootstrap || !window.bootstrap.Tooltip) {
+                return;
+            }
+
+            const existing = window.bootstrap.Tooltip.getInstance(item);
+            if (existing) {
+                existing.dispose();
+            }
+
+            if (collapsed && label) {
+                item.setAttribute("data-bs-toggle", "tooltip");
+                item.setAttribute("data-bs-placement", "left");
+                new window.bootstrap.Tooltip(item, { trigger: "hover focus" });
+            } else {
+                item.removeAttribute("data-bs-toggle");
+                item.removeAttribute("data-bs-placement");
+            }
+        });
+    };
+
+    const closeOtherSidebarSections = function (currentPanel) {
+        if (!sidebar || !window.bootstrap || !window.bootstrap.Collapse) {
+            return;
+        }
+
+        sidebar.querySelectorAll(".nav-subnav.show").forEach(function (panel) {
+            if (panel === currentPanel) {
+                return;
+            }
+
+            window.bootstrap.Collapse.getOrCreateInstance(panel, { toggle: false }).hide();
+        });
+    };
+
+    if (adminShell) {
+        const storedRailState = localStorage.getItem("randevoo.sidebarCollapsed");
+        if (storedRailState === "true" && desktopSidebarQuery.matches) {
+            adminShell.classList.add("sidebar-collapsed");
+        }
+
+        document.querySelectorAll("[data-sidebar-rail-toggle='true']").forEach(function (button) {
+            button.addEventListener("click", function () {
+                if (!desktopSidebarQuery.matches) {
+                    return;
+                }
+
+                setSidebarCollapsed(!adminShell.classList.contains("sidebar-collapsed"));
+            });
+        });
+
+        desktopSidebarQuery.addEventListener("change", function (event) {
+            if (!event.matches) {
+                adminShell.classList.remove("sidebar-collapsed");
+            } else if (localStorage.getItem("randevoo.sidebarCollapsed") === "true") {
+                adminShell.classList.add("sidebar-collapsed");
+            }
+
+            syncSidebarRail();
+        });
+
+        syncSidebarRail();
+    }
+
     if (sidebar && window.bootstrap && window.bootstrap.Collapse) {
         const sidebarController = window.bootstrap.Collapse.getOrCreateInstance(sidebar, {
             toggle: false
+        });
+
+        sidebar.querySelectorAll(".nav-subnav").forEach(function (panel) {
+            panel.addEventListener("show.bs.collapse", function () {
+                closeOtherSidebarSections(panel);
+            });
+        });
+
+        const activeOpenPanels = Array.prototype.slice.call(sidebar.querySelectorAll(".nav-subnav.show"));
+        activeOpenPanels.slice(1).forEach(function (panel) {
+            window.bootstrap.Collapse.getOrCreateInstance(panel, { toggle: false }).hide();
+        });
+
+        sidebar.querySelectorAll(".sidebar-nav a.nav-link, .sidebar-nav .nav-tree-toggle").forEach(function (item) {
+            item.addEventListener("click", function (event) {
+                if (!isDesktopSidebarCollapsed()) {
+                    return;
+                }
+
+                event.preventDefault();
+                event.stopPropagation();
+                setSidebarCollapsed(false);
+            });
         });
 
         sidebar.querySelectorAll(".sidebar-nav a.nav-link").forEach(function (link) {
@@ -537,6 +672,109 @@ $(function () {
                 input.value = normalizeNumericInput(input.value);
             });
         }
+    });
+
+    document.querySelectorAll("[data-event-wizard-form='true']").forEach(function (form) {
+        const panels = Array.from(form.querySelectorAll("[data-event-wizard-panel]"));
+        const steps = Array.from(form.querySelectorAll("[data-event-wizard-target]"));
+        const prevButton = form.querySelector("[data-event-wizard-prev='true']");
+        const nextButton = form.querySelector("[data-event-wizard-next='true']");
+        const submitButton = form.querySelector("[data-event-wizard-submit='true']");
+        let activeIndex = 0;
+
+        if (panels.length === 0 || steps.length === 0) {
+            return;
+        }
+
+        const hasPanelErrors = function (panel) {
+            return Boolean(panel.querySelector(".input-validation-error"))
+                || Array.from(panel.querySelectorAll(".field-validation-error, .text-danger")).some(function (element) {
+                    return (element.textContent || "").trim().length > 0;
+                });
+        };
+
+        const markStepErrors = function () {
+            steps.forEach(function (step) {
+                const key = step.dataset.eventWizardTarget;
+                const panel = panels.find(function (candidate) {
+                    return candidate.dataset.eventWizardPanel === key;
+                });
+                step.classList.toggle("has-error", Boolean(panel && hasPanelErrors(panel)));
+            });
+        };
+
+        const setActiveStep = function (index) {
+            activeIndex = Math.max(0, Math.min(index, panels.length - 1));
+            const activePanel = panels[activeIndex];
+            const activeKey = activePanel.dataset.eventWizardPanel;
+
+            panels.forEach(function (panel, panelIndex) {
+                const isActive = panelIndex === activeIndex;
+                panel.classList.toggle("is-active", isActive);
+                panel.setAttribute("aria-hidden", isActive ? "false" : "true");
+            });
+
+            steps.forEach(function (step) {
+                const isActive = step.dataset.eventWizardTarget === activeKey;
+                step.classList.toggle("is-active", isActive);
+                if (isActive) {
+                    step.setAttribute("aria-current", "step");
+                    step.scrollIntoView({ behavior: "smooth", inline: "nearest", block: "nearest" });
+                } else {
+                    step.removeAttribute("aria-current");
+                }
+            });
+
+            if (prevButton) {
+                prevButton.disabled = activeIndex === 0;
+            }
+
+            if (nextButton) {
+                nextButton.classList.toggle("d-none", activeIndex === panels.length - 1);
+            }
+
+            if (submitButton) {
+                submitButton.classList.toggle("d-none", activeIndex !== panels.length - 1);
+            }
+
+            window.setTimeout(function () {
+                window.dispatchEvent(new Event("resize"));
+            }, 80);
+        };
+
+        steps.forEach(function (step, index) {
+            step.addEventListener("click", function () {
+                markStepErrors();
+                setActiveStep(index);
+            });
+        });
+
+        if (prevButton) {
+            prevButton.addEventListener("click", function () {
+                setActiveStep(activeIndex - 1);
+            });
+        }
+
+        if (nextButton) {
+            nextButton.addEventListener("click", function () {
+                markStepErrors();
+                setActiveStep(activeIndex + 1);
+            });
+        }
+
+        form.addEventListener("submit", function () {
+            window.setTimeout(function () {
+                markStepErrors();
+                const firstInvalidIndex = panels.findIndex(hasPanelErrors);
+                if (firstInvalidIndex >= 0) {
+                    setActiveStep(firstInvalidIndex);
+                }
+            }, 0);
+        });
+
+        markStepErrors();
+        const firstInvalidIndex = panels.findIndex(hasPanelErrors);
+        setActiveStep(firstInvalidIndex >= 0 ? firstInvalidIndex : 0);
     });
 
     document.querySelectorAll("[data-discount-type-group='true']").forEach(function (group) {

@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Randevoo.AdminPanel.Models.Auth;
+using Randevoo.AdminPanel.Models.Common;
 using Randevoo.AdminPanel.Models.Events;
 using Randevoo.AdminPanel.Services.State;
 using Randevoo.Application.Interfaces.Auditing;
@@ -66,6 +67,21 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<SystemLookupOption>> GetCurrencyOptionsAsync(CancellationToken cancellationToken = default)
+    {
+        return await _db.Currencies
+            .Where(item => item.IsActive)
+            .OrderBy(item => item.DisplayOrder)
+            .ThenBy(item => item.Code)
+            .Select(item => new SystemLookupOption
+            {
+                Id = item.Id,
+                Name = item.Code,
+                DisplayNameFa = item.DisplayNameFa
+            })
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<IReadOnlyList<Models.Events.DatingEvent>> GetEventsAsync(MockUser currentUser, CancellationToken cancellationToken = default)
     {
         var query = _db.DatingEvents
@@ -91,6 +107,122 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
             .ToListAsync(cancellationToken);
 
         return events.Select(DatabaseModelMapper.ToAdminDatingEvent).ToList();
+    }
+
+    public async Task<EventListResult> GetEventsPageAsync(MockUser currentUser, EventListFilter filter, CancellationToken cancellationToken = default)
+    {
+        var nowUtc = DateTime.UtcNow;
+        var pageNumber = Math.Max(filter.PageNumber, 1);
+        var pageSize = Math.Clamp(filter.PageSize, 10, 100);
+
+        var query = _db.DatingEvents.AsNoTracking().AsQueryable();
+
+        if (currentUser.Role == AdminRole.EventPlanner)
+        {
+            query = query.Where(item => item.EventPlannerUserId == currentUser.Id);
+        }
+
+        query = filter.Scope == EventListScope.Archive
+            ? query.Where(item => item.IsCancelled || item.DateTimeEnd <= nowUtc)
+            : query.Where(item => !item.IsCancelled && item.DateTimeEnd > nowUtc);
+
+        if (!string.IsNullOrWhiteSpace(filter.Search))
+        {
+            var search = filter.Search.Trim();
+            var like = $"%{search}%";
+            query = query.Where(item =>
+                EF.Functions.Like(item.Title, like)
+                || EF.Functions.Like(item.EventPlannerUser.MobileNumber, like)
+                || (item.EventPlannerUser.Email != null && EF.Functions.Like(item.EventPlannerUser.Email, like))
+                || (item.EventPlannerUser.PendingEmail != null && EF.Functions.Like(item.EventPlannerUser.PendingEmail, like))
+                || (item.EventPlannerUser.Profile != null && item.EventPlannerUser.Profile.DisplayName != null && EF.Functions.Like(item.EventPlannerUser.Profile.DisplayName, like)));
+        }
+
+        if (filter.TagId is long tagId)
+        {
+            query = query.Where(item => item.EventTags.Any(eventTag => eventTag.TagId == tagId));
+        }
+
+        if (!string.IsNullOrWhiteSpace(filter.City))
+        {
+            var city = filter.City.Trim();
+            query = query.Where(item => item.City != null && item.City.Name == city);
+        }
+
+        if (filter.EventModeId is long eventModeId)
+        {
+            query = query.Where(item => item.EventModeId == eventModeId);
+        }
+
+        if (filter.OperationalStatus is Models.Events.EventOperationalStatus operationalStatus)
+        {
+            query = operationalStatus switch
+            {
+                Models.Events.EventOperationalStatus.Cancelled => query.Where(item => item.IsCancelled),
+                Models.Events.EventOperationalStatus.Closed => query.Where(item => !item.IsCancelled && item.DateTimeEnd <= nowUtc),
+                Models.Events.EventOperationalStatus.Selling => query.Where(item => !item.IsCancelled && item.DateTimeEnd > nowUtc && item.IsOpenForSell),
+                _ => query.Where(item => !item.IsCancelled && item.DateTimeEnd > nowUtc && !item.IsOpenForSell)
+            };
+        }
+
+        if (filter.ReviewStatus is Models.Events.EventReviewStatus reviewStatus)
+        {
+            var domainReviewStatus = reviewStatus switch
+            {
+                Models.Events.EventReviewStatus.PendingReview => Randevoo.Domain.Enums.EventReviewStatus.PendingReview,
+                Models.Events.EventReviewStatus.Approved => Randevoo.Domain.Enums.EventReviewStatus.Approved,
+                Models.Events.EventReviewStatus.Rejected => Randevoo.Domain.Enums.EventReviewStatus.Rejected,
+                _ => Randevoo.Domain.Enums.EventReviewStatus.NotSubmitted
+            };
+            query = query.Where(item => item.ReviewStatus == domainReviewStatus);
+        }
+
+        if (filter.FromDateUtc is DateTimeOffset fromDate)
+        {
+            query = query.Where(item => item.DateTimeStart >= fromDate.UtcDateTime);
+        }
+
+        if (filter.ToDateUtc is DateTimeOffset toDate)
+        {
+            var inclusiveEnd = toDate.UtcDateTime.Date.AddDays(1);
+            query = query.Where(item => item.DateTimeStart < inclusiveEnd);
+        }
+
+        var totalCount = await query.CountAsync(cancellationToken);
+        var totalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)pageSize));
+        pageNumber = Math.Min(pageNumber, totalPages);
+
+        query = filter.Sort switch
+        {
+            "start-asc" => query.OrderBy(item => item.DateTimeStart).ThenBy(item => item.Id),
+            "start-desc" => query.OrderByDescending(item => item.DateTimeStart).ThenByDescending(item => item.Id),
+            "title-asc" => query.OrderBy(item => item.Title).ThenBy(item => item.Id),
+            "price-desc" => query.OrderByDescending(item => item.MaleTicketPrice > item.FemaleTicketPrice ? item.MaleTicketPrice : item.FemaleTicketPrice).ThenByDescending(item => item.Id),
+            "price-asc" => query.OrderBy(item => item.MaleTicketPrice < item.FemaleTicketPrice ? item.MaleTicketPrice : item.FemaleTicketPrice).ThenBy(item => item.Id),
+            _ => query.OrderByDescending(item => item.UpdatedAt ?? item.CreatedAt).ThenByDescending(item => item.Id)
+        };
+
+        var events = await query
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .Include(item => item.EventPlannerUser)
+            .ThenInclude(user => user.Profile)
+            .Include(item => item.EventType)
+            .Include(item => item.EventMode)
+            .Include(item => item.OnlineEventPlatform)
+            .Include(item => item.Country)
+            .Include(item => item.City)
+            .Include(item => item.Faqs)
+            .Include(item => item.EventTags)
+            .ThenInclude(eventTag => eventTag.Tag)
+            .AsSplitQuery()
+            .ToListAsync(cancellationToken);
+
+        return new EventListResult
+        {
+            TotalCount = totalCount,
+            Items = events.Select(DatabaseModelMapper.ToAdminDatingEvent).ToList()
+        };
     }
 
     public async Task<Models.Events.DatingEvent?> GetEventAsync(long id, CancellationToken cancellationToken = default)
@@ -171,6 +303,8 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
         var normalizedDelivery = NormalizeDeliveryInput(input, eventMode.IsOnline);
         var locationLookup = await ResolveLocationLookupAsync(normalizedDelivery.Country, normalizedDelivery.City, cancellationToken);
         var minimumEducationLevelId = await ResolveMinimumEducationLevelIdAsync(input.MinimumEducationLevelId, cancellationToken);
+        input.MaleTicketCurrencyCode = await ResolveCurrencyCodeAsync(input.MaleTicketCurrencyCode, cancellationToken);
+        input.FemaleTicketCurrencyCode = await ResolveCurrencyCodeAsync(input.FemaleTicketCurrencyCode, cancellationToken);
         var normalizedFaqs = NormalizeFaqs(input.Faqs);
 
         var maleRange = DatabaseModelMapper.ParseAgeRange(input.AgeRangeForMale);
@@ -219,7 +353,9 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
                 input.Image1,
                 input.Image2,
                 input.Image3,
-                input.DescriptionHtml);
+                input.DescriptionHtml,
+                input.MaleTicketCurrencyCode,
+                input.FemaleTicketCurrencyCode);
 
             datingEvent.SetLocationLookup(locationLookup.CountryId, locationLookup.CityId);
             datingEvent.SetMinimumEducationLevel(minimumEducationLevelId);
@@ -268,7 +404,9 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
                 input.Image2,
                 input.Image3,
                 input.DescriptionHtml,
-                input.OrganizerCommissionPercent);
+                input.OrganizerCommissionPercent,
+                input.MaleTicketCurrencyCode,
+                input.FemaleTicketCurrencyCode);
 
             datingEvent.SubmitForReview();
             datingEvent.SetLocationLookup(locationLookup.CountryId, locationLookup.CityId);
@@ -471,7 +609,7 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
                 TicketId = ticket.Id,
                 EventId = ticket.DatingEventId,
                 UserId = ticket.UserId,
-                DisplayName = profile?.DisplayName ?? $"کاربر {ticket.UserId}",
+                DisplayName = profile?.DisplayName ?? $"شرکت‌کننده {ticket.UserId}",
                 ProfileImageUrl = profile?.Images
                     .OrderByDescending(image => image.IsPrimary)
                     .ThenBy(image => image.DisplayOrder)
@@ -485,6 +623,7 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
                 Country = country,
                 City = city,
                 TicketPrice = ticket.Price,
+                TicketCurrencyCode = ticket.CurrencyCode,
                 IsRefunded = ticket.IsRefunded,
                 IsRemoved = ticket.IsRemoved,
                 TicketStatus = ticket.IsRemoved
@@ -552,7 +691,7 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
                 PlannerIncomeReversal = plannerIncome,
                 ticket.RemovalReason
             }),
-            $"بلیت کاربر «{DatabaseModelMapper.ResolveUserDisplayName(ticket.User)}» از رویداد «{ticket.DatingEvent.Title}» حذف و وجه آن برگشت داده شد."), cancellationToken);
+            $"بلیت شرکت‌کننده «{DatabaseModelMapper.ResolveUserDisplayName(ticket.User)}» از رویداد «{ticket.DatingEvent.Title}» حذف و وجه آن برگشت داده شد."), cancellationToken);
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
     }
@@ -676,7 +815,7 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
         return await _db.Users
             .Include(item => item.Profile)
             .FirstOrDefaultAsync(item => item.Id == userId, cancellationToken)
-            ?? throw new InvalidOperationException("کاربر جاری پیدا نشد.");
+            ?? throw new InvalidOperationException("حساب جاری پیدا نشد.");
     }
 
     private async Task<User> RequireAdminAsync(long userId, CancellationToken cancellationToken)
@@ -717,7 +856,7 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
             ?? throw new InvalidOperationException("برگزارکننده انتخاب شده پیدا نشد.");
 
         if (planner.Role != UserRole.EventPlanner && planner.Role != UserRole.Admin)
-            throw new InvalidOperationException("کاربر انتخاب شده برگزارکننده نیست.");
+            throw new InvalidOperationException("حساب انتخاب‌شده برگزارکننده نیست.");
 
         return planner;
     }
@@ -756,6 +895,16 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
             throw new InvalidOperationException("حداقل سطح تحصیل انتخاب شده معتبر نیست.");
 
         return minimumEducationLevelId;
+    }
+
+    private async Task<string> ResolveCurrencyCodeAsync(string? currencyCode, CancellationToken cancellationToken)
+    {
+        var normalized = CurrencyLookup.NormalizeCode(string.IsNullOrWhiteSpace(currencyCode) ? "IRR" : currencyCode);
+        var exists = await _db.Currencies.AnyAsync(item => item.Code == normalized && item.IsActive, cancellationToken);
+        if (!exists)
+            throw new InvalidOperationException("واحد پول انتخاب شده معتبر نیست.");
+
+        return normalized;
     }
 
     private async Task<EventModeLookup> ResolveEventModeAsync(long eventModeId, CancellationToken cancellationToken)
@@ -872,7 +1021,9 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
             datingEvent.FemaleCapacity,
             datingEvent.NumberOfLikesAllowed,
             datingEvent.MaleTicketPrice,
+            datingEvent.MaleTicketCurrencyCode,
             datingEvent.FemaleTicketPrice,
+            datingEvent.FemaleTicketCurrencyCode,
             datingEvent.EducationLevelRestriction,
             Tags = datingEvent.Tags.ToArray(),
             datingEvent.EventDescriptionHtml,

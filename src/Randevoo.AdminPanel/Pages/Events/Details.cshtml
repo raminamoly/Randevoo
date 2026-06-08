@@ -7,7 +7,6 @@
 <section class="page-header">
     <div>
         <h1>@Model.Event.DisplayTitle</h1>
-        <p>@(Model.Event.ActiveDraft.IsOnline ? "رویداد آنلاین" : $"{Model.Event.ActiveDraft.City}، {Model.Event.ActiveDraft.Country}")</p>
         @if (Model.Event.ActiveDraft.Tags.Count > 0)
         {
             <div class="event-chip-list mt-3">
@@ -167,7 +166,7 @@
             <div class="row g-3">
                 <div class="col-md-4"><div class="detail-block"><span>بازه سنی</span><strong>@Model.Event.ActiveDraft.AgeRangeForMale</strong></div></div>
                 <div class="col-md-4"><div class="detail-block"><span>ظرفیت</span><strong>@DisplayFormatter.Count(Model.Event.ActiveDraft.CapacityMale)</strong></div></div>
-                <div class="col-md-4"><div class="detail-block"><span>قیمت بلیت</span><strong>@DisplayFormatter.Money(Model.Event.ActiveDraft.MaleTicketPrice, Model.IsRtl)</strong></div></div>
+                <div class="col-md-4"><div class="detail-block"><span>قیمت بلیت</span><strong>@DisplayFormatter.TicketMoney(Model.Event.ActiveDraft.MaleTicketPrice, Model.Event.ActiveDraft.MaleTicketCurrencyCode, Model.IsRtl)</strong></div></div>
             </div>
         </article>
         <article class="gender-field-panel">
@@ -175,7 +174,7 @@
             <div class="row g-3">
                 <div class="col-md-4"><div class="detail-block"><span>بازه سنی</span><strong>@Model.Event.ActiveDraft.AgeRangeForFemale</strong></div></div>
                 <div class="col-md-4"><div class="detail-block"><span>ظرفیت</span><strong>@DisplayFormatter.Count(Model.Event.ActiveDraft.CapacityFemale)</strong></div></div>
-                <div class="col-md-4"><div class="detail-block"><span>قیمت بلیت</span><strong>@DisplayFormatter.Money(Model.Event.ActiveDraft.FemaleTicketPrice, Model.IsRtl)</strong></div></div>
+                <div class="col-md-4"><div class="detail-block"><span>قیمت بلیت</span><strong>@DisplayFormatter.TicketMoney(Model.Event.ActiveDraft.FemaleTicketPrice, Model.Event.ActiveDraft.FemaleTicketCurrencyCode, Model.IsRtl)</strong></div></div>
             </div>
         </article>
     </div>

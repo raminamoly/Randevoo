@@ -72,7 +72,7 @@ public class BankAccountsModel : PageModel
         return plannerUserId ?? current.Id;
     }
 
-    private MockUser CurrentUser() => _session.CurrentUser ?? throw new InvalidOperationException("کاربر جاری شناسایی نشد.");
+    private MockUser CurrentUser() => _session.CurrentUser ?? throw new InvalidOperationException("حساب جاری شناسایی نشد.");
 
     private void LoadEditingAccount()
     {

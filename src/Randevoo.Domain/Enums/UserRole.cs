@@ -4,5 +4,6 @@ public enum UserRole
 {
     EndUser = 0,
     EventPlanner = 1,
-    Admin = 2
+    Admin = 2,
+    PlatformSupportTeam = 3
 }

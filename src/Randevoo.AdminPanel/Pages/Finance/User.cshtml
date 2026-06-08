@@ -1,21 +1,20 @@
 @page "{userId:long}"
 @model Randevoo.AdminPanel.Pages.Finance.UserModel
 @{
-    ViewData["Title"] = "مالی کاربر";
+    ViewData["Title"] = "مالی شرکت‌کننده";
     var showPayments = Model.ViewMode == "payments";
 }
 
 <section class="page-header">
     <div>
-        <h1>مالی کاربر</h1>
-        <p>نمای کامل موجودی، تراکنش ها و پرداخت های آنلاین کاربر برای بررسی مدیر.</p>
+        <h1>مالی شرکت‌کننده</h1>
     </div>
-    <a asp-page="/Users/Index" class="btn btn-outline-secondary"><i class="bi bi-arrow-right"></i>بازگشت به کاربران</a>
+    <a asp-page="/UserProfiles/Index" class="btn btn-outline-secondary"><i class="bi bi-arrow-right"></i>بازگشت به شرکت‌کنندگان</a>
 </section>
 
 <div class="stats-grid mb-4">
     <article class="stat-card">
-        <span>کاربر</span>
+        <span>شرکت‌کننده</span>
         <strong>@Model.Overview.DisplayName</strong>
         <small dir="ltr">@Model.Overview.MobileNumber</small>
     </article>
@@ -83,7 +82,7 @@
         </div>
         @if (Model.Overview.Transactions.Count == 0)
         {
-            <div class="empty-state">تراکنشی برای این کاربر ثبت نشده است.</div>
+            <div class="empty-state">تراکنشی برای این شرکت‌کننده ثبت نشده است.</div>
         }
     }
     else
@@ -119,7 +118,7 @@
         </div>
         @if (Model.Overview.OnlinePayments.Count == 0)
         {
-            <div class="empty-state">پرداخت آنلاینی برای این کاربر ثبت نشده است.</div>
+            <div class="empty-state">پرداخت آنلاینی برای این شرکت‌کننده ثبت نشده است.</div>
         }
     }
 </div>

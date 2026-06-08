@@ -11,9 +11,7 @@
     <div class="auth-brand">
         <img src="~/images/logo.png" alt="راندوو" class="auth-logo" />
         <div>
-            <div class="auth-kicker">پنل مدیریت راندوو</div>
             <h1>ورود به مرکز کنترل</h1>
-            <p>مدیریت رویدادها، بررسی تغییرات برگزارکننده و تصمیم گیری نهایی برای نمایش به کاربران.</p>
         </div>
     </div>
 
@@ -25,6 +23,22 @@
     @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
     {
         <div class="alert alert-danger border-0">@Model.ErrorMessage</div>
+    }
+
+    @if (Model.ShowQuickLogin)
+    {
+        <form method="post" asp-page-handler="QuickLogin" class="quick-login-panel mb-4">
+            <label asp-for="QuickLoginKey" class="form-label">ورود سریع برای تست</label>
+            <div class="quick-login-row">
+                <select asp-for="QuickLoginKey" class="form-select form-select-lg" asp-items="Model.QuickLoginOptions">
+                    <option value="">انتخاب حساب تستی</option>
+                </select>
+                <button type="submit" class="btn btn-outline-primary btn-lg">
+                    <i class="bi bi-lightning-charge-fill"></i>
+                    ورود سریع
+                </button>
+            </div>
+        </form>
     }
 
     <form method="post" class="stacked-form">
@@ -43,7 +57,6 @@
             <button type="submit" asp-page-handler="RequestCode" class="btn btn-primary btn-lg w-100">
                 دریافت کد تایید
             </button>
-            <p class="auth-note">ورود با کاربران واقعی پایگاه داده انجام می شود و فقط کد پیامک در این محیط به صورت آزمایشی `123456` است.</p>
         }
         else
         {
@@ -64,7 +77,6 @@
                 ورود به پنل
             </button>
             <button type="submit" asp-page-handler="Back" class="btn btn-link w-100 mt-2">بازگشت و ویرایش اطلاعات</button>
-            <p class="auth-note">ادمین نمونه `09125177721` و برگزارکننده نمونه `09125550000` در داده های دمو ساخته می شوند.</p>
         }
     </form>
 </section>

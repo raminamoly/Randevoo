@@ -23,7 +23,9 @@ public record DatingEventDto(
     int FemaleCapacity,
     int NumberOfLikesAllowed,
     decimal MaleTicketPrice,
+    string MaleTicketCurrencyCode,
     decimal FemaleTicketPrice,
+    string FemaleTicketCurrencyCode,
     EventEducationLevelRestriction EducationLevelRestriction,
     IReadOnlyList<string> Tags,
     string EventDescriptionHtml)
@@ -49,7 +51,9 @@ public record DatingEventDto(
             datingEvent.FemaleCapacity,
             datingEvent.NumberOfLikesAllowed,
             datingEvent.MaleTicketPrice,
+            datingEvent.MaleTicketCurrencyCode,
             datingEvent.FemaleTicketPrice,
+            datingEvent.FemaleTicketCurrencyCode,
             datingEvent.EducationLevelRestriction,
             datingEvent.Tags,
             datingEvent.EventDescriptionHtml);

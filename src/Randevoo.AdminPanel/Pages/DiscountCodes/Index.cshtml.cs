@@ -16,12 +16,14 @@ public class IndexModel : PageModel
 {
     private readonly IEventDiscountCodesApiClient _discountCodesApi;
     private readonly IEventsApiClient _eventsApi;
+    private readonly ILocationsApiClient _locationsApi;
     private readonly CurrentSessionState _session;
 
-    public IndexModel(IEventDiscountCodesApiClient discountCodesApi, IEventsApiClient eventsApi, CurrentSessionState session)
+    public IndexModel(IEventDiscountCodesApiClient discountCodesApi, IEventsApiClient eventsApi, ILocationsApiClient locationsApi, CurrentSessionState session)
     {
         _discountCodesApi = discountCodesApi;
         _eventsApi = eventsApi;
+        _locationsApi = locationsApi;
         _session = session;
     }
 
@@ -103,7 +105,7 @@ public class IndexModel : PageModel
 
     public async Task<IActionResult> OnPostAsync()
     {
-        var current = _session.CurrentUser ?? throw new InvalidOperationException("کاربر جاری شناسایی نشد.");
+        var current = _session.CurrentUser ?? throw new InvalidOperationException("حساب جاری شناسایی نشد.");
         ApplyDateTextToInput();
         ValidateInput();
         if (!ModelState.IsValid)
@@ -132,7 +134,7 @@ public class IndexModel : PageModel
 
     public async Task<IActionResult> OnPostToggleAsync(long id, bool isActive)
     {
-        var current = _session.CurrentUser ?? throw new InvalidOperationException("کاربر جاری شناسایی نشد.");
+        var current = _session.CurrentUser ?? throw new InvalidOperationException("حساب جاری شناسایی نشد.");
         try
         {
             await _discountCodesApi.SetDiscountCodeActiveAsync(id, current, isActive);
@@ -148,7 +150,7 @@ public class IndexModel : PageModel
 
     private async Task LoadAsync()
     {
-        var current = _session.CurrentUser ?? throw new InvalidOperationException("کاربر جاری شناسایی نشد.");
+        var current = _session.CurrentUser ?? throw new InvalidOperationException("حساب جاری شناسایی نشد.");
         var events = await _eventsApi.GetEventsAsync(current);
         var eventItems = events
             .OrderBy(item => item.DisplayTitle)
@@ -165,11 +167,11 @@ public class IndexModel : PageModel
             new { Value = EventDiscountGenderScope.Female, Text = "فقط خانم ها" }
         }, "Value", "Text", Input.GenderScope);
 
-        DiscountTypeOptions = new SelectList(new[]
-        {
-            new { Value = EventDiscountType.Percentage, Text = "درصدی" },
-            new { Value = EventDiscountType.FixedAmount, Text = "مبلغ ثابت" }
-        }, "Value", "Text", Input.DiscountType);
+        DiscountTypeOptions = new SelectList(
+            await _locationsApi.GetDiscountTypesAsync(),
+            nameof(SystemLookupOption.Value),
+            nameof(SystemLookupOption.DisplayNameFa),
+            Input.DiscountType.ToString());
 
         var items = await _discountCodesApi.GetDiscountCodesAsync();
         if (EventId is long eventId)

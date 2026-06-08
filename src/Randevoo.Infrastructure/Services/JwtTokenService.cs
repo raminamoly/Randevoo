@@ -41,7 +41,7 @@ public class JwtTokenService : IJwtTokenService
             new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new Claim("mobile_number", user.MobileNumber),
-            new Claim(ClaimTypes.Role, user.Role.ToString())
+            new Claim(ClaimTypes.Role, user.Role == Randevoo.Domain.Enums.UserRole.PlatformSupportTeam ? "platform-support-team" : user.Role.ToString())
         };
 
         var expiresAtUtc = DateTime.UtcNow.AddMinutes(expiresMinutes);

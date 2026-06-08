@@ -29,7 +29,7 @@ public class SurveyRatingsModel : PageModel
 
     public async Task<IActionResult> OnGetAsync(long eventId)
     {
-        var current = _session.CurrentUser ?? throw new InvalidOperationException("کاربر جاری شناسایی نشد.");
+        var current = _session.CurrentUser ?? throw new InvalidOperationException("حساب جاری شناسایی نشد.");
         var datingEvent = await _db.DatingEvents
             .FirstOrDefaultAsync(item => item.Id == eventId);
         if (datingEvent is null)

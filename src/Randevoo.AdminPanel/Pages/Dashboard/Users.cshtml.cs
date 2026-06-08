@@ -30,15 +30,15 @@ public class UsersModel : PageModel
 
     public DashboardFilterViewModel FilterModel => new()
     {
-        Title = "داشبورد کاربران",
-        Description = "روند رشد، فعالیت و کیفیت تکمیل پروفایل کاربران نهایی.",
+        Title = "داشبورد شرکت‌کنندگان",
+        Description = "روند رشد، فعالیت و کیفیت تکمیل پروفایل شرکت‌کنندگان.",
         CurrentRangeKey = Range.Key,
         PagePath = "/Dashboard/Users"
     };
 
     public async Task OnGetAsync()
     {
-        var current = _session.CurrentUser ?? throw new InvalidOperationException("کاربر جاری شناسایی نشد.");
+        var current = _session.CurrentUser ?? throw new InvalidOperationException("حساب جاری شناسایی نشد.");
         Range = DashboardDateRange.Resolve(RangeKey);
         Report = await _analyticsApi.GetUserDashboardAsync(current, Range);
     }

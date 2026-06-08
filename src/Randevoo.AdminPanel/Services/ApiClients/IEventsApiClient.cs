@@ -1,4 +1,5 @@
 using Randevoo.AdminPanel.Models.Auth;
+using Randevoo.AdminPanel.Models.Common;
 using Randevoo.AdminPanel.Models.Events;
 
 namespace Randevoo.AdminPanel.Services.ApiClients;
@@ -11,7 +12,11 @@ public interface IEventsApiClient
 
     Task<IReadOnlyList<OnlineEventPlatformOption>> GetOnlineEventPlatformsAsync(CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<SystemLookupOption>> GetCurrencyOptionsAsync(CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<DatingEvent>> GetEventsAsync(MockUser currentUser, CancellationToken cancellationToken = default);
+
+    Task<EventListResult> GetEventsPageAsync(MockUser currentUser, EventListFilter filter, CancellationToken cancellationToken = default);
 
     Task<DatingEvent?> GetEventAsync(long id, CancellationToken cancellationToken = default);
 

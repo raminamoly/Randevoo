@@ -12,7 +12,6 @@
             <img src="@primaryImage" alt="@Model.Profile.DisplayName" class="user-profile-avatar" />
         </div>
         <div class="user-profile-identity">
-            <div class="eyebrow">پروفایل کاربر</div>
             <h1>@Model.Profile.DisplayName</h1>
             <div class="user-profile-meta">
                 <span>@Model.Profile.GenderTitle</span>
@@ -45,7 +44,7 @@
             </div>
             @if (Model.Profile.Images.Count == 0)
             {
-                <div class="empty-state">برای این کاربر عکسی ثبت نشده است.</div>
+                <div class="empty-state">برای این شرکت‌کننده عکسی ثبت نشده است.</div>
             }
         </div>
     </div>
@@ -73,7 +72,7 @@
             </div>
             @if (Model.Profile.Interests.Count == 0)
             {
-                <div class="empty-state">هنوز علاقه ای برای این کاربر ثبت نشده است.</div>
+                <div class="empty-state">هنوز علاقه‌ای برای این شرکت‌کننده ثبت نشده است.</div>
             }
         </div>
 
@@ -95,7 +94,7 @@
                             <tr>
                                 <td><a asp-page="/Events/Details" asp-route-id="@ticket.EventId">@ticket.EventTitle</a></td>
                                 <td>@PersianDateFormatter.FormatDateTime(ticket.StartAtUtc, Model.IsRtl)</td>
-                                <td>@DisplayFormatter.Money(ticket.Price, Model.IsRtl)</td>
+                                <td>@DisplayFormatter.TicketMoney(ticket.Price, ticket.CurrencyCode, Model.IsRtl)</td>
                                 <td><span class="status-badge @Model.TicketStatusClass(ticket)">@Model.TicketStatus(ticket)</span></td>
                             </tr>
                         }
@@ -104,7 +103,7 @@
             </div>
             @if (Model.Profile.Tickets.Count == 0)
             {
-                <div class="empty-state">هنوز خرید بلیتی برای این کاربر ثبت نشده است.</div>
+                <div class="empty-state">هنوز خرید بلیتی برای این شرکت‌کننده ثبت نشده است.</div>
             }
         </div>
     </div>

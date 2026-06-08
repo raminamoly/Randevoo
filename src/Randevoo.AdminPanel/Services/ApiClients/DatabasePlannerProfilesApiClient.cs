@@ -71,7 +71,7 @@ public sealed class DatabasePlannerProfilesApiClient : IPlannerProfilesApiClient
         var user = await _db.Users
             .Include(item => item.Profile)
             .FirstOrDefaultAsync(item => item.Id == currentUser.Id, cancellationToken)
-            ?? throw new InvalidOperationException("کاربر برگزارکننده پیدا نشد.");
+            ?? throw new InvalidOperationException("حساب برگزارکننده پیدا نشد.");
 
         if (user.Role != UserRole.EventPlanner && user.Role != UserRole.Admin)
         {

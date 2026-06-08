@@ -18,19 +18,19 @@
 </section>
 
 <section class="dashboard-chart-grid">
-    <article class="glass-panel p-4">
+    <article class="glass-panel dashboard-chart-card p-4">
         <div class="section-title">درآمد پلتفرم در زمان</div>
         <canvas id="platformIncomeTrendChart" height="120"></canvas>
     </article>
-    <article class="glass-panel p-4">
+    <article class="glass-panel dashboard-chart-card p-4">
         <div class="section-title">درآمد پلتفرم بر اساس نوع رویداد</div>
         <canvas id="platformIncomeByTypeChart" height="120"></canvas>
     </article>
-    <article class="glass-panel p-4">
+    <article class="glass-panel dashboard-chart-card p-4">
         <div class="section-title">درآمد پلتفرم بر اساس برگزارکننده</div>
         <canvas id="platformIncomeByPlannerChart" height="120"></canvas>
     </article>
-    <article class="glass-panel p-4">
+    <article class="glass-panel dashboard-chart-card p-4">
         <div class="section-title">سهم درآمد برگزارکنندگان</div>
         <canvas id="plannerIncomeShareChart" height="120"></canvas>
     </article>
@@ -39,7 +39,7 @@
 <section class="dashboard-dual-grid mt-4">
     <article class="glass-panel p-4">
         <div class="d-flex justify-content-between align-items-center mb-3">
-            <h2 class="section-title mb-0">درآمد پلتفرم به ازای کاربر</h2>
+            <h2 class="section-title mb-0">درآمد پلتفرم به ازای شرکت‌کننده</h2>
             <span class="text-muted small">@Model.Range.Label</span>
         </div>
         <div class="dashboard-ranking-list">
@@ -77,58 +77,13 @@
 
 @section Scripts {
     <script src="~/lib/chart.js/dist/chart.umd.min.js"></script>
+    <script src="~/js/dashboard-charts.js" asp-append-version="true"></script>
     <script>
         (() => {
-            const palette = ["#1765ff", "#ff3c72", "#f4a621", "#0f1f4d", "#22b573", "#ef6c00", "#607d8b", "#8e24aa"];
-            const pie = (canvasId, slices) => {
-                const canvas = document.getElementById(canvasId);
-                if (!canvas || slices.length === 0) {
-                    return;
-                }
-
-                new Chart(canvas, {
-                    type: "doughnut",
-                    data: {
-                        labels: slices.map(item => item.label),
-                        datasets: [{
-                            data: slices.map(item => item.value),
-                            backgroundColor: palette
-                        }]
-                    },
-                    options: { responsive: true, maintainAspectRatio: false }
-                });
-            };
-
-            const line = (canvasId, points) => {
-                const canvas = document.getElementById(canvasId);
-                if (!canvas || points.length === 0) {
-                    return;
-                }
-
-                new Chart(canvas, {
-                    type: "line",
-                    data: {
-                        labels: points.map(item => item.label),
-                        datasets: [{
-                            data: points.map(item => item.value),
-                            borderColor: "#1765ff",
-                            backgroundColor: "#1765ff22",
-                            fill: true,
-                            tension: 0.35
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: { legend: { display: false } }
-                    }
-                });
-            };
-
-            line("platformIncomeTrendChart", @Html.Raw(JsonSerializer.Serialize(Model.Report.PlatformIncomeTrend.Select(item => new { label = item.Label, value = item.Value }))));
-            pie("platformIncomeByTypeChart", @Html.Raw(JsonSerializer.Serialize(Model.Report.PlatformIncomeByType.Select(item => new { label = item.Label, value = item.Value }))));
-            pie("platformIncomeByPlannerChart", @Html.Raw(JsonSerializer.Serialize(Model.Report.PlatformIncomeByPlanner.Select(item => new { label = item.Label, value = item.Value }))));
-            pie("plannerIncomeShareChart", @Html.Raw(JsonSerializer.Serialize(Model.Report.PlannerIncomeShare.Select(item => new { label = item.Label, value = item.Value }))));
+            RandevooCharts.line("platformIncomeTrendChart", @Html.Raw(JsonSerializer.Serialize(Model.Report.PlatformIncomeTrend.Select(item => new { label = item.Label, value = item.Value }))), { color: "#1765ff" });
+            RandevooCharts.doughnut("platformIncomeByTypeChart", @Html.Raw(JsonSerializer.Serialize(Model.Report.PlatformIncomeByType.Select(item => new { label = item.Label, value = item.Value }))));
+            RandevooCharts.doughnut("platformIncomeByPlannerChart", @Html.Raw(JsonSerializer.Serialize(Model.Report.PlatformIncomeByPlanner.Select(item => new { label = item.Label, value = item.Value }))));
+            RandevooCharts.doughnut("plannerIncomeShareChart", @Html.Raw(JsonSerializer.Serialize(Model.Report.PlannerIncomeShare.Select(item => new { label = item.Label, value = item.Value }))));
         })();
     </script>
 }

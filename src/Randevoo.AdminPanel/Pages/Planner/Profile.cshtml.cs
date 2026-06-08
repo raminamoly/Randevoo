@@ -39,7 +39,7 @@ public class ProfileModel : PageModel
 
     public async Task<IActionResult> OnGetAsync()
     {
-        var current = _session.CurrentUser ?? throw new InvalidOperationException("کاربر جاری شناسایی نشد.");
+        var current = _session.CurrentUser ?? throw new InvalidOperationException("حساب جاری شناسایی نشد.");
         if (current.Role != AdminRole.EventPlanner)
         {
             return RedirectToPage("/Account/Forbidden");
@@ -72,7 +72,7 @@ public class ProfileModel : PageModel
 
     public async Task<IActionResult> OnPostAsync()
     {
-        var current = _session.CurrentUser ?? throw new InvalidOperationException("کاربر جاری شناسایی نشد.");
+        var current = _session.CurrentUser ?? throw new InvalidOperationException("حساب جاری شناسایی نشد.");
         if (current.Role != AdminRole.EventPlanner)
         {
             return RedirectToPage("/Account/Forbidden");

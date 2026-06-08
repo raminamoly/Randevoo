@@ -70,6 +70,54 @@ public class DatingEventTests
     }
 
     [Fact]
+    public void NewEvent_DefaultsTicketCurrenciesToIrr()
+    {
+        var datingEvent = CreateEvent("Currency default", DateTime.UtcNow.AddDays(2), DateTime.UtcNow.AddDays(2).AddHours(2));
+
+        Assert.Equal("IRR", datingEvent.MaleTicketCurrencyCode);
+        Assert.Equal("IRR", datingEvent.FemaleTicketCurrencyCode);
+    }
+
+    [Fact]
+    public void SellTicket_StoresGenderSpecificCurrency()
+    {
+        var datingEvent = CreateEvent(
+            "Currency event",
+            DateTime.UtcNow.AddDays(3),
+            DateTime.UtcNow.AddDays(3).AddHours(3),
+            maleTicketPrice: 20m,
+            femaleTicketPrice: 25m,
+            maleTicketCurrencyCode: "USD",
+            femaleTicketCurrencyCode: "CAD");
+        datingEvent.ApproveByAdmin();
+        datingEvent.OpenForSell();
+
+        var maleBuyer = new User("+989122000003");
+        var maleProfile = new UserProfile(
+            maleBuyer,
+            "Male currency buyer",
+            DateOnly.FromDateTime(DateTime.UtcNow).AddYears(-28),
+            Gender.Male,
+            new Location("Iran", "Tehran", new Coordinates(35.6895m, 51.3890m)),
+            new Height(180));
+
+        var femaleBuyer = new User("+989122000004");
+        var femaleProfile = new UserProfile(
+            femaleBuyer,
+            "Female currency buyer",
+            DateOnly.FromDateTime(DateTime.UtcNow).AddYears(-27),
+            Gender.Female,
+            new Location("Iran", "Tehran", new Coordinates(35.6895m, 51.3890m)),
+            new Height(168));
+
+        var maleTicket = datingEvent.SellTicket(maleBuyer, maleProfile);
+        var femaleTicket = datingEvent.SellTicket(femaleBuyer, femaleProfile);
+
+        Assert.Equal("USD", maleTicket.CurrencyCode);
+        Assert.Equal("CAD", femaleTicket.CurrencyCode);
+    }
+
+    [Fact]
     public void NewEvent_StartsAsNotSubmittedAndDraft()
     {
         var datingEvent = CreateEvent("New event", DateTime.UtcNow.AddDays(2), DateTime.UtcNow.AddDays(2).AddHours(2));
@@ -155,7 +203,9 @@ public class DatingEventTests
         DateTime endAtUtc,
         EventEducationLevelRestriction educationRestriction = EventEducationLevelRestriction.WithoutLimit,
         decimal maleTicketPrice = 100m,
-        decimal femaleTicketPrice = 100m)
+        decimal femaleTicketPrice = 100m,
+        string maleTicketCurrencyCode = "IRR",
+        string femaleTicketCurrencyCode = "IRR")
     {
         var planner = new User($"+989121{Math.Abs(title.GetHashCode()) % 1000000:000000}");
         planner.ChangeUserRole(UserRole.EventPlanner);
@@ -181,6 +231,9 @@ public class DatingEventTests
             null,
             null,
             null,
-            "<p>Test event description.</p>");
+            "<p>Test event description.</p>",
+            10m,
+            maleTicketCurrencyCode,
+            femaleTicketCurrencyCode);
     }
 }

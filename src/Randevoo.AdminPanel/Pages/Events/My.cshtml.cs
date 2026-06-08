@@ -30,13 +30,13 @@ public class MyModel : PageModel
 
     public async Task OnGetAsync()
     {
-        var current = _session.CurrentUser ?? throw new InvalidOperationException("کاربر جاری شناسایی نشد.");
+        var current = _session.CurrentUser ?? throw new InvalidOperationException("حساب جاری شناسایی نشد.");
         Events = await _eventsApi.GetEventsAsync(current);
     }
 
     public async Task<IActionResult> OnPostOpenSaleAsync(long id)
     {
-        var current = _session.CurrentUser ?? throw new InvalidOperationException("کاربر جاری شناسایی نشد.");
+        var current = _session.CurrentUser ?? throw new InvalidOperationException("حساب جاری شناسایی نشد.");
         await _eventsApi.ToggleSaleAsync(id, current, true);
         StatusMessage = "فروش رویداد باز شد.";
         return RedirectToPage();
@@ -44,7 +44,7 @@ public class MyModel : PageModel
 
     public async Task<IActionResult> OnPostCloseSaleAsync(long id)
     {
-        var current = _session.CurrentUser ?? throw new InvalidOperationException("کاربر جاری شناسایی نشد.");
+        var current = _session.CurrentUser ?? throw new InvalidOperationException("حساب جاری شناسایی نشد.");
         await _eventsApi.ToggleSaleAsync(id, current, false);
         StatusMessage = "فروش رویداد بسته شد.";
         return RedirectToPage();
@@ -52,7 +52,7 @@ public class MyModel : PageModel
 
     public async Task<IActionResult> OnPostCancelAsync(long id)
     {
-        var current = _session.CurrentUser ?? throw new InvalidOperationException("کاربر جاری شناسایی نشد.");
+        var current = _session.CurrentUser ?? throw new InvalidOperationException("حساب جاری شناسایی نشد.");
         await _eventsApi.CancelAsync(id, current);
         StatusMessage = "رویداد لغو شد.";
         return RedirectToPage();

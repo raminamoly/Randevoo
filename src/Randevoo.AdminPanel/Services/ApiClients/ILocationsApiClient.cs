@@ -13,4 +13,12 @@ public interface ILocationsApiClient
     Task<IReadOnlyList<GenderOption>> GetGendersAsync(CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<ZodiacSignOption>> GetZodiacSignsAsync(CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<SystemLookupOption>> GetUserRolesAsync(CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<SystemLookupOption>> GetReviewStatusesAsync(CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<SystemLookupOption>> GetDiscountTypesAsync(CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<SystemLookupOption>> GetBalanceTransactionTypesAsync(CancellationToken cancellationToken = default);
 }

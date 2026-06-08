@@ -43,7 +43,7 @@ public class ReviewModel : PageModel
 
     public async Task<IActionResult> OnPostApproveAsync()
     {
-        var current = _session.CurrentUser ?? throw new InvalidOperationException("کاربر جاری شناسایی نشد.");
+        var current = _session.CurrentUser ?? throw new InvalidOperationException("حساب جاری شناسایی نشد.");
         ValidateInput();
         if (!ModelState.IsValid)
         {
@@ -58,7 +58,7 @@ public class ReviewModel : PageModel
 
     public async Task<IActionResult> OnPostRejectAsync()
     {
-        var current = _session.CurrentUser ?? throw new InvalidOperationException("کاربر جاری شناسایی نشد.");
+        var current = _session.CurrentUser ?? throw new InvalidOperationException("حساب جاری شناسایی نشد.");
         await _profilesApi.RejectAsync(current, Id, Input.ReviewNote);
         TempData["PlannerProfileReviewMessage"] = "درخواست تغییر پروفایل رد شد.";
         return RedirectToPage("/Planner/Approvals");

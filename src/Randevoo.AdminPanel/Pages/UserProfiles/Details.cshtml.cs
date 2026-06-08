@@ -26,7 +26,7 @@ public class DetailsModel : PageModel
 
     public async Task<IActionResult> OnGetAsync(long userId)
     {
-        var current = _session.CurrentUser ?? throw new InvalidOperationException("کاربر جاری شناسایی نشد.");
+        var current = _session.CurrentUser ?? throw new InvalidOperationException("حساب جاری شناسایی نشد.");
         var profile = await _profilesApi.GetProfileAsync(userId, current);
         if (profile is null)
             return NotFound();
