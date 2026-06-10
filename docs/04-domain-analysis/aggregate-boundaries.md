@@ -1,0 +1,85 @@
+# Aggregate Boundaries
+
+## Purpose
+Identify likely aggregate boundaries from entities and repositories.
+
+## Current implementation summary
+This document was generated from the current repository snapshot. It references source paths where evidence exists and marks uncertain areas as Needs Verification.
+
+## Important source files
+- `src/Randevoo.Domain/Interfaces/Repositories/IBalanceAccountRepository.cs`
+- `src/Randevoo.Domain/Interfaces/Repositories/IDatingEventRepository.cs`
+- `src/Randevoo.Domain/Interfaces/Repositories/IEventConversationRepository.cs`
+- `src/Randevoo.Domain/Interfaces/Repositories/IEventDiscountCodeRepository.cs`
+- `src/Randevoo.Domain/Interfaces/Repositories/IEventLikeRepository.cs`
+- `src/Randevoo.Domain/Interfaces/Repositories/IEventParticipantSmsRequestRepository.cs`
+- `src/Randevoo.Domain/Interfaces/Repositories/IEventPlannerProfileRepository.cs`
+- `src/Randevoo.Domain/Interfaces/Repositories/IEventSurveyRepository.cs`
+- `src/Randevoo.Domain/Interfaces/Repositories/IEventTicketRepository.cs`
+- `src/Randevoo.Domain/Interfaces/Repositories/IEventTypeRepository.cs`
+- `src/Randevoo.Domain/Interfaces/Repositories/IModerationReportRepository.cs`
+- `src/Randevoo.Domain/Interfaces/Repositories/IRefreshTokenRepository.cs`
+- `src/Randevoo.Domain/Interfaces/Repositories/ISmsQueueRepository.cs`
+- `src/Randevoo.Domain/Interfaces/Repositories/ISupportTicketRepository.cs`
+- `src/Randevoo.Domain/Interfaces/Repositories/IUserProfileRepository.cs`
+- `src/Randevoo.Domain/Interfaces/Repositories/IUserRepository.cs`
+- `src/Randevoo.Infrastructure/Repositories/BalanceAccountRepository.cs`
+- `src/Randevoo.Infrastructure/Repositories/DatingEventRepository.cs`
+- `src/Randevoo.Infrastructure/Repositories/EventConversationRepository.cs`
+- `src/Randevoo.Infrastructure/Repositories/EventDiscountCodeRepository.cs`
+- `src/Randevoo.Infrastructure/Repositories/EventLikeRepository.cs`
+- `src/Randevoo.Infrastructure/Repositories/EventParticipantSmsRequestRepository.cs`
+- `src/Randevoo.Infrastructure/Repositories/EventPlannerProfileRepository.cs`
+- `src/Randevoo.Infrastructure/Repositories/EventSurveyRepository.cs`
+- `src/Randevoo.Infrastructure/Repositories/EventTicketRepository.cs`
+- `src/Randevoo.Infrastructure/Repositories/EventTypeRepository.cs`
+- `src/Randevoo.Infrastructure/Repositories/ModerationReportRepository.cs`
+- `src/Randevoo.Infrastructure/Repositories/RefreshTokenRepository.cs`
+- `src/Randevoo.Infrastructure/Repositories/SmsQueueRepository.cs`
+- `src/Randevoo.Infrastructure/Repositories/SupportTicketRepository.cs`
+
+Likely aggregate roots include User, UserProfile, EventPlannerProfile, DatingEvent, EventTicket/TicketOrder, EventConversation, EventSurveyResponse, ModerationReport, SupportTicket, BalanceAccount, and ManualPaymentReceipt. Evidence is based on repository interfaces/implementations and DbContext relationships.
+
+| Repository | Methods | Source |
+| --- | --- | --- |
+| IBalanceAccountRepository | See source | `src/Randevoo.Domain/Interfaces/Repositories/IBalanceAccountRepository.cs` |
+| IDatingEventRepository | See source | `src/Randevoo.Domain/Interfaces/Repositories/IDatingEventRepository.cs` |
+| IEventConversationRepository | See source | `src/Randevoo.Domain/Interfaces/Repositories/IEventConversationRepository.cs` |
+| IEventDiscountCodeRepository | See source | `src/Randevoo.Domain/Interfaces/Repositories/IEventDiscountCodeRepository.cs` |
+| IEventLikeRepository | See source | `src/Randevoo.Domain/Interfaces/Repositories/IEventLikeRepository.cs` |
+| IEventParticipantSmsRequestRepository | See source | `src/Randevoo.Domain/Interfaces/Repositories/IEventParticipantSmsRequestRepository.cs` |
+| IEventPlannerProfileRepository | See source | `src/Randevoo.Domain/Interfaces/Repositories/IEventPlannerProfileRepository.cs` |
+| IEventSurveyRepository | See source | `src/Randevoo.Domain/Interfaces/Repositories/IEventSurveyRepository.cs` |
+| IEventTicketRepository | See source | `src/Randevoo.Domain/Interfaces/Repositories/IEventTicketRepository.cs` |
+| IEventTypeRepository | See source | `src/Randevoo.Domain/Interfaces/Repositories/IEventTypeRepository.cs` |
+| IModerationReportRepository | See source | `src/Randevoo.Domain/Interfaces/Repositories/IModerationReportRepository.cs` |
+| IRefreshTokenRepository | See source | `src/Randevoo.Domain/Interfaces/Repositories/IRefreshTokenRepository.cs` |
+| ISmsQueueRepository | See source | `src/Randevoo.Domain/Interfaces/Repositories/ISmsQueueRepository.cs` |
+| ISupportTicketRepository | See source | `src/Randevoo.Domain/Interfaces/Repositories/ISupportTicketRepository.cs` |
+| IUserProfileRepository | See source | `src/Randevoo.Domain/Interfaces/Repositories/IUserProfileRepository.cs` |
+| IUserRepository | See source | `src/Randevoo.Domain/Interfaces/Repositories/IUserRepository.cs` |
+| BalanceAccountRepository | GetByUserIdAsync, AddAsync, UpdateAsync | `src/Randevoo.Infrastructure/Repositories/BalanceAccountRepository.cs` |
+| DatingEventRepository | GetByIdAsync, GetByIdWithTicketsAsync, ListOpenAsync, CountByPlannerAsync, CountCancelledByPlannerAsync, CountCompletedByPlannerAsync, AddAsync, UpdateAsync | `src/Randevoo.Infrastructure/Repositories/DatingEventRepository.cs` |
+| EventConversationRepository | GetByIdWithDetailsAsync, GetBetweenParticipantsAsync, CountActiveConnectionsForUserAsync, ListForUserAsync, ListForEventUserAsync, AddAsync, UpdateAsync | `src/Randevoo.Infrastructure/Repositories/EventConversationRepository.cs` |
+| EventDiscountCodeRepository | GetApplicableByCodeAsync, UpdateAsync | `src/Randevoo.Infrastructure/Repositories/EventDiscountCodeRepository.cs` |
+| EventLikeRepository | GetDirectedAsync, GetReverseAsync, AddAsync, UpdateAsync | `src/Randevoo.Infrastructure/Repositories/EventLikeRepository.cs` |
+| EventParticipantSmsRequestRepository | GetByIdAsync, AddAsync, UpdateAsync | `src/Randevoo.Infrastructure/Repositories/EventParticipantSmsRequestRepository.cs` |
+| EventPlannerProfileRepository | GetByUserIdAsync, AddAsync, UpdateAsync | `src/Randevoo.Infrastructure/Repositories/EventPlannerProfileRepository.cs` |
+| EventSurveyRepository | GetByEventAndUserAsync, AddAsync, UpdateAsync | `src/Randevoo.Infrastructure/Repositories/EventSurveyRepository.cs` |
+| EventTicketRepository | GetByIdAsync, GetByEventAndUserAsync, ListByUserIdAsync, ListByEventIdAsync, UpdateAsync | `src/Randevoo.Infrastructure/Repositories/EventTicketRepository.cs` |
+| EventTypeRepository | GetByIdAsync, ListActiveAsync, AddAsync, UpdateAsync | `src/Randevoo.Infrastructure/Repositories/EventTypeRepository.cs` |
+| ModerationReportRepository | GetByIdAsync, ListByReporterAsync, ListByStatusAsync, AddAsync, UpdateAsync | `src/Randevoo.Infrastructure/Repositories/ModerationReportRepository.cs` |
+| RefreshTokenRepository | GetByTokenHashAsync, ListByUserIdAsync, AddAsync, UpdateAsync | `src/Randevoo.Infrastructure/Repositories/RefreshTokenRepository.cs` |
+| SmsQueueRepository | AddRangeAsync | `src/Randevoo.Infrastructure/Repositories/SmsQueueRepository.cs` |
+| SupportTicketRepository | GetByIdWithDetailsAsync, ListAsync, GetNextRoundRobinAssigneeAsync, IsTicketTypeActiveAsync, IsTicketStatusActiveAsync, IsTicketRecipientTypeActiveAsync, AddAsync, UpdateAsync | `src/Randevoo.Infrastructure/Repositories/SupportTicketRepository.cs` |
+| UserProfileRepository | AddAsync, UpdateAsync, DeleteAsync, GetByIdAsync, GetByUserIdAsync, GetByIdWithDetailsAsync, GetByDisplayNameAsync, GetByEmailAsync | `src/Randevoo.Infrastructure/Repositories/UserProfileRepository.cs` |
+| UserRepository | GetByIdAsync, GetByMobileNumberAsync, ExistsByEmailAsync, ListActiveSupportUsersAsync, AddAsync, UpdateAsync | `src/Randevoo.Infrastructure/Repositories/UserRepository.cs` |
+
+## Gaps or uncertainties
+- Aggregate roots are not consistently marked beyond IAggregateRoot; verify before enforcing aggregate-only repository access.
+
+## Practical notes for developers
+Use the linked source files as the authority. Validate behavior with tests before changing production code.
+
+## Practical notes for future AI coding agents
+Do not invent missing behavior. If a feature is represented only by docs or UI labels, mark it as partial until a handler, endpoint, entity, or test confirms it.
