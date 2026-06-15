@@ -20,7 +20,7 @@ public interface IEventsApiClient
 
     Task<DatingEvent?> GetEventAsync(long id, CancellationToken cancellationToken = default);
 
-    Task<DatingEvent> SaveEventAsync(EventDraftInput input, MockUser actor, long? existingEventId = null, long? assignedPlannerId = null, CancellationToken cancellationToken = default);
+    Task<DatingEvent> SaveEventAsync(EventDraftInput input, MockUser actor, long? existingEventId = null, long? assignedPlannerId = null, bool submitForReview = false, CancellationToken cancellationToken = default);
 
     Task<DatingEvent> ApproveAsync(long eventId, MockUser admin, decimal? commissionPercent = null, string? note = null, CancellationToken cancellationToken = default);
 
@@ -30,7 +30,13 @@ public interface IEventsApiClient
 
     Task<DatingEvent> ToggleSaleAsync(long eventId, MockUser admin, bool isOpen, CancellationToken cancellationToken = default);
 
-    Task<DatingEvent> CancelAsync(long eventId, MockUser admin, CancellationToken cancellationToken = default);
+    Task<DatingEvent> CancelAsync(long eventId, MockUser admin, string? note = null, CancellationToken cancellationToken = default);
+
+    Task<DatingEvent> ApplyStatusTransitionAsync(long eventId, MockUser actor, EventStatusTransitionAction action, string? note = null, CancellationToken cancellationToken = default);
+
+    Task<EventCancellationPreview> PreviewCancellationAsync(long eventId, MockUser actor, CancellationToken cancellationToken = default);
+
+    Task<EventCancellationResult> CancelEventWithChecklistAsync(long eventId, MockUser actor, string reason, string publicMessage, bool confirmed, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<EventTicketBuyerItem>> GetEventTicketBuyersAsync(long eventId, MockUser actor, CancellationToken cancellationToken = default);
 

@@ -13,24 +13,25 @@ public sealed class DatabaseLocationsApiClient : ILocationsApiClient
         _db = db;
     }
 
-    public async Task<IReadOnlyList<CountryOption>> GetCountriesAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<CountryOption>> GetCountriesAsync(bool includeInactive = false, CancellationToken cancellationToken = default)
     {
         return await _db.Countries
-            .Where(country => country.IsActive)
+            .Where(country => includeInactive || country.IsActive)
             .OrderBy(country => country.DisplayOrder)
             .ThenBy(country => country.Name)
             .Select(country => new CountryOption
             {
                 Id = country.Id,
-                Name = country.Name
+                Name = country.Name,
+                IsActive = country.IsActive
             })
             .ToListAsync(cancellationToken);
     }
 
-    public async Task<IReadOnlyList<CityOption>> GetCitiesAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<CityOption>> GetCitiesAsync(bool includeInactive = false, CancellationToken cancellationToken = default)
     {
         return await _db.Cities
-            .Where(city => city.IsActive && city.Country.IsActive)
+            .Where(city => includeInactive || (city.IsActive && city.Country.IsActive))
             .OrderBy(city => city.Country.DisplayOrder)
             .ThenBy(city => city.DisplayOrder)
             .ThenBy(city => city.Name)
@@ -41,7 +42,8 @@ public sealed class DatabaseLocationsApiClient : ILocationsApiClient
                 CountryName = city.Country.Name,
                 Name = city.Name,
                 Latitude = city.Latitude,
-                Longitude = city.Longitude
+                Longitude = city.Longitude,
+                IsActive = city.IsActive && city.Country.IsActive
             })
             .ToListAsync(cancellationToken);
     }

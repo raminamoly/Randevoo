@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Randevoo.AdminPanel.Models.Auth;
 using Randevoo.AdminPanel.Models.Common;
 using Randevoo.AdminPanel.Models.Finance;
@@ -14,13 +15,13 @@ namespace Randevoo.AdminPanel.Pages.Planner;
 public class BankAccountsModel : PageModel
 {
     private readonly IFinanceApiClient _financeApi;
-    private readonly IPlannerProfilesApiClient _profilesApi;
+    private readonly IEventsApiClient _eventsApi;
     private readonly CurrentSessionState _session;
 
-    public BankAccountsModel(IFinanceApiClient financeApi, IPlannerProfilesApiClient profilesApi, CurrentSessionState session)
+    public BankAccountsModel(IFinanceApiClient financeApi, IEventsApiClient eventsApi, CurrentSessionState session)
     {
         _financeApi = financeApi;
-        _profilesApi = profilesApi;
+        _eventsApi = eventsApi;
         _session = session;
     }
 
@@ -28,9 +29,9 @@ public class BankAccountsModel : PageModel
 
     public IReadOnlyList<PlannerBankAccountItem> Accounts { get; private set; } = Array.Empty<PlannerBankAccountItem>();
 
-    public string SettlementCurrencyCode { get; private set; } = "IRR";
+    public SelectList CurrencyOptions { get; private set; } = new(Array.Empty<object>());
 
-    public bool IsIrrSettlement => string.Equals(SettlementCurrencyCode, "IRR", StringComparison.OrdinalIgnoreCase);
+    public bool IsIrrAccount => string.Equals(Input.CurrencyCode, "IRR", StringComparison.OrdinalIgnoreCase);
 
     [BindProperty(SupportsGet = true)]
     public long? EditAccountId { get; set; }
@@ -44,22 +45,24 @@ public class BankAccountsModel : PageModel
     public async Task OnGetAsync(long? plannerUserId)
     {
         PlannerUserId = ResolvePlannerUserId(plannerUserId);
-        await LoadPlannerCurrencyAsync();
+        await LoadCurrencyOptionsAsync();
         Accounts = await _financeApi.GetPlannerBankAccountsAsync(CurrentUser(), PlannerUserId);
-        Input.CurrencyCode = SettlementCurrencyCode;
-        Input.PayoutMethod = IsIrrSettlement ? PlannerPayoutMethod.IranianBankCard : PlannerPayoutMethod.IbanSwift;
+        Input.CurrencyCode = "IRR";
+        Input.PayoutMethod = PlannerPayoutMethod.IranianBankCard;
         LoadEditingAccount();
+        await LoadCurrencyOptionsAsync();
     }
 
     public async Task<IActionResult> OnPostSaveAsync(long? plannerUserId)
     {
         PlannerUserId = ResolvePlannerUserId(plannerUserId);
-        await LoadPlannerCurrencyAsync();
+        await LoadCurrencyOptionsAsync();
         NormalizePaymentInput();
         ValidatePaymentInput();
         if (!ModelState.IsValid)
         {
             Accounts = await _financeApi.GetPlannerBankAccountsAsync(CurrentUser(), PlannerUserId);
+            await LoadCurrencyOptionsAsync();
             return Page();
         }
 
@@ -114,19 +117,25 @@ public class BankAccountsModel : PageModel
         };
     }
 
-    private async Task LoadPlannerCurrencyAsync()
+    private async Task LoadCurrencyOptionsAsync()
     {
-        var profile = await _profilesApi.GetByUserIdAsync(PlannerUserId);
-        SettlementCurrencyCode = profile?.SettlementCurrencyCode ?? "IRR";
+        var currencies = await _eventsApi.GetCurrencyOptionsAsync();
+        CurrencyOptions = new SelectList(
+            currencies.Select(item => new { Code = item.Name, Title = $"{item.DisplayNameFa} ({item.Name})" }),
+            "Code",
+            "Title",
+            Input.CurrencyCode);
     }
 
     private void NormalizePaymentInput()
     {
-        Input.CurrencyCode = SettlementCurrencyCode;
+        Input.CurrencyCode = string.IsNullOrWhiteSpace(Input.CurrencyCode)
+            ? "IRR"
+            : Input.CurrencyCode.Trim().ToUpperInvariant();
         if (string.IsNullOrWhiteSpace(Input.AccountHolderName))
             Input.AccountHolderName = CurrentUser().FullName;
 
-        if (IsIrrSettlement)
+        if (IsIrrAccount)
         {
             Input.PayoutMethod = PlannerPayoutMethod.IranianBankCard;
             Input.Country = "ایران";
@@ -144,7 +153,7 @@ public class BankAccountsModel : PageModel
         if (string.IsNullOrWhiteSpace(Input.AccountHolderName))
             ModelState.AddModelError(nameof(Input.AccountHolderName), "نام صاحب حساب الزامی است.");
 
-        if (IsIrrSettlement)
+        if (IsIrrAccount)
         {
             if (string.IsNullOrWhiteSpace(Input.CardNumber))
                 ModelState.AddModelError(nameof(Input.CardNumber), "شماره کارت الزامی است.");

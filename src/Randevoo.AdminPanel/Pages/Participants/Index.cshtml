@@ -1,0 +1,441 @@
+@page
+@model Randevoo.AdminPanel.Pages.Participants.IndexModel
+@{
+    ViewData["Title"] = Model.IsEventScoped && !string.IsNullOrWhiteSpace(Model.EventTitle)
+        ? $"فهرست شرکت‌کنندگان {Model.EventTitle}"
+        : "فهرست شرکت‌کنندگان";
+}
+
+<section class="page-header">
+    <div>
+        <h1>@ViewData["Title"]</h1>
+        @if (Model.IsEventScoped)
+        {
+            <p class="text-muted mb-0">نمای یکپارچه شرکت‌کنندگان همین رویداد، با عملیات متناسب با سطح دسترسی.</p>
+        }
+        else
+        {
+            <p class="text-muted mb-0">نمای سراسری همه شرکت‌کنندگان رویدادها با فیلتر، مرتب‌سازی و صفحه‌بندی سمت سرور.</p>
+        }
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+        @if (Model.IsAdmin)
+        {
+            <a asp-page="/Settings/OperationPermissions" class="btn btn-outline-primary">
+                <i class="bi bi-shield-lock"></i>سطوح دسترسی عملیات
+            </a>
+        }
+        @if (Model.IsEventScoped && Model.EventId.HasValue)
+        {
+            <a asp-page="/Buyers/Index" asp-route-EventId="@Model.EventId" class="btn btn-outline-secondary">
+                <i class="bi bi-bag-check"></i>خریداران این رویداد
+            </a>
+        }
+        <a asp-page="/Events/Index" asp-route-Scope="Active" class="btn btn-outline-secondary">
+            <i class="bi bi-calendar3"></i>رویدادها
+        </a>
+    </div>
+</section>
+
+@if (!string.IsNullOrWhiteSpace(Model.StatusMessage))
+{
+    <div class="alert alert-success border-0 mb-4">@Model.StatusMessage</div>
+}
+
+<div asp-validation-summary="ModelOnly" class="alert alert-danger border-0 mb-4"></div>
+
+<section class="metric-grid mb-4">
+    <article class="metric-card">
+        <span>کل شرکت‌کنندگان</span>
+        <strong>@DisplayFormatter.Count(Model.Result.Summary.TotalParticipants)</strong>
+    </article>
+    <article class="metric-card">
+        <span>سفارش‌ها</span>
+        <strong>@DisplayFormatter.Count(Model.Result.Summary.TotalOrders)</strong>
+    </article>
+    <article class="metric-card">
+        <span>پروفایل کامل</span>
+        <strong>@DisplayFormatter.Count(Model.Result.Summary.CompletedProfiles)</strong>
+    </article>
+    <article class="metric-card">
+        <span>در انتظار تکمیل</span>
+        <strong>@DisplayFormatter.Count(Model.Result.Summary.PendingProfiles)</strong>
+    </article>
+    <article class="metric-card">
+        <span>بلیت فعال</span>
+        <strong>@DisplayFormatter.Count(Model.Result.Summary.ActiveTickets)</strong>
+    </article>
+    <article class="metric-card">
+        <span>لغو یا برگشت</span>
+        <strong>@DisplayFormatter.Count(Model.Result.Summary.CancelledTickets)</strong>
+    </article>
+</section>
+
+<form method="get" class="glass-panel p-4 mb-4 filter-panel">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
+        <div>
+            <h2 class="section-title mb-1">فیلتر شرکت‌کنندگان</h2>
+            <p class="text-muted small mb-0">فیلترها، مرتب‌سازی و صفحه‌بندی روی دیتابیس اعمال می‌شوند.</p>
+        </div>
+        <button class="btn btn-outline-secondary btn-sm filter-toggle-button" type="button" data-bs-toggle="collapse" data-bs-target="#participantsFilterPanel" aria-expanded="@(Model.HasActiveFilters.ToString().ToLowerInvariant())" aria-controls="participantsFilterPanel">
+            <i class="bi bi-funnel"></i>فیلترها
+        </button>
+    </div>
+    <div id="participantsFilterPanel" class="collapse @(Model.HasActiveFilters ? "show" : string.Empty)">
+        @if (Model.EventId.HasValue)
+        {
+            <input type="hidden" asp-for="EventId" />
+        }
+        @if (Model.BuyerUserId.HasValue)
+        {
+            <input type="hidden" asp-for="BuyerUserId" />
+        }
+        @if (Model.TicketOrderId.HasValue)
+        {
+            <input type="hidden" asp-for="TicketOrderId" />
+        }
+        <input type="hidden" name="PageNumber" value="1" />
+        <input type="hidden" asp-for="View" />
+        <div class="row g-3 align-items-end">
+            <div class="col-xl-3 col-lg-4">
+                <label asp-for="Search" class="form-label">جستجو</label>
+                <input asp-for="Search" class="form-control" placeholder="نام، کد رویداد، موبایل، شماره بلیت" />
+            </div>
+            @if (!Model.IsEventScoped)
+            {
+                <div class="col-xl-2 col-lg-3">
+                    <label asp-for="FilterEventId" class="form-label">رویداد</label>
+                    <select asp-for="FilterEventId" asp-items="Model.EventOptions" class="form-select">
+                        <option value="">همه رویدادها</option>
+                    </select>
+                </div>
+            }
+            <div class="col-xl-2 col-lg-3 col-md-4">
+                <label asp-for="ProfileStatus" class="form-label">وضعیت پروفایل</label>
+                <select asp-for="ProfileStatus" class="form-select">
+                    <option value="">همه</option>
+                    <option value="completed">پروفایل کامل</option>
+                    <option value="pending">در انتظار تکمیل</option>
+                </select>
+            </div>
+            <div class="col-xl-2 col-lg-3 col-md-4">
+                <label asp-for="TicketStatus" class="form-label">وضعیت بلیت</label>
+                <select asp-for="TicketStatus" class="form-select">
+                    <option value="">همه</option>
+                    <option value="active">فعال</option>
+                    <option value="refunded">بازگشت وجه</option>
+                    <option value="removed">حذف اضطراری</option>
+                </select>
+            </div>
+            <div class="col-xl-1 col-lg-2 col-md-4">
+                <label asp-for="Gender" class="form-label">جنسیت</label>
+                <select asp-for="Gender" class="form-select">
+                    <option value="">همه</option>
+                    <option value="male">آقا</option>
+                    <option value="female">خانم</option>
+                </select>
+            </div>
+            <div class="col-xl-2 col-lg-3 col-md-4">
+                <label asp-for="Sort" class="form-label">مرتب‌سازی</label>
+                <select asp-for="Sort" class="form-select">
+                    <option value="purchase-desc">خرید جدیدتر</option>
+                    <option value="purchase-asc">خرید قدیمی‌تر</option>
+                    <option value="name">نام شرکت‌کننده</option>
+                    <option value="event">نام رویداد</option>
+                    <option value="profile-status">وضعیت پروفایل</option>
+                    <option value="payment-status">وضعیت بلیت</option>
+                    <option value="price-desc">مبلغ بیشتر</option>
+                    <option value="price-asc">مبلغ کمتر</option>
+                </select>
+            </div>
+            <div class="col-lg-2 col-md-4">
+                <label asp-for="FromDate" class="form-label">از تاریخ خرید</label>
+                <input asp-for="FromDate" class="form-control" type="date" />
+            </div>
+            <div class="col-lg-2 col-md-4">
+                <label asp-for="ToDate" class="form-label">تا تاریخ خرید</label>
+                <input asp-for="ToDate" class="form-control" type="date" />
+            </div>
+            <div class="col-lg-2 col-md-4">
+                <label asp-for="PageSize" class="form-label">تعداد در صفحه</label>
+                <select asp-for="PageSize" class="form-select">
+                    <option value="25">۲۵</option>
+                    <option value="50">۵۰</option>
+                    <option value="100">۱۰۰</option>
+                </select>
+            </div>
+            <div class="col-12 d-flex justify-content-end gap-2">
+                <a asp-page="/Participants/Index" asp-route-EventId="@Model.EventId" class="btn btn-outline-secondary">پاک کردن</a>
+                <button type="submit" class="btn btn-primary"><i class="bi bi-search"></i>اعمال فیلتر</button>
+            </div>
+        </div>
+    </div>
+</form>
+
+<section class="glass-panel p-4">
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+        <div>
+            <h2 class="section-title mb-1">شرکت‌کنندگان</h2>
+            <p class="text-muted small mb-0">@DisplayFormatter.Count(Model.Result.TotalCount) رکورد مطابق فیلتر فعلی</p>
+        </div>
+        <div class="btn-group view-toggle" role="group" aria-label="تغییر نمایش">
+            <a asp-page="/Participants/Index"
+               asp-route-EventId="@Model.EventId"
+               asp-route-Search="@Model.Search"
+               asp-route-ProfileStatus="@Model.ProfileStatus"
+               asp-route-TicketStatus="@Model.TicketStatus"
+               asp-route-Gender="@Model.Gender"
+               asp-route-FilterEventId="@Model.FilterEventId"
+               asp-route-BuyerUserId="@Model.BuyerUserId"
+               asp-route-TicketOrderId="@Model.TicketOrderId"
+               asp-route-FromDate="@Model.FromDate?.ToString("yyyy-MM-dd")"
+               asp-route-ToDate="@Model.ToDate?.ToString("yyyy-MM-dd")"
+               asp-route-Sort="@Model.Sort"
+               asp-route-PageSize="@Model.PageSize"
+               asp-route-View="table"
+               class="btn btn-sm @(Model.IsCardView ? "btn-outline-primary" : "btn-primary")">
+                <i class="bi bi-table"></i>جدول
+            </a>
+            <a asp-page="/Participants/Index"
+               asp-route-EventId="@Model.EventId"
+               asp-route-Search="@Model.Search"
+               asp-route-ProfileStatus="@Model.ProfileStatus"
+               asp-route-TicketStatus="@Model.TicketStatus"
+               asp-route-Gender="@Model.Gender"
+               asp-route-FilterEventId="@Model.FilterEventId"
+               asp-route-BuyerUserId="@Model.BuyerUserId"
+               asp-route-TicketOrderId="@Model.TicketOrderId"
+               asp-route-FromDate="@Model.FromDate?.ToString("yyyy-MM-dd")"
+               asp-route-ToDate="@Model.ToDate?.ToString("yyyy-MM-dd")"
+               asp-route-Sort="@Model.Sort"
+               asp-route-PageSize="@Model.PageSize"
+               asp-route-View="cards"
+               class="btn btn-sm @(Model.IsCardView ? "btn-primary" : "btn-outline-primary")">
+                <i class="bi bi-person-square"></i>کارت
+            </a>
+        </div>
+    </div>
+
+    @if (!Model.IsCardView)
+    {
+        <div class="table-responsive">
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th>شرکت‌کننده</th>
+                        <th>خریدار/سفارش</th>
+                        @if (Model.CanSeeContactInfo)
+                        {
+                            <th>تماس</th>
+                        }
+                        @if (!Model.IsEventScoped)
+                        {
+                            <th>رویداد</th>
+                        }
+                        <th>پروفایل</th>
+                        <th>جنسیت</th>
+                        <th>سن</th>
+                        <th>شهر</th>
+                        <th>بلیت</th>
+                        <th>تاریخ خرید</th>
+                        <th>وضعیت</th>
+                        <th>عملیات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.Result.Items)
+                    {
+                        <tr>
+                            <td>
+                                <div class="buyer-profile-cell">
+                                    <img src="@(item.ProfileImageUrl ?? "/images/logo.png")" alt="@item.ParticipantName" class="buyer-avatar" loading="lazy" />
+                                    <div>
+                                        <div class="fw-semibold">@item.ParticipantName</div>
+                                        <div class="text-muted small">شناسه بلیت: @DisplayFormatter.Count((int)item.TicketId)</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="fw-semibold">@item.BuyerName</div>
+                                @if (item.TicketOrderId is long orderId)
+                                {
+                                    <a asp-page="/Buyers/Index" asp-route-TicketOrderId="@orderId" class="text-muted small">
+                                        سفارش #@DisplayFormatter.Count((int)orderId)
+                                    </a>
+                                }
+                            </td>
+                            @if (Model.CanSeeContactInfo)
+                            {
+                                <td dir="ltr">@item.ParticipantMobile</td>
+                            }
+                            @if (!Model.IsEventScoped)
+                            {
+                                <td>
+                                    <div class="fw-semibold">@item.EventTitle</div>
+                                    <div class="text-muted small">@item.EventPlannerName</div>
+                                </td>
+                            }
+                            <td><span class="status-badge @Model.GetProfileStatusClass(item)">@item.ProfileStatusTitle</span></td>
+                            <td>@item.GenderTitle</td>
+                            <td>@(item.Age > 0 ? DisplayFormatter.Count(item.Age) : "ثبت نشده")</td>
+                            <td>@item.CityTitle</td>
+                            <td>@DisplayFormatter.TicketMoney(item.TicketPrice, item.TicketCurrencyCode, Model.IsRtl)</td>
+                            <td>@PersianDateFormatter.FormatDateTime(item.PurchasedAtUtc, Model.IsRtl)</td>
+                            <td>
+                                <span class="status-badge @Model.GetTicketStatusClass(item)">@item.TicketStatus</span>
+                                @if (!string.IsNullOrWhiteSpace(item.RemovalReason))
+                                {
+                                    <div class="text-muted small mt-2">@item.RemovalReason</div>
+                                }
+                            </td>
+                            <td class="table-action-cell">
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle table-action-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        عملیات
+                                    </button>
+                                    <div class="dropdown-menu dropdown-menu-end action-menu shadow-sm border-0">
+                                        @if (Model.AllowedActions.Contains("viewDetails"))
+                                        {
+                                            <a asp-page="/UserProfiles/Details" asp-route-userId="@item.ParticipantUserId" class="dropdown-item">
+                                                <i class="bi bi-person-bounding-box"></i>مشاهده جزئیات
+                                            </a>
+                                        }
+                                        @if (Model.IsAdmin && Model.AllowedActions.Contains("editProfile"))
+                                        {
+                                            <a asp-page="/UserProfiles/AdminEdit" asp-route-userId="@item.ParticipantUserId" class="dropdown-item">
+                                                <i class="bi bi-person-gear"></i>ویرایش پروفایل
+                                            </a>
+                                        }
+                                        @if (Model.IsAdmin && Model.AllowedActions.Contains("viewFinance"))
+                                        {
+                                            <a asp-page="/Finance/User" asp-route-userId="@item.ParticipantUserId" asp-route-view="balance" class="dropdown-item">
+                                                <i class="bi bi-wallet2"></i>مالی شرکت‌کننده
+                                            </a>
+                                        }
+                                        @if (Model.IsAdmin && Model.AllowedActions.Contains("viewOrder"))
+                                        {
+                                            <a asp-page="/Finance/TicketTransactions" asp-route-EventId="@item.EventId" class="dropdown-item">
+                                                <i class="bi bi-receipt-cutoff"></i>سفارش/تراکنش رویداد
+                                            </a>
+                                        }
+                                        @if (Model.CanRefund && !item.IsRefunded && !item.IsRemoved)
+                                        {
+                                            <button type="button" class="dropdown-item text-danger" data-bs-toggle="collapse" data-bs-target="#refund-@item.TicketId">
+                                                <i class="bi bi-arrow-counterclockwise"></i>بازگشت اضطراری
+                                            </button>
+                                        }
+                                    </div>
+                                </div>
+                                @if (Model.CanRefund && !item.IsRefunded && !item.IsRemoved)
+                                {
+                                    <div class="collapse mt-2" id="refund-@item.TicketId">
+                                        <form method="post" asp-page-handler="Refund" class="refund-form">
+                                            <input type="hidden" asp-for="Input.TicketId" value="@item.TicketId" />
+                                            <textarea asp-for="Input.Reason" class="form-control form-control-sm" rows="3" placeholder="دلیل حذف و بازگشت وجه"></textarea>
+                                            <span asp-validation-for="Input.Reason" class="text-danger small"></span>
+                                            <button type="submit" class="btn btn-sm btn-danger w-100"><i class="bi bi-check2-circle"></i>ثبت بازگشت وجه</button>
+                                        </form>
+                                    </div>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    else
+    {
+        <div class="buyer-card-grid">
+            @foreach (var item in Model.Result.Items)
+            {
+                <article class="buyer-check-card">
+                    <img src="@(item.ProfileImageUrl ?? "/images/logo.png")" alt="@item.ParticipantName" class="buyer-card-photo" loading="lazy" />
+                    <div class="buyer-card-body">
+                        <div class="d-flex justify-content-between gap-2">
+                            <div>
+                                <h3>@item.ParticipantName</h3>
+                                <p>@item.EventTitle</p>
+                            </div>
+                            <span class="status-badge @Model.GetTicketStatusClass(item)">@item.TicketStatus</span>
+                        </div>
+                        <div class="buyer-card-meta">
+                            <span><i class="bi bi-person-vcard"></i>@item.ProfileStatusTitle</span>
+                            <span><i class="bi bi-gender-ambiguous"></i>@item.GenderTitle</span>
+                            <span><i class="bi bi-bag-check"></i>@item.BuyerName</span>
+                            <span><i class="bi bi-geo-alt"></i>@item.CityTitle</span>
+                            <span><i class="bi bi-ticket-perforated"></i>@DisplayFormatter.TicketMoney(item.TicketPrice, item.TicketCurrencyCode, Model.IsRtl)</span>
+                            @if (Model.CanSeeContactInfo && !string.IsNullOrWhiteSpace(item.ParticipantMobile))
+                            {
+                                <span dir="ltr"><i class="bi bi-phone"></i>@item.ParticipantMobile</span>
+                            }
+                        </div>
+                        <div class="buyer-card-actions">
+                            @if (Model.AllowedActions.Contains("viewDetails"))
+                            {
+                                <a asp-page="/UserProfiles/Details" asp-route-userId="@item.ParticipantUserId" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-person-bounding-box"></i>جزئیات
+                                </a>
+                            }
+                            @if (Model.IsAdmin && Model.AllowedActions.Contains("editProfile"))
+                            {
+                                <a asp-page="/UserProfiles/AdminEdit" asp-route-userId="@item.ParticipantUserId" class="btn btn-sm btn-outline-secondary">
+                                    <i class="bi bi-person-gear"></i>ویرایش
+                                </a>
+                            }
+                            @if (Model.IsAdmin && Model.AllowedActions.Contains("viewOrder"))
+                            {
+                                <a asp-page="/Finance/TicketTransactions" asp-route-EventId="@item.EventId" class="btn btn-sm btn-outline-secondary">
+                                    <i class="bi bi-receipt-cutoff"></i>سفارش
+                                </a>
+                            }
+                        </div>
+                    </div>
+                </article>
+            }
+        </div>
+    }
+
+    @if (Model.Result.Items.Count == 0)
+    {
+        <div class="empty-state">برای فیلتر فعلی شرکت‌کننده‌ای پیدا نشد.</div>
+    }
+
+    <nav class="d-flex justify-content-between align-items-center flex-wrap gap-3 mt-4">
+        <a class="btn btn-outline-secondary @(Model.HasPreviousPage ? string.Empty : "disabled")"
+           asp-page="/Participants/Index"
+           asp-route-EventId="@Model.EventId"
+           asp-route-Search="@Model.Search"
+           asp-route-ProfileStatus="@Model.ProfileStatus"
+           asp-route-TicketStatus="@Model.TicketStatus"
+           asp-route-Gender="@Model.Gender"
+           asp-route-FilterEventId="@Model.FilterEventId"
+           asp-route-BuyerUserId="@Model.BuyerUserId"
+           asp-route-TicketOrderId="@Model.TicketOrderId"
+           asp-route-FromDate="@Model.FromDate?.ToString("yyyy-MM-dd")"
+           asp-route-ToDate="@Model.ToDate?.ToString("yyyy-MM-dd")"
+           asp-route-Sort="@Model.Sort"
+           asp-route-View="@Model.View"
+           asp-route-PageSize="@Model.PageSize"
+           asp-route-PageNumber="@(Model.PageNumber - 1)">قبلی</a>
+        <span class="text-muted small">صفحه @DisplayFormatter.Count(Model.PageNumber) از @DisplayFormatter.Count(Model.TotalPages)</span>
+        <a class="btn btn-outline-secondary @(Model.HasNextPage ? string.Empty : "disabled")"
+           asp-page="/Participants/Index"
+           asp-route-EventId="@Model.EventId"
+           asp-route-Search="@Model.Search"
+           asp-route-ProfileStatus="@Model.ProfileStatus"
+           asp-route-TicketStatus="@Model.TicketStatus"
+           asp-route-Gender="@Model.Gender"
+           asp-route-FilterEventId="@Model.FilterEventId"
+           asp-route-BuyerUserId="@Model.BuyerUserId"
+           asp-route-TicketOrderId="@Model.TicketOrderId"
+           asp-route-FromDate="@Model.FromDate?.ToString("yyyy-MM-dd")"
+           asp-route-ToDate="@Model.ToDate?.ToString("yyyy-MM-dd")"
+           asp-route-Sort="@Model.Sort"
+           asp-route-View="@Model.View"
+           asp-route-PageSize="@Model.PageSize"
+           asp-route-PageNumber="@(Model.PageNumber + 1)">بعدی</a>
+    </nav>
+</section>
+
+<partial name="_ValidationScriptsPartial" />

@@ -19,27 +19,34 @@
 
 <section class="stats-grid">
     <div class="stat-card glass-panel">
-        <div class="stat-label">@(Model.Finance.CurrentBalance < 0 ? "بدهی به پلتفرم" : "موجودی فعلی")</div>
-        <div class="stat-value">@DisplayFormatter.ReportingMoney(Model.Finance.CurrentBalance, Model.IsRtl)</div>
-    </div>
-    <div class="stat-card glass-panel">
-        <div class="stat-label">کل درآمد معادل ریالی</div>
+        <div class="stat-label">درآمد کل ریالی</div>
         <div class="stat-value">@DisplayFormatter.ReportingMoney(Model.Finance.TotalCommissionIncomeIrr, Model.IsRtl)</div>
-    </div>
-    <div class="stat-card glass-panel">
-        <div class="stat-label">در انتظار تسویه</div>
-        <div class="stat-value">@DisplayFormatter.ReportingMoney(Model.Finance.PendingWithdrawalAmount, Model.IsRtl)</div>
     </div>
     <div class="stat-card glass-panel">
         <div class="stat-label">قابل برداشت</div>
         <div class="stat-value">@DisplayFormatter.ReportingMoney(Model.Finance.AvailableWithdrawalAmount, Model.IsRtl)</div>
     </div>
+    <div class="stat-card glass-panel">
+        <div class="stat-label">در انتظار تسویه</div>
+        <div class="stat-value">@DisplayFormatter.ReportingMoney(Model.Finance.PendingWithdrawalAmount, Model.IsRtl)</div>
+    </div>
 </section>
 
-<div class="row g-4 mt-1">
-    <div class="col-lg-8">
-        <div class="glass-panel p-4 mb-4">
-            <h2 class="section-title">درآمد رویدادها</h2>
+<section class="glass-panel p-4 mt-4">
+    <ul class="nav nav-pills mb-4 finance-tab-nav" id="plannerFinanceTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="finance-events-tab" data-bs-toggle="pill" data-bs-target="#finance-events-pane" type="button" role="tab" aria-controls="finance-events-pane" aria-selected="true">درآمد رویدادها</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="finance-transactions-tab" data-bs-toggle="pill" data-bs-target="#finance-transactions-pane" type="button" role="tab" aria-controls="finance-transactions-pane" aria-selected="false">تراکنش‌های کمیسیون</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="finance-withdrawals-tab" data-bs-toggle="pill" data-bs-target="#finance-withdrawals-pane" type="button" role="tab" aria-controls="finance-withdrawals-pane" aria-selected="false">درخواست تسویه</button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="plannerFinanceTabsContent">
+        <div class="tab-pane fade show active" id="finance-events-pane" role="tabpanel" aria-labelledby="finance-events-tab" tabindex="0">
             <div class="table-responsive">
                 <table class="table align-middle">
                     <thead>
@@ -76,12 +83,11 @@
             </div>
             @if (Model.Finance.Events.Count == 0)
             {
-                <div class="empty-state">هنوز درآمد کمیسیونی برای رویدادهای شما ثبت نشده است.</div>
+                <div class="empty-state">هنوز درآمدی برای رویدادهای شما ثبت نشده است.</div>
             }
         </div>
 
-        <div class="glass-panel p-4">
-            <h2 class="section-title">تراکنش های کمیسیون</h2>
+        <div class="tab-pane fade" id="finance-transactions-pane" role="tabpanel" aria-labelledby="finance-transactions-tab" tabindex="0">
             <div class="finance-card-list">
                 @foreach (var item in Model.Finance.Transactions)
                 {
@@ -104,50 +110,52 @@
                 <div class="empty-state">هنوز تراکنشی برای نمایش وجود ندارد.</div>
             }
         </div>
-    </div>
 
-    <div class="col-lg-4">
-        <form method="post" asp-page-handler="RequestWithdrawal" class="glass-panel p-4 mb-4 sticky-panel">
-            <h2 class="section-title">درخواست تسویه</h2>
-            <p class="text-muted small">درخواست را با ارز کاری خودتان (@Model.Finance.SettlementCurrencyCode) وارد کنید. کنترل موجودی با معادل ریالی انجام می شود.</p>
-            <div class="mb-3">
-                <label asp-for="Input.Amount" class="form-label">مبلغ برداشت (@Model.Finance.SettlementCurrencyCode)</label>
-                <input asp-for="Input.Amount" class="form-control" type="number" min="0.01" step="0.01" />
-                <span asp-validation-for="Input.Amount" class="text-danger small"></span>
-                <div class="help-tip">حداکثر قابل برداشت معادل ریالی: @DisplayFormatter.ReportingMoney(Model.Finance.AvailableWithdrawalAmount, Model.IsRtl)</div>
-            </div>
-            <button type="submit" class="btn btn-primary w-100" disabled="@(Model.Finance.AvailableWithdrawalAmount <= 0)">ثبت درخواست تسویه</button>
-        </form>
-
-        <div class="glass-panel p-4">
-            <h2 class="section-title">درخواست های تسویه</h2>
-            <div class="finance-card-list compact">
-                @foreach (var item in Model.Finance.Withdrawals)
-                {
-                    <article class="finance-withdrawal-card">
-                        <div class="d-flex justify-content-between gap-2">
-                            <strong>@DisplayFormatter.CurrencyMoney(item.Amount, item.CurrencyCode, Model.IsRtl)</strong>
-                            <span class="status-badge @Model.WithdrawalStatusClass(item.Status)">@DisplayFormatter.WithdrawalStatus(item.Status)</span>
+        <div class="tab-pane fade" id="finance-withdrawals-pane" role="tabpanel" aria-labelledby="finance-withdrawals-tab" tabindex="0">
+            <div class="row g-4">
+                <div class="col-lg-4">
+                    <form method="post" asp-page-handler="RequestWithdrawal" class="glass-panel p-4 sticky-panel">
+                        <h2 class="section-title">ثبت درخواست تسویه</h2>
+                        <p class="text-muted small">درخواست را با واحد ثبت تسویه فعلی (@Model.Finance.SettlementCurrencyCode) وارد کنید.</p>
+                        <div class="mb-3">
+                            <label asp-for="Input.Amount" class="form-label">مبلغ برداشت (@Model.Finance.SettlementCurrencyCode)</label>
+                            <input asp-for="Input.Amount" class="form-control" type="number" min="0.01" step="0.01" />
+                            <span asp-validation-for="Input.Amount" class="text-danger small"></span>
+                            <div class="help-tip">حداکثر قابل برداشت: @DisplayFormatter.ReportingMoney(Model.Finance.AvailableWithdrawalAmount, Model.IsRtl)</div>
                         </div>
-                        <div class="text-muted small mt-2">ثبت: @PersianDateFormatter.FormatDateTime(item.RequestedAtUtc, Model.IsRtl)</div>
-                        <div class="text-muted small">معادل ریالی: @DisplayFormatter.ReportingMoney(item.ReportingAmountIrr, Model.IsRtl)</div>
-                        @if (item.ReviewedAtUtc is not null)
+                        <button type="submit" class="btn btn-primary w-100" disabled="@(Model.Finance.AvailableWithdrawalAmount <= 0)">ثبت درخواست تسویه</button>
+                    </form>
+                </div>
+                <div class="col-lg-8">
+                    <div class="finance-card-list compact">
+                        @foreach (var item in Model.Finance.Withdrawals)
                         {
-                            <div class="text-muted small">بررسی: @PersianDateFormatter.FormatDateTime(item.ReviewedAtUtc.Value, Model.IsRtl)</div>
+                            <article class="finance-withdrawal-card">
+                                <div class="d-flex justify-content-between gap-2">
+                                    <strong>@DisplayFormatter.CurrencyMoney(item.Amount, item.CurrencyCode, Model.IsRtl)</strong>
+                                    <span class="status-badge @Model.WithdrawalStatusClass(item.Status)">@DisplayFormatter.WithdrawalStatus(item.Status)</span>
+                                </div>
+                                <div class="text-muted small mt-2">ثبت: @PersianDateFormatter.FormatDateTime(item.RequestedAtUtc, Model.IsRtl)</div>
+                                <div class="text-muted small">معادل ریالی: @DisplayFormatter.ReportingMoney(item.ReportingAmountIrr, Model.IsRtl)</div>
+                                @if (item.ReviewedAtUtc is not null)
+                                {
+                                    <div class="text-muted small">بررسی: @PersianDateFormatter.FormatDateTime(item.ReviewedAtUtc.Value, Model.IsRtl)</div>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(item.ReviewNote))
+                                {
+                                    <div class="finance-note">@item.ReviewNote</div>
+                                }
+                            </article>
                         }
-                        @if (!string.IsNullOrWhiteSpace(item.ReviewNote))
-                        {
-                            <div class="finance-note">@item.ReviewNote</div>
-                        }
-                    </article>
-                }
+                    </div>
+                    @if (Model.Finance.Withdrawals.Count == 0)
+                    {
+                        <div class="empty-state">هنوز درخواست تسویه ای ثبت نشده است.</div>
+                    }
+                </div>
             </div>
-            @if (Model.Finance.Withdrawals.Count == 0)
-            {
-                <div class="empty-state">هنوز درخواست تسویه ای ثبت نشده است.</div>
-            }
         </div>
     </div>
-</div>
+</section>
 
 <partial name="_ValidationScriptsPartial" />

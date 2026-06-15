@@ -1,0 +1,345 @@
+@page
+@model Randevoo.AdminPanel.Pages.Settings.OperationPermissionsModel
+@{
+    ViewData["Title"] = "مدیریت دسترسی عملیات";
+    var inputIndex = 0;
+}
+
+<section class="page-header">
+    <div>
+        <h1>مدیریت دسترسی عملیات</h1>
+        <p class="text-muted mb-0">کاتالوگ عملیات پنل، ماتریس نقش‌ها و overrideهای اختصاصی از اینجا مدیریت می‌شود.</p>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+        <form method="post" asp-page-handler="SyncCatalog">
+            <button type="submit" class="btn btn-outline-primary">
+                <i class="bi bi-arrow-repeat"></i>همگام‌سازی کاتالوگ
+            </button>
+        </form>
+        <a asp-page="/Settings/Index" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-right"></i>بازگشت
+        </a>
+    </div>
+</section>
+
+@if (!string.IsNullOrWhiteSpace(Model.StatusMessage))
+{
+    <div class="alert alert-success border-0 mb-4">@Model.StatusMessage</div>
+}
+
+<div asp-validation-summary="ModelOnly" class="alert alert-danger border-0" role="alert"></div>
+
+<section class="permission-summary-grid mb-4">
+    <div class="metric-card">
+        <span>عملیات فعال</span>
+        <strong>@Model.TotalActions</strong>
+    </div>
+    <div class="metric-card">
+        <span>نمایش فعلی</span>
+        <strong>@Model.VisibleActions</strong>
+    </div>
+    <div class="metric-card">
+        <span>عملیات بحرانی</span>
+        <strong>@Model.CriticalActions</strong>
+    </div>
+    <div class="metric-card">
+        <span>خانه‌های بدون تنظیم</span>
+        <strong>@Model.UnconfiguredCells</strong>
+    </div>
+</section>
+
+<section class="glass-panel p-4 mb-4">
+    <form method="get" class="permission-filter-bar">
+        <div>
+            <label asp-for="Search" class="form-label">جستجو</label>
+            <input asp-for="Search" class="form-control" placeholder="عنوان، کلید، مسیر یا handler" />
+        </div>
+        <div>
+            <label asp-for="RiskLevel" class="form-label">ریسک</label>
+            <select asp-for="RiskLevel" asp-items="Model.RiskOptions" class="form-select">
+                <option value="">همه</option>
+            </select>
+        </div>
+        <div>
+            <label asp-for="Surface" class="form-label">سطح UI</label>
+            <select asp-for="Surface" asp-items="Model.SurfaceOptions" class="form-select">
+                <option value="">همه</option>
+            </select>
+        </div>
+        <label class="form-check permission-filter-check">
+            <input asp-for="IncludeInactive" class="form-check-input" />
+            <span class="form-check-label">نمایش غیرفعال‌ها</span>
+        </label>
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-search"></i>اعمال
+            </button>
+            @if (Model.HasActiveFilters)
+            {
+                <a asp-page="/Settings/OperationPermissions" class="btn btn-outline-secondary">
+                    <i class="bi bi-x-circle"></i>پاک کردن
+                </a>
+            }
+        </div>
+    </form>
+</section>
+
+<div class="operation-permission-layout">
+    <aside class="glass-panel permission-tree-panel">
+        <div class="permission-tree-header">
+            <h2 class="section-title mb-1">موجودیت‌ها</h2>
+            <span class="text-muted small">@Model.Groups.Count گروه</span>
+        </div>
+        <nav class="permission-tree" aria-label="درخت موجودیت‌های دسترسی">
+            @foreach (var group in Model.Groups)
+            {
+                var groupActive = string.Equals(Model.GroupKey, group.GroupKey, StringComparison.OrdinalIgnoreCase);
+                <details class="permission-tree-group" open="@groupActive">
+                    <summary>
+                        <a asp-page="/Settings/OperationPermissions"
+                           asp-route-GroupKey="@group.GroupKey"
+                           asp-route-Search="@Model.Search"
+                           asp-route-RiskLevel="@Model.RiskLevel"
+                           asp-route-Surface="@Model.Surface"
+                           asp-route-IncludeInactive="@Model.IncludeInactive"
+                           class="permission-tree-link @(groupActive ? "active" : string.Empty)">
+                            <span>@group.GroupLabel</span>
+                            <span class="tree-count">@group.ActionCount</span>
+                        </a>
+                    </summary>
+                    <div class="permission-tree-children">
+                        @foreach (var entity in group.Entities)
+                        {
+                            var entityActive = string.Equals(Model.Entity, entity.Entity, StringComparison.OrdinalIgnoreCase);
+                            <a asp-page="/Settings/OperationPermissions"
+                               asp-route-GroupKey="@group.GroupKey"
+                               asp-route-Entity="@entity.Entity"
+                               asp-route-Search="@Model.Search"
+                               asp-route-RiskLevel="@Model.RiskLevel"
+                               asp-route-Surface="@Model.Surface"
+                               asp-route-IncludeInactive="@Model.IncludeInactive"
+                               class="permission-tree-link permission-tree-child @(entityActive ? "active" : string.Empty)">
+                                <span>@entity.EntityLabel</span>
+                                <span class="tree-count">@entity.ActionCount</span>
+                            </a>
+                        }
+                    </div>
+                </details>
+            }
+        </nav>
+    </aside>
+
+    <section class="glass-panel permission-matrix-panel">
+        <div class="permission-matrix-header">
+            <div>
+                <h2 class="section-title mb-1">ماتریس نقش‌ها</h2>
+                <p class="text-muted small mb-0">فقط نقش‌های پنل ادمین نمایش داده می‌شوند.</p>
+            </div>
+            <button type="submit" form="role-permissions-form" class="btn btn-primary">
+                <i class="bi bi-save"></i>ذخیره تغییرات
+            </button>
+        </div>
+
+        <form method="post" asp-page-handler="SaveRolePermissions" id="role-permissions-form">
+            <input type="hidden" asp-for="Search" />
+            <input type="hidden" asp-for="GroupKey" />
+            <input type="hidden" asp-for="Entity" />
+            <input type="hidden" asp-for="RiskLevel" />
+            <input type="hidden" asp-for="Surface" />
+            <input type="hidden" asp-for="IncludeInactive" />
+            <input type="hidden" asp-for="UserSearch" />
+
+            <div class="table-responsive permission-table-wrap">
+                <table class="table align-middle permission-matrix-table">
+                    <thead>
+                        <tr>
+                            <th class="permission-action-col">عملیات</th>
+                            @foreach (var role in Model.Roles)
+                            {
+                                <th class="text-center role-col role-@role.CssClass">@role.Title</th>
+                            }
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in Model.MatrixRows)
+                        {
+                            <tr class="@(!row.Action.IsActive || row.Action.IsDeprecated ? "permission-row-muted" : string.Empty)">
+                                <td class="permission-action-cell">
+                                    <div class="permission-action-title">
+                                        <span>@row.Action.Label</span>
+                                        <span class="status-badge @OperationPermissionsModel.GetRiskClass(row.Action.RiskLevel)">
+                                            @OperationPermissionsModel.GetRiskTitle(row.Action.RiskLevel)
+                                        </span>
+                                    </div>
+                                    <div class="permission-action-meta">
+                                        <code dir="ltr">@row.Action.TechnicalKey</code>
+                                        <span>@OperationPermissionsModel.GetSurfaceTitle(row.Action.UiSurface)</span>
+                                        @if (!string.IsNullOrWhiteSpace(row.Action.PagePath))
+                                        {
+                                            <span dir="ltr">@row.Action.PagePath</span>
+                                        }
+                                        @if (!string.IsNullOrWhiteSpace(row.Action.HandlerName))
+                                        {
+                                            <span dir="ltr">@row.Action.HandlerName</span>
+                                        }
+                                    </div>
+                                    @if (!string.IsNullOrWhiteSpace(row.Action.Description))
+                                    {
+                                        <div class="text-muted small mt-1">@row.Action.Description</div>
+                                    }
+                                </td>
+                                @foreach (var roleValue in row.RoleValues)
+                                {
+                                    <td class="text-center">
+                                        <input type="hidden" name="RolePermissions[@inputIndex].Role" value="@roleValue.Role" />
+                                        <input type="hidden" name="RolePermissions[@inputIndex].Entity" value="@row.Action.Entity" />
+                                        <input type="hidden" name="RolePermissions[@inputIndex].Action" value="@row.Action.Action" />
+                                        <div class="permission-switch-wrap @(!roleValue.IsConfigured ? "unconfigured" : string.Empty)">
+                                            <input type="checkbox"
+                                                   class="form-check-input permission-role-check"
+                                                   name="RolePermissions[@inputIndex].Allowed"
+                                                   value="true"
+                                                   checked="@roleValue.Allowed"
+                                                   aria-label="@($"{roleValue.RoleTitle} - {row.Action.Label}")" />
+                                            <input type="hidden" name="RolePermissions[@inputIndex].Allowed" value="false" />
+                                        </div>
+                                    </td>
+                                    inputIndex++;
+                                }
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </form>
+
+        @if (Model.MatrixRows.Count == 0)
+        {
+            <div class="empty-state">عملیاتی با فیلترهای فعلی پیدا نشد.</div>
+        }
+    </section>
+</div>
+
+<details class="glass-panel p-4 mt-4">
+    <summary class="permission-override-summary">
+        <span>دسترسی اختصاصی کاربر</span>
+        <span class="text-muted small">@Model.Overrides.Count override اخیر</span>
+    </summary>
+
+    <form method="get" class="permission-user-search mt-4 mb-3">
+        <input type="hidden" asp-for="Search" />
+        <input type="hidden" asp-for="GroupKey" />
+        <input type="hidden" asp-for="Entity" />
+        <input type="hidden" asp-for="RiskLevel" />
+        <input type="hidden" asp-for="Surface" />
+        <input type="hidden" asp-for="IncludeInactive" />
+        <div>
+            <label asp-for="UserSearch" class="form-label">جستجوی کاربر</label>
+            <input asp-for="UserSearch" class="form-control" placeholder="نام، موبایل یا ایمیل" />
+        </div>
+        <button type="submit" class="btn btn-outline-primary">جستجو</button>
+    </form>
+
+    <form method="post" asp-page-handler="SaveOverride" class="stacked-form mb-4">
+        <input type="hidden" asp-for="Search" />
+        <input type="hidden" asp-for="GroupKey" />
+        <input type="hidden" asp-for="Entity" />
+        <input type="hidden" asp-for="RiskLevel" />
+        <input type="hidden" asp-for="Surface" />
+        <input type="hidden" asp-for="IncludeInactive" />
+        <input type="hidden" asp-for="UserSearch" />
+        <div class="row g-3 align-items-end">
+            <div class="col-lg-3 col-md-6">
+                <label asp-for="OverrideInput.UserId" class="form-label">کاربر</label>
+                <select asp-for="OverrideInput.UserId" class="form-select">
+                    <option value="">انتخاب کنید</option>
+                    @foreach (var user in Model.UserOptions)
+                    {
+                        <option value="@user.UserId">@user.DisplayName - @user.MobileNumber (@user.RoleTitle)</option>
+                    }
+                </select>
+                <span asp-validation-for="OverrideInput.UserId" class="text-danger small"></span>
+            </div>
+            <div class="col-lg-4 col-md-6">
+                <label asp-for="OverrideInput.ActionKey" class="form-label">عملیات</label>
+                <select asp-for="OverrideInput.ActionKey" asp-items="Model.ActionOptions" class="form-select">
+                    <option value="">انتخاب کنید</option>
+                </select>
+                <span asp-validation-for="OverrideInput.ActionKey" class="text-danger small"></span>
+            </div>
+            <div class="col-lg-2 col-md-4">
+                <label asp-for="OverrideInput.Allowed" class="form-label">نتیجه</label>
+                <select asp-for="OverrideInput.Allowed" class="form-select">
+                    <option value="true">مجاز</option>
+                    <option value="false">غیرمجاز</option>
+                </select>
+            </div>
+            <div class="col-lg-2 col-md-4">
+                <label asp-for="OverrideInput.ExpiresAtUtc" class="form-label">انقضا</label>
+                <input asp-for="OverrideInput.ExpiresAtUtc" class="form-control" type="date" />
+            </div>
+            <div class="col-lg-1 col-md-4">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-person-check"></i>
+                </button>
+            </div>
+            <div class="col-12">
+                <label asp-for="OverrideInput.Note" class="form-label">یادداشت</label>
+                <input asp-for="OverrideInput.Note" class="form-control" />
+            </div>
+        </div>
+    </form>
+
+    <div class="table-responsive">
+        <table class="table align-middle">
+            <thead>
+                <tr>
+                    <th>کاربر</th>
+                    <th>عملیات</th>
+                    <th>نتیجه</th>
+                    <th>انقضا</th>
+                    <th>یادداشت</th>
+                    <th>حذف</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model.Overrides)
+                {
+                    <tr>
+                        <td>
+                            <div class="fw-semibold">@item.UserTitle</div>
+                            <div class="text-muted small" dir="ltr">@item.UserMobile</div>
+                        </td>
+                        <td>
+                            <div>@item.ActionLabel</div>
+                            <code dir="ltr">@item.Entity.@item.Action</code>
+                        </td>
+                        <td>
+                            <span class="status-badge @(item.Allowed ? "status-approved" : "status-cancelled")">
+                                @(item.Allowed ? "مجاز" : "غیرمجاز")
+                            </span>
+                        </td>
+                        <td>@(item.ExpiresAtUtc.HasValue ? PersianDateFormatter.FormatDateTime(item.ExpiresAtUtc.Value, true) : "بدون انقضا")</td>
+                        <td>@(string.IsNullOrWhiteSpace(item.Note) ? "ثبت نشده" : item.Note)</td>
+                        <td>
+                            <form method="post" asp-page-handler="DeleteOverride" asp-route-id="@item.Id">
+                                <input type="hidden" asp-for="Search" />
+                                <input type="hidden" asp-for="GroupKey" />
+                                <input type="hidden" asp-for="Entity" />
+                                <input type="hidden" asp-for="RiskLevel" />
+                                <input type="hidden" asp-for="Surface" />
+                                <input type="hidden" asp-for="IncludeInactive" />
+                                <input type="hidden" asp-for="UserSearch" />
+                                <button type="submit" class="btn btn-sm btn-outline-danger" aria-label="حذف override">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</details>
+
+<partial name="_ValidationScriptsPartial" />

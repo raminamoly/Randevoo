@@ -23,9 +23,22 @@
             <input asp-for="Input.Title" class="form-control" />
             <span asp-validation-for="Input.Title" class="text-danger small"></span>
         </div>
-        <div class="col-12 col-lg-4">
-            <label asp-for="Input.Category" class="form-label">دسته بندی</label>
-            <select asp-for="Input.Category" class="form-select" asp-items="Html.GetEnumSelectList<Randevoo.Domain.Enums.SupportTicketCategory>()"></select>
+        <div class="col-12 col-md-6 col-lg-4">
+            <label asp-for="Input.TicketTypeId" class="form-label">نوع تیکت</label>
+            <select asp-for="Input.TicketTypeId" class="form-select" asp-items="Model.TicketTypeOptions"></select>
+            <span asp-validation-for="Input.TicketTypeId" class="text-danger small"></span>
+        </div>
+        <div class="col-12 col-md-6 col-lg-4">
+            <label asp-for="Input.TicketRecipientTypeId" class="form-label">گیرنده</label>
+            <select asp-for="Input.TicketRecipientTypeId" class="form-select" asp-items="Model.RecipientTypeOptions" data-ticket-recipient></select>
+            <span asp-validation-for="Input.TicketRecipientTypeId" class="text-danger small"></span>
+        </div>
+        <div class="col-12" data-ticket-event-field>
+            <label asp-for="Input.EventId" class="form-label">رویداد مرتبط</label>
+            <select asp-for="Input.EventId" class="form-select" asp-items="Model.EventSelectOptions">
+                <option value="">انتخاب رویداد</option>
+            </select>
+            <span asp-validation-for="Input.EventId" class="text-danger small"></span>
         </div>
         <div class="col-12">
             <label asp-for="Input.Body" class="form-label">پیام</label>
@@ -45,4 +58,19 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script>
+        (() => {
+            const recipient = document.querySelector("[data-ticket-recipient]");
+            const eventField = document.querySelector("[data-ticket-event-field]");
+            const eventInput = document.querySelector("[name='Input.EventId']");
+            const organizerId = "@Model.OrganizerRecipientTypeId";
+            const syncEventField = () => {
+                const show = recipient && recipient.value === organizerId;
+                if (eventField) eventField.hidden = !show;
+                if (!show && eventInput) eventInput.value = "";
+            };
+            recipient?.addEventListener("change", syncEventField);
+            syncEventField();
+        })();
+    </script>
 }

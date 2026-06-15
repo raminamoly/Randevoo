@@ -1,5 +1,6 @@
 @page "{id:long}"
 @using Randevoo.AdminPanel.Models.Support
+@using Randevoo.Domain.Constants
 @model Randevoo.AdminPanel.Pages.Support.DetailsModel
 @{
     ViewData["Title"] = $"تیکت #{Model.Ticket.Id}";
@@ -9,7 +10,7 @@
     <div>
         <h1>@Model.Ticket.Title</h1>
     </div>
-    <a class="btn btn-outline-secondary" asp-page="@(Model.CanManage ? "/Support/Tickets" : "/Support/My")"><i class="bi bi-arrow-right"></i> بازگشت</a>
+    <a class="btn btn-outline-secondary" asp-page="@(Model.CanUseSystemTicketsPage ? "/Support/Tickets" : "/Support/My")"><i class="bi bi-arrow-right"></i> بازگشت</a>
 </section>
 
 @if (!string.IsNullOrWhiteSpace(Model.StatusMessage))
@@ -18,11 +19,27 @@
 }
 
 <div class="glass-panel p-4 mb-4">
+    <div class="support-ticket-meta mb-3">
+        <span>@Model.Ticket.TicketTypeTitleFa</span>
+        <span>@Model.Ticket.TicketStatusTitleFa</span>
+        <span>@Model.Ticket.TicketRecipientTypeTitleFa</span>
+        @if (!string.IsNullOrWhiteSpace(Model.Ticket.EventTitle))
+        {
+            <span>@Model.Ticket.EventTitle</span>
+        }
+        @if (!string.IsNullOrWhiteSpace(Model.Ticket.RecipientPlannerDisplayName))
+        {
+            <span>@Model.Ticket.RecipientPlannerDisplayName</span>
+        }
+    </div>
     <ul class="nav nav-tabs" role="tablist">
         <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#conversation" type="button">گفتگو</button></li>
         <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#profile" type="button">پروفایل ثبت کننده</button></li>
-        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#finance" type="button">مالی</button></li>
-        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#events" type="button">رویدادها</button></li>
+        @if (Model.CanViewSubmitterContext)
+        {
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#finance" type="button">مالی</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#events" type="button">رویدادها</button></li>
+        }
         <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#previous" type="button">تیکت های قبلی</button></li>
         <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#history" type="button">تاریخچه</button></li>
     </ul>
@@ -97,29 +114,32 @@
             </div>
         </div>
 
-        <div class="tab-pane fade" id="finance">
-            <div class="support-context-card">
-                <div>
-                    <h2>اطلاعات مالی ثبت کننده</h2>
+        @if (Model.CanViewSubmitterContext)
+        {
+            <div class="tab-pane fade" id="finance">
+                <div class="support-context-card">
+                    <div>
+                        <h2>اطلاعات مالی ثبت کننده</h2>
+                    </div>
+                    <button class="btn btn-outline-primary" type="button" data-bs-toggle="modal" data-bs-target="#financeContextModal">
+                        <i class="bi bi-wallet2"></i>
+                        مشاهده مالی
+                    </button>
                 </div>
-                <button class="btn btn-outline-primary" type="button" data-bs-toggle="modal" data-bs-target="#financeContextModal">
-                    <i class="bi bi-wallet2"></i>
-                    مشاهده مالی
-                </button>
             </div>
-        </div>
 
-        <div class="tab-pane fade" id="events">
-            <div class="support-context-card">
-                <div>
-                    <h2>رویدادها و رزروها</h2>
+            <div class="tab-pane fade" id="events">
+                <div class="support-context-card">
+                    <div>
+                        <h2>رویدادها و رزروها</h2>
+                    </div>
+                    <button class="btn btn-outline-primary" type="button" data-bs-toggle="modal" data-bs-target="#eventsContextModal">
+                        <i class="bi bi-calendar-event"></i>
+                        مشاهده رویدادها
+                    </button>
                 </div>
-                <button class="btn btn-outline-primary" type="button" data-bs-toggle="modal" data-bs-target="#eventsContextModal">
-                    <i class="bi bi-calendar-event"></i>
-                    مشاهده رویدادها
-                </button>
             </div>
-        </div>
+        }
 
         <div class="tab-pane fade" id="previous">
             <div class="support-context-card">
@@ -145,7 +165,7 @@
     </div>
 </div>
 
-@if (Model.CanManage)
+@if (Model.CanViewSubmitterContext)
 {
     <div class="modal fade" id="financeContextModal" tabindex="-1" aria-labelledby="financeContextModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-xl modal-dialog-scrollable">
@@ -290,6 +310,7 @@
             </div>
         </div>
     </div>
+}
 
     <div class="modal fade" id="previousTicketsModal" tabindex="-1" aria-labelledby="previousTicketsModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-scrollable">
@@ -307,7 +328,7 @@
                                     <strong>@item.Title</strong>
                                     <small>#@item.Id | @PersianDateFormatter.FormatDateTime(item.UpdatedAt ?? item.CreatedAt, true)</small>
                                 </span>
-                                <span class="status-badge">@SupportTicketUiFormatter.FormatStatus(item.Status)</span>
+                                <span class="status-badge">@item.TicketStatusTitleFa</span>
                             </a>
                         }
                     </div>
@@ -319,7 +340,6 @@
             </div>
         </div>
     </div>
-}
 
 @if (Model.CanManage)
 {
@@ -328,12 +348,12 @@
             <form method="post" asp-page-handler="Status" class="glass-panel p-4">
                 <h2 class="section-title">تغییر وضعیت</h2>
                 <input type="hidden" asp-for="StatusInput.TicketId" value="@Model.Ticket.Id" />
-                <select asp-for="StatusInput.Status" class="form-select mb-3" asp-items="Model.StatusOptions"></select>
+                <select asp-for="StatusInput.TicketStatusId" class="form-select mb-3" asp-items="Model.StatusOptions"></select>
                 <textarea asp-for="StatusInput.Note" class="form-control mb-3" rows="2" placeholder="یادداشت"></textarea>
                 <button class="btn btn-outline-primary" type="submit">ثبت وضعیت</button>
             </form>
         </div>
-        @if (Model.IsAdmin)
+        @if (Model.IsAdmin && Model.Ticket.TicketRecipientTypeId == SupportTicketLookupIds.RecipientPlatformSupport)
         {
             <div class="col-12 col-lg-6">
                 <form method="post" asp-page-handler="Reassign" class="glass-panel p-4">

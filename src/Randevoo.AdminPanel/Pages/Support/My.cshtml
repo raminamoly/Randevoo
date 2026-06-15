@@ -1,12 +1,13 @@
 @page
 @model Randevoo.AdminPanel.Pages.Support.MyModel
 @{
-    ViewData["Title"] = "تیکت های من";
+    ViewData["Title"] = "تیکت های من با پشتیبانی";
 }
 
 <section class="page-header">
     <div>
-        <h1>تیکت های من</h1>
+        <h1>تیکت های من با پشتیبانی</h1>
+        <p class="text-muted mb-0">گفت‌وگوی شما با تیم پشتیبانی سایت درباره حساب، مالی، رویدادها و مسائل اجرایی.</p>
     </div>
     <a class="btn btn-primary" asp-page="/Support/Create"><i class="bi bi-plus-circle"></i> تیکت جدید</a>
 </section>
@@ -17,9 +18,10 @@
             <thead>
                 <tr>
                     <th>عنوان</th>
-                    <th>دسته بندی</th>
+                    <th>نوع</th>
+                    <th>گیرنده</th>
                     <th>وضعیت</th>
-                    <th>پشتیبان</th>
+                    <th>مسئول</th>
                     <th>زمان ثبت</th>
                     <th></th>
                 </tr>
@@ -29,9 +31,10 @@
                 {
                     <tr>
                         <td class="fw-semibold">@item.Title</td>
-                        <td>@item.Category</td>
-                        <td><span class="status-badge">@item.Status</span></td>
-                        <td>@(item.AssignedSupportDisplayName ?? "در صف تخصیص")</td>
+                        <td>@item.TicketTypeTitleFa</td>
+                        <td>@item.TicketRecipientTypeTitleFa</td>
+                        <td><span class="status-badge">@item.TicketStatusTitleFa</span></td>
+                        <td>@(item.AssignedSupportDisplayName ?? item.RecipientPlannerDisplayName ?? "در صف")</td>
                         <td>@PersianDateFormatter.FormatDateTime(item.CreatedAt, true)</td>
                         <td class="text-end"><a class="btn btn-sm btn-outline-primary" asp-page="/Support/Details" asp-route-id="@item.Id">مشاهده</a></td>
                     </tr>
@@ -41,6 +44,6 @@
     </div>
     @if (Model.Tickets.Count == 0)
     {
-        <div class="empty-state">هنوز تیکتی ثبت نکرده اید.</div>
+        <div class="empty-state">هنوز تیکتی برای پشتیبانی سایت ثبت نکرده اید.</div>
     }
 </div>

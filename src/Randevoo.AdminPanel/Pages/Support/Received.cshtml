@@ -1,0 +1,54 @@
+@page
+@model Randevoo.AdminPanel.Pages.Support.ReceivedModel
+@{
+    ViewData["Title"] = "تیکت‌های شرکت‌کنندگان";
+}
+
+<section class="page-header">
+    <div>
+        <h1>تیکت‌های شرکت‌کنندگان</h1>
+        <p class="text-muted mb-0">درخواست‌ها و پیام‌هایی که شرکت‌کنندگان درباره رویدادهای شما ثبت کرده‌اند.</p>
+    </div>
+    <a class="btn btn-outline-secondary" asp-page="/Support/My"><i class="bi bi-ticket-perforated"></i> تیکت‌های من با پشتیبانی</a>
+</section>
+
+<div class="glass-panel p-4">
+    <div class="table-responsive">
+        <table class="table align-middle">
+            <thead>
+                <tr>
+                    <th>عنوان</th>
+                    <th>رویداد</th>
+                    <th>ثبت‌کننده</th>
+                    <th>نوع</th>
+                    <th>وضعیت</th>
+                    <th>آخرین تغییر</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model.Tickets)
+                {
+                    <tr>
+                        <td><div class="fw-semibold">@item.Title</div><div class="text-muted small">#@item.Id</div></td>
+                        <td>@(item.EventTitle ?? "بدون رویداد")</td>
+                        <td>@item.SubmitterDisplayName</td>
+                        <td>@item.TicketTypeTitleFa</td>
+                        <td><span class="status-badge">@item.TicketStatusTitleFa</span></td>
+                        <td>@PersianDateFormatter.FormatDateTime(item.UpdatedAt ?? item.CreatedAt, true)</td>
+                        <td class="text-end">
+                            <a class="btn btn-sm btn-outline-primary" asp-page="/Support/Details" asp-route-id="@item.Id">
+                                <i class="bi bi-reply-fill"></i>
+                                پاسخ
+                            </a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    @if (Model.Tickets.Count == 0)
+    {
+        <div class="empty-state">تیکت دریافتی برای رویدادهای شما ثبت نشده است.</div>
+    }
+</div>

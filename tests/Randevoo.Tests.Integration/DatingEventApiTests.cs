@@ -281,7 +281,7 @@ public class DatingEventApiTests
     }
 
     [Fact]
-    public async Task TicketPurchase_ForOrganizerManualTransfer_DebitsPlannerForPlatformCommission()
+    public async Task TicketPurchase_ForOrganizerManualTransfer_DoesNotSettlePlannerBalanceImmediately()
     {
         await using var factory = new RandevooEventApiFactory();
         await factory.SeedEventTypesAsync();
@@ -326,7 +326,7 @@ public class DatingEventApiTests
         var plannerBalance = await client.GetFromJsonAsync<BalanceDto>("/api/balances/me");
 
         Assert.NotNull(plannerBalance);
-        Assert.Equal(-10m, plannerBalance.Balance);
+        Assert.Equal(0m, plannerBalance.Balance);
     }
 
     [Fact]

@@ -1,8 +1,16 @@
 @page
 @model Randevoo.AdminPanel.Pages.Account.ForbiddenModel
+@inject CurrentSessionState CurrentSession
 @{
     ViewData["Title"] = "دسترسی غیرمجاز";
     ViewData["UseShell"] = false;
+    var homePage = CurrentSession.CurrentUser?.Role switch
+    {
+        AdminRole.Admin => "/Events/Index",
+        AdminRole.EventPlanner => "/Events/My",
+        AdminRole.SupportTeam => "/Participants/Index",
+        _ => "/Account/Login"
+    };
 }
 
 <section class="auth-card glass-panel auth-card-premium text-center">
@@ -10,6 +18,6 @@
     <div class="auth-orb auth-orb-blue"></div>
     <img src="~/images/logo.png" alt="راندوو" class="auth-logo mx-auto mb-3" />
     <h1 class="mb-2">دسترسی شما به این بخش مجاز نیست</h1>
-    <p class="text-muted mb-4">نقش فعلی شما اجازه ورود به این صفحه را ندارد. از داشبورد مناسب نقش خودتان ادامه دهید.</p>
-    <a asp-page="/Dashboard/Index" class="btn btn-primary">بازگشت به داشبورد</a>
+    <p class="text-muted mb-4">نقش فعلی شما اجازه ورود به این صفحه را ندارد. از اولین بخش مجاز خودتان ادامه دهید.</p>
+    <a asp-page="@homePage" class="btn btn-primary">بازگشت به پنل</a>
 </section>

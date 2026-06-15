@@ -26,4 +26,22 @@ public class City : BaseEntity, IAggregateRoot
         IsActive = true;
         AddDomainEvent(new EntityCreatedEvent<City>(this));
     }
+
+    public void Update(Country country, string name, decimal latitude, decimal longitude, int displayOrder, bool isActive)
+    {
+        Country = GuardAgainst.Object.Null(country, nameof(country));
+        CountryId = country.Id;
+        Name = GuardAgainst.String.InvalidLength(name, nameof(name), 2, 100);
+        Latitude = latitude;
+        Longitude = longitude;
+        DisplayOrder = displayOrder;
+        IsActive = isActive;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void SetActive(bool isActive)
+    {
+        IsActive = isActive;
+        UpdatedAt = DateTime.UtcNow;
+    }
 }

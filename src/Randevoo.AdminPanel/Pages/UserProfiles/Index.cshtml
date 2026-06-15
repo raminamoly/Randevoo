@@ -1,12 +1,12 @@
 @page
 @model Randevoo.AdminPanel.Pages.UserProfiles.IndexModel
 @{
-    ViewData["Title"] = "لیست شرکت کنندگان";
+    ViewData["Title"] = "فهرست پروفایل شرکت‌کنندگان";
 }
 
 <section class="page-header">
     <div>
-        <h1>لیست شرکت کنندگان</h1>
+        <h1>فهرست پروفایل شرکت‌کنندگان</h1>
     </div>
 </section>
 
@@ -97,7 +97,7 @@
                     <th>فعال</th>
                     <th>ساخته شده</th>
                     <th>آخرین فعالیت</th>
-                    <th></th>
+                    <th>عملیات</th>
                 </tr>
             </thead>
             <tbody>
@@ -127,9 +127,21 @@
                         <td>@PersianDateFormatter.FormatDateTime(item.CreatedAtUtc, true)</td>
                         <td>@(item.LastActivityAtUtc.HasValue ? PersianDateFormatter.FormatDateTime(item.LastActivityAtUtc.Value, true) : "بدون لاگ")</td>
                         <td>
-                            <div class="d-flex gap-2">
-                                <a asp-page="/UserProfiles/Details" asp-route-userId="@item.UserId" class="btn btn-sm btn-outline-primary">نمایش</a>
-                                <a asp-page="/UserProfiles/AdminEdit" asp-route-userId="@item.UserId" class="btn btn-sm btn-outline-secondary">ویرایش</a>
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle table-action-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    عملیات
+                                </button>
+                                <div class="dropdown-menu dropdown-menu-end action-menu shadow-sm border-0">
+                                    <a asp-page="/UserProfiles/Details" asp-route-userId="@item.UserId" class="dropdown-item">
+                                        <i class="bi bi-person-bounding-box"></i>نمایش پروفایل
+                                    </a>
+                                    <a asp-page="/UserProfiles/AdminEdit" asp-route-userId="@item.UserId" class="dropdown-item">
+                                        <i class="bi bi-person-gear"></i>ویرایش پروفایل
+                                    </a>
+                                    <a asp-page="/Finance/User" asp-route-userId="@item.UserId" asp-route-view="balance" class="dropdown-item">
+                                        <i class="bi bi-wallet2"></i>مالی شرکت‌کننده
+                                    </a>
+                                </div>
                             </div>
                         </td>
                     </tr>

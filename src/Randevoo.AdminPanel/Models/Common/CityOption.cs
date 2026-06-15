@@ -8,4 +8,5 @@ public sealed class CityOption
     public string Name { get; set; } = string.Empty;
     public decimal Latitude { get; set; }
     public decimal Longitude { get; set; }
+    public bool IsActive { get; set; }
 }

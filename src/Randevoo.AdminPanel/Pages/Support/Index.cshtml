@@ -9,6 +9,7 @@
     {
         status = Model.Dashboard.StatusChart,
         category = Model.Dashboard.CategoryChart,
+        recipient = Model.Dashboard.RecipientChart,
         daily = Model.Dashboard.DailyCreatedChart
     });
 }
@@ -34,15 +35,21 @@
             <input class="form-control jalali-date-picker" asp-for="CreatedToJalali" autocomplete="off" placeholder="۱۴۰۵/۰۳/۳۱" />
         </div>
         <div>
-            <label class="form-label" asp-for="Status">وضعیت</label>
-            <select class="form-select" asp-for="Status" asp-items="Model.StatusOptions">
+            <label class="form-label" asp-for="TicketStatusId">وضعیت</label>
+            <select class="form-select" asp-for="TicketStatusId" asp-items="Model.StatusOptions">
                 <option value="">همه وضعیت ها</option>
             </select>
         </div>
         <div>
-            <label class="form-label" asp-for="Category">دسته بندی</label>
-            <select class="form-select" asp-for="Category" asp-items="Model.CategoryOptions">
-                <option value="">همه دسته ها</option>
+            <label class="form-label" asp-for="TicketTypeId">نوع تیکت</label>
+            <select class="form-select" asp-for="TicketTypeId" asp-items="Model.TypeOptions">
+                <option value="">همه نوع‌ها</option>
+            </select>
+        </div>
+        <div>
+            <label class="form-label" asp-for="TicketRecipientTypeId">گیرنده</label>
+            <select class="form-select" asp-for="TicketRecipientTypeId" asp-items="Model.RecipientOptions">
+                <option value="">همه گیرنده‌ها</option>
             </select>
         </div>
         <div>
@@ -99,6 +106,14 @@
         <span>بسته شده</span>
         <strong>@Model.Dashboard.ClosedTickets</strong>
     </article>
+    <article class="support-kpi-card">
+        <span>پشتیبانی سایت</span>
+        <strong>@Model.Dashboard.PlatformSupportTickets</strong>
+    </article>
+    <article class="support-kpi-card">
+        <span>برگزارکننده</span>
+        <strong>@Model.Dashboard.OrganizerTickets</strong>
+    </article>
 </section>
 
 <section class="support-chart-grid">
@@ -112,9 +127,16 @@
     <article class="glass-panel support-chart-card">
         <div class="support-chart-heading">
             <span>دسته بندی</span>
-            <strong>@Model.Dashboard.FinancialTickets مالی</strong>
+            <strong>@Model.Dashboard.PlatformSupportTickets پشتیبانی</strong>
         </div>
         <canvas id="supportCategoryChart" height="210"></canvas>
+    </article>
+    <article class="glass-panel support-chart-card">
+        <div class="support-chart-heading">
+            <span>گیرنده</span>
+            <strong>@Model.Dashboard.OrganizerTickets برگزارکننده</strong>
+        </div>
+        <canvas id="supportRecipientChart" height="210"></canvas>
     </article>
     <article class="glass-panel support-chart-card wide">
         <div class="support-chart-heading">
@@ -184,6 +206,15 @@
                     type: "bar",
                     data: { labels: makeLabels(payload.category), datasets: [{ data: makeValues(payload.category), backgroundColor: palette.slice(0, 3), borderRadius: 8 }] },
                     options: { ...baseOptions, scales: { y: { beginAtZero: true, ticks: { precision: 0, font: { family: chartFont } } } } }
+                });
+            }
+
+            const recipientCanvas = document.getElementById("supportRecipientChart");
+            if (recipientCanvas) {
+                new Chart(recipientCanvas, {
+                    type: "doughnut",
+                    data: { labels: makeLabels(payload.recipient), datasets: [{ data: makeValues(payload.recipient), backgroundColor: palette.slice(2, 5), borderWidth: 0 }] },
+                    options: { ...baseOptions, cutout: "68%" }
                 });
             }
 

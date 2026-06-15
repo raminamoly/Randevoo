@@ -11,12 +11,18 @@ public class IndexModel : PageModel
     {
         if (User.Identity?.IsAuthenticated == true)
         {
-            return User.IsInRole(AdminRole.EventPlanner.ToString())
-                ? RedirectToPage("/Dashboard/My")
-                : RedirectToPage("/Dashboard/Index");
+            if (User.IsInRole(AdminRole.Admin.ToString()))
+                return RedirectToPage("/Events/Index");
+
+            if (User.IsInRole(AdminRole.EventPlanner.ToString()))
+                return RedirectToPage("/Events/My");
+
+            if (User.IsInRole(AdminRole.SupportTeam.ToString()))
+                return RedirectToPage("/Participants/Index");
+
+            return RedirectToPage("/Account/Forbidden");
         }
 
         return RedirectToPage("/Account/Login");
     }
 }
-

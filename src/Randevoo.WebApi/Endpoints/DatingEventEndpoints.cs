@@ -96,8 +96,8 @@ public static class DatingEventEndpoints
     {
         try
         {
-            var ticketId = await sender.Send(new BuyDatingEventTicketCommand(EndpointHelpers.GetUserId(principal), eventId, request?.DiscountCode), cancellationToken);
-            return Results.Created($"/api/dating-events/{eventId}/tickets/{ticketId}", new { ticketId });
+            var result = await sender.Send(new BuyDatingEventTicketCommand(EndpointHelpers.GetUserId(principal), eventId, request?.DiscountCode, request?.ParticipantUserId), cancellationToken);
+            return Results.Created($"/api/dating-events/{eventId}/orders/{result.TicketOrderId}", new { orderId = result.TicketOrderId, ticketId = result.TicketId, ticketIds = result.TicketIds });
         }
         catch (Exception ex) when (ex is DomainException or UnauthorizedAccessException)
         {
@@ -200,5 +200,5 @@ public static class DatingEventEndpoints
     public record ReviewSmsRequestRequest(string ApprovedMessage, DateTime? PlannedSendAtUtc, string? Note);
     public record ChangeLocationRequest(string Country, string City, string? Region, decimal Latitude, decimal Longitude, string Address);
     public record SetCommissionRequest(decimal CommissionPercent);
-    public record BuyDatingEventTicketRequest(string? DiscountCode);
+    public record BuyDatingEventTicketRequest(string? DiscountCode, long? ParticipantUserId);
 }

@@ -1,0 +1,134 @@
+@page
+@model Randevoo.AdminPanel.Pages.Finance.PaymentReceiptsModel
+@using Randevoo.AdminPanel.Services.State
+@using Randevoo.Domain.Enums
+@{
+    ViewData["Title"] = "رسیدهای پرداخت پلتفرم";
+}
+
+<section class="page-header">
+    <div>
+        <h1>رسیدهای پرداخت پلتفرم</h1>
+        <p class="text-muted mb-0">رسیدهای واریز به حساب پلتفرم را بررسی کنید تا بعد از تایید، بلیت و سهم برگزارکننده ثبت شود.</p>
+    </div>
+</section>
+
+@if (!string.IsNullOrWhiteSpace(Model.StatusMessage))
+{
+    <div class="alert alert-success border-0 mb-4">@Model.StatusMessage</div>
+}
+
+<div class="glass-panel p-4">
+    <div class="table-responsive">
+        <table class="table align-middle">
+            <thead>
+                <tr>
+                    <th>رویداد</th>
+                    <th>خریدار</th>
+                    <th>شرکت‌کننده</th>
+                    <th>مبلغ</th>
+                    <th>رسید</th>
+                    <th>وضعیت</th>
+                    <th>عملیات</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model.Receipts)
+                {
+                    var receiptExtension = System.IO.Path.GetExtension(item.UploadedFilePath ?? string.Empty);
+                    var isImageReceipt = !string.IsNullOrWhiteSpace(receiptExtension)
+                        && new[] { ".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp" }.Contains(receiptExtension, StringComparer.OrdinalIgnoreCase);
+                    <tr>
+                        <td>
+                            <div class="fw-semibold">@item.EventTitle</div>
+                            <div class="text-muted small">@item.PlannerName</div>
+                        </td>
+                        <td>
+                            <div>@item.BuyerName</div>
+                            <div class="text-muted small" dir="ltr">@item.BuyerMobile</div>
+                            @if (item.TicketOrderId is long orderId)
+                            {
+                                <a asp-page="/Buyers/Index" asp-route-TicketOrderId="@orderId" class="text-muted small">سفارش #@DisplayFormatter.Count((int)orderId)</a>
+                            }
+                        </td>
+                        <td>
+                            <div>@item.ParticipantName</div>
+                            <div class="text-muted small" dir="ltr">@item.ParticipantMobile</div>
+                        </td>
+                        <td>
+                            <div>@DisplayFormatter.CurrencyMoney(item.Amount, item.CurrencyCode, Model.IsRtl)</div>
+                            <div class="text-muted small">@DisplayFormatter.ReportingMoney(item.ReportingAmountIrr, Model.IsRtl)</div>
+                            @if (!string.IsNullOrWhiteSpace(item.DiscountCode))
+                            {
+                                <div class="text-muted small">کد: @item.DiscountCode</div>
+                            }
+                        </td>
+                        <td>
+                            @if (isImageReceipt)
+                            {
+                                <a href="@item.UploadedFilePath" target="_blank" rel="noopener" class="receipt-preview-link">
+                                    <img src="@item.UploadedFilePath" alt="رسید پرداخت @item.EventTitle" class="receipt-preview-image img-fluid img-thumbnail" loading="lazy" />
+                                </a>
+                            }
+                            <div class="mt-2">
+                                <a href="@item.UploadedFilePath" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary">
+                                    <i class="bi bi-paperclip"></i>
+                                    مشاهده
+                                </a>
+                            </div>
+                            @if (!string.IsNullOrWhiteSpace(item.TrackingNumber))
+                            {
+                                <div class="text-muted small mt-1" dir="ltr">@item.TrackingNumber</div>
+                            }
+                        </td>
+                        <td>
+                            <span class="status-badge @PaymentReceiptsModel.StatusClass(item.Status)">@PaymentReceiptsModel.StatusLabel(item.Status)</span>
+                            @if (!string.IsNullOrWhiteSpace(item.RejectReason))
+                            {
+                                <div class="text-muted small mt-1">@item.RejectReason</div>
+                            }
+                        </td>
+                        <td class="table-action-cell">
+                            @if (item.Status == ManualPaymentReceiptStatus.Submitted)
+                            {
+                                <div class="d-flex flex-column gap-2">
+                                    <form method="post" asp-page-handler="Approve">
+                                        <input type="hidden" asp-for="ReviewInput.ReceiptId" value="@item.Id" />
+                                        <button type="submit" class="btn btn-sm btn-success w-100">
+                                            <i class="bi bi-check2-circle"></i>
+                                            تایید
+                                        </button>
+                                    </form>
+                                    <form method="post" asp-page-handler="Reject" class="d-flex gap-2">
+                                        <input type="hidden" asp-for="ReviewInput.ReceiptId" value="@item.Id" />
+                                        <input asp-for="ReviewInput.RejectReason" class="form-control form-control-sm" placeholder="دلیل رد" />
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            رد
+                                        </button>
+                                    </form>
+                                </div>
+                            }
+                            else if (item.EventTicketId is long ticketId)
+                            {
+                                <span class="text-muted small">بلیت #@DisplayFormatter.Count((int)ticketId)</span>
+                            }
+                            else if (item.WalletCreditTransactionId is long transactionId)
+                            {
+                                <span class="text-muted small">اعتبار کیف پول #@DisplayFormatter.Count((int)transactionId)</span>
+                            }
+                            else
+                            {
+                                <span class="text-muted small">بررسی شده</span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    @if (Model.Receipts.Count == 0)
+    {
+        <div class="empty-state">رسیدی برای بررسی وجود ندارد.</div>
+    }
+</div>

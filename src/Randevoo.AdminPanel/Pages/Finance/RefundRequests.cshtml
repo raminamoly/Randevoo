@@ -1,0 +1,96 @@
+@page
+@model Randevoo.AdminPanel.Pages.Finance.RefundRequestsModel
+@using Randevoo.AdminPanel.Services.State
+@using Randevoo.Domain.Enums
+@{
+    ViewData["Title"] = "درخواست‌های بازگشت وجه";
+}
+
+<div class="page-heading">
+    <div>
+        <h1>درخواست‌های بازگشت وجه</h1>
+        <p>بررسی درخواست‌های Refund بلیت و انتقال مبلغ تایید شده به کیف پول خریدار.</p>
+    </div>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(Model.StatusMessage))
+{
+    <div class="alert alert-info">@Model.StatusMessage</div>
+}
+
+<div class="content-card">
+    <div class="table-responsive">
+        <table class="table align-middle">
+            <thead>
+                <tr>
+                    <th>رویداد</th>
+                    <th>خریدار</th>
+                    <th>شرکت‌کننده</th>
+                    <th>مبلغ درخواستی</th>
+                    <th>وضعیت</th>
+                    <th>دلیل</th>
+                    <th>عملیات</th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var item in Model.Requests)
+            {
+                <tr>
+                    <td>
+                        <div class="fw-semibold">@item.EventTitle</div>
+                        <div class="text-muted small">بلیت #@DisplayFormatter.Count((int)item.EventTicketId)</div>
+                    </td>
+                    <td>
+                        <div>@item.BuyerName</div>
+                        <div class="text-muted small">@item.BuyerMobile</div>
+                    </td>
+                    <td>
+                        <div>@item.ParticipantName</div>
+                        <div class="text-muted small">@item.ParticipantMobile</div>
+                    </td>
+                    <td>@DisplayFormatter.ReportingMoney(item.ReportingRequestedAmountIrr, Model.IsRtl)</td>
+                    <td><span class="status-pill @RefundRequestsModel.StatusClass(item.Status)">@RefundRequestsModel.StatusLabel(item.Status)</span></td>
+                    <td class="small">@item.RequestReason</td>
+                    <td>
+                        @if (Model.IsReviewer && item.Status == TicketRefundRequestStatus.Pending)
+                        {
+                            <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#refundReview-@item.Id">
+                                بررسی
+                            </button>
+                        }
+                        else if (item.WalletCreditTransactionId is long transactionId)
+                        {
+                            <span class="text-muted small">کیف پول #@DisplayFormatter.Count((int)transactionId)</span>
+                        }
+                    </td>
+                </tr>
+                @if (Model.IsReviewer && item.Status == TicketRefundRequestStatus.Pending)
+                {
+                    <tr class="collapse" id="refundReview-@item.Id">
+                        <td colspan="7">
+                            <form method="post" class="row g-3 align-items-end">
+                                <div class="col-md-3">
+                                    <label asp-for="ReviewInput.ApprovedAmount" class="form-label">مبلغ تایید شده</label>
+                                    <input asp-for="ReviewInput.ApprovedAmount" class="form-control" value="@item.RequestedAmount" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label asp-for="ReviewInput.ReviewNote" class="form-label">توضیح بررسی</label>
+                                    <input asp-for="ReviewInput.ReviewNote" class="form-control" placeholder="اختیاری برای تایید، الزامی برای رد" />
+                                </div>
+                                <div class="col-md-3 d-flex gap-2">
+                                    <button asp-page-handler="Approve" asp-route-id="@item.Id" class="btn btn-primary" type="submit">تایید و اعتبار کیف پول</button>
+                                    <button asp-page-handler="Reject" asp-route-id="@item.Id" class="btn btn-outline-danger" type="submit">رد</button>
+                                </div>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            }
+            </tbody>
+        </table>
+    </div>
+    @if (Model.Requests.Count == 0)
+    {
+        <div class="empty-state">درخواست بازگشت وجهی ثبت نشده است.</div>
+    }
+</div>

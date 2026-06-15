@@ -10,18 +10,19 @@ public sealed class SupportTicketDashboardViewModel
     public int WaitingForUserTickets { get; init; }
     public int ClosedTickets { get; init; }
     public int ReopenedTickets { get; init; }
-    public int FinancialTickets { get; init; }
-    public int EventTickets { get; init; }
-    public int QuestionTickets { get; init; }
+    public int PlatformSupportTickets { get; init; }
+    public int OrganizerTickets { get; init; }
     public int UnassignedTickets { get; init; }
     public IReadOnlyList<SupportTicketChartPoint> StatusChart { get; init; } = Array.Empty<SupportTicketChartPoint>();
     public IReadOnlyList<SupportTicketChartPoint> CategoryChart { get; init; } = Array.Empty<SupportTicketChartPoint>();
+    public IReadOnlyList<SupportTicketChartPoint> RecipientChart { get; init; } = Array.Empty<SupportTicketChartPoint>();
     public IReadOnlyList<SupportTicketChartPoint> DailyCreatedChart { get; init; } = Array.Empty<SupportTicketChartPoint>();
 }
 
 public sealed record SupportTicketDashboardFilters(
-    SupportTicketStatus? Status,
-    SupportTicketCategory? Category,
+    long? TicketStatusId,
+    long? TicketTypeId,
+    long? TicketRecipientTypeId,
     UserRole? SubmitterRole,
     long? AssigneeUserId,
     DateTime? CreatedFromUtc,

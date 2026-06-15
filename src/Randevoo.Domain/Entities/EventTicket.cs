@@ -6,10 +6,15 @@ namespace Randevoo.Domain.Entities;
 
 public class EventTicket : BaseEntity
 {
+    public long TicketOrderId { get; private set; }
+    public TicketOrder TicketOrder { get; private set; } = null!;
     public long DatingEventId { get; private set; }
     public DatingEvent DatingEvent { get; private set; } = null!;
+    // UserId is kept for backward compatibility and represents the participant user.
     public long UserId { get; private set; }
     public User User { get; private set; } = null!;
+    public long ParticipantUserId => UserId;
+    public User ParticipantUser => User;
     public Gender Gender { get; private set; }
     public decimal OriginalPrice { get; private set; }
     public string CurrencyCode { get; private set; } = "IRR";
@@ -34,17 +39,19 @@ public class EventTicket : BaseEntity
     private EventTicket() { }
 
     internal EventTicket(
+        TicketOrder ticketOrder,
         DatingEvent datingEvent,
-        User user,
+        User participantUser,
         Gender gender,
         decimal originalPrice,
         decimal finalPrice,
         string currencyCode,
         EventDiscountCode? discountCode = null)
     {
+        TicketOrder = GuardAgainst.Object.Null(ticketOrder, nameof(ticketOrder));
         DatingEvent = datingEvent;
-        User = user;
-        UserId = user.Id;
+        User = participantUser;
+        UserId = participantUser.Id;
         Gender = gender;
         OriginalPrice = GuardAgainst.Number.OutOfRange(originalPrice, nameof(originalPrice), 0.01m, 1_000_000_000m);
         Price = GuardAgainst.Number.OutOfRange(finalPrice, nameof(finalPrice), 0.01m, OriginalPrice);
@@ -59,6 +66,7 @@ public class EventTicket : BaseEntity
         DiscountCode = discountCode?.Code;
         IsRefunded = false;
         IsRemoved = false;
+        ticketOrder.AddTicket(this);
     }
 
     public void CaptureExchangeRate(decimal exchangeRateToIrr, DateTime capturedAtUtc, long? exchangeRateId = null)

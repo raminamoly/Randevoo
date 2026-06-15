@@ -23,20 +23,18 @@
     <div class="col-xl-5">
         <form method="post" asp-page-handler="Save" asp-route-plannerUserId="@Model.PlannerUserId" class="glass-panel p-4 stacked-form">
             <input type="hidden" asp-for="Input.Id" />
-            <input type="hidden" asp-for="Input.CurrencyCode" value="@Model.SettlementCurrencyCode" />
             <h2 class="section-title">@(Model.Input.Id is null ? "ثبت حساب بانکی" : "ویرایش حساب بانکی")</h2>
-            <div class="detail-block mb-2">
-                <span>ارز کاری</span>
-                <strong dir="ltr">@Model.SettlementCurrencyCode</strong>
+            <div>
+                <label asp-for="Input.CurrencyCode" class="form-label">ارز حساب بانکی</label>
+                <select asp-for="Input.CurrencyCode" class="form-select" asp-items="Model.CurrencyOptions" data-bank-account-currency="true"></select>
+                <div class="form-text">این ارز برای تسویه یا پرداخت مستقیم همان حساب استفاده می‌شود.</div>
             </div>
             <div>
                 <label asp-for="Input.AccountHolderName" class="form-label">نام صاحب حساب</label>
                 <input asp-for="Input.AccountHolderName" class="form-control" placeholder="نام صاحب حساب" />
                 <span asp-validation-for="Input.AccountHolderName" class="text-danger small"></span>
             </div>
-            @if (Model.IsIrrSettlement)
-            {
-                <input type="hidden" asp-for="Input.PayoutMethod" value="@PlannerPayoutMethod.IranianBankCard" />
+            <div data-bank-account-fields="irr">
                 <div>
                     <label asp-for="Input.CardNumber" class="form-label">شماره کارت</label>
                     <input asp-for="Input.CardNumber" class="form-control" dir="ltr" placeholder="603799..." />
@@ -57,9 +55,8 @@
                     <input asp-for="Input.AccountNumber" class="form-control" dir="ltr" placeholder="اختیاری" />
                     <span asp-validation-for="Input.AccountNumber" class="text-danger small"></span>
                 </div>
-            }
-            else
-            {
+            </div>
+            <div data-bank-account-fields="foreign">
                 <div>
                     <label asp-for="Input.PayoutMethod" class="form-label">روش دریافت وجه</label>
                     <select asp-for="Input.PayoutMethod" class="form-select">
@@ -101,7 +98,7 @@
                     <textarea asp-for="Input.PublicPaymentInstructions" class="form-control" rows="4" placeholder="اطلاعات لازم برای واریز یا پرداخت دستی را وارد کنید."></textarea>
                     <span asp-validation-for="Input.PublicPaymentInstructions" class="text-danger small"></span>
                 </div>
-            }
+            </div>
             <div class="form-check form-switch">
                 <input asp-for="Input.IsActive" class="form-check-input" />
                 <label asp-for="Input.IsActive" class="form-check-label">فعال</label>
@@ -192,3 +189,28 @@
 </div>
 
 <partial name="_ValidationScriptsPartial" />
+<script>
+    (function () {
+        const currency = document.querySelector("[data-bank-account-currency='true']");
+        const irrFields = document.querySelector("[data-bank-account-fields='irr']");
+        const foreignFields = document.querySelector("[data-bank-account-fields='foreign']");
+        if (!currency || !irrFields || !foreignFields) {
+            return;
+        }
+
+        const sync = function () {
+            const isIrr = (currency.value || "").toUpperCase() === "IRR";
+            irrFields.classList.toggle("d-none", !isIrr);
+            foreignFields.classList.toggle("d-none", isIrr);
+            irrFields.querySelectorAll("input, select, textarea").forEach(function (input) {
+                input.disabled = !isIrr;
+            });
+            foreignFields.querySelectorAll("input, select, textarea").forEach(function (input) {
+                input.disabled = isIrr;
+            });
+        };
+
+        currency.addEventListener("change", sync);
+        sync();
+    })();
+</script>

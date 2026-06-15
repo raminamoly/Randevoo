@@ -23,6 +23,11 @@ public class RandevooDbContext : DbContext
     public DbSet<ZodiacSignLookup> ZodiacSigns => Set<ZodiacSignLookup>();
     public DbSet<UserRoleLookup> UserRoles => Set<UserRoleLookup>();
     public DbSet<EventReviewStatusLookup> EventReviewStatuses => Set<EventReviewStatusLookup>();
+    public DbSet<EventApprovalStatusLookup> EventApprovalStatuses => Set<EventApprovalStatusLookup>();
+    public DbSet<EventSaleStatusLookup> EventSaleStatuses => Set<EventSaleStatusLookup>();
+    public DbSet<EventLifecycleStatusLookup> EventLifecycleStatuses => Set<EventLifecycleStatusLookup>();
+    public DbSet<EventWorkflowActionTypeLookup> EventWorkflowActionTypes => Set<EventWorkflowActionTypeLookup>();
+    public DbSet<EventRequestStatusLookup> EventRequestStatuses => Set<EventRequestStatusLookup>();
     public DbSet<EventDiscountTypeLookup> EventDiscountTypes => Set<EventDiscountTypeLookup>();
     public DbSet<BalanceTransactionTypeLookup> BalanceTransactionTypes => Set<BalanceTransactionTypeLookup>();
     public DbSet<CurrencyLookup> Currencies => Set<CurrencyLookup>();
@@ -30,9 +35,12 @@ public class RandevooDbContext : DbContext
     public DbSet<BalanceAccount> BalanceAccounts => Set<BalanceAccount>();
     public DbSet<BalanceTransaction> BalanceTransactions => Set<BalanceTransaction>();
     public DbSet<OnlinePayment> OnlinePayments => Set<OnlinePayment>();
+    public DbSet<ManualPaymentReceipt> ManualPaymentReceipts => Set<ManualPaymentReceipt>();
+    public DbSet<TicketRefundRequest> TicketRefundRequests => Set<TicketRefundRequest>();
     public DbSet<PlannerWithdrawalRequest> PlannerWithdrawalRequests => Set<PlannerWithdrawalRequest>();
     public DbSet<PlannerBankAccount> PlannerBankAccounts => Set<PlannerBankAccount>();
     public DbSet<DatingEvent> DatingEvents => Set<DatingEvent>();
+    public DbSet<TicketOrder> TicketOrders => Set<TicketOrder>();
     public DbSet<EventModeLookup> EventModes => Set<EventModeLookup>();
     public DbSet<OnlineEventPlatform> OnlineEventPlatforms => Set<OnlineEventPlatform>();
     public DbSet<EventFaq> EventFaqs => Set<EventFaq>();
@@ -55,14 +63,31 @@ public class RandevooDbContext : DbContext
     public DbSet<SupportTicketAssignmentCursor> SupportTicketAssignmentCursors => Set<SupportTicketAssignmentCursor>();
     public DbSet<SupportTicketStatusLookup> SupportTicketStatuses => Set<SupportTicketStatusLookup>();
     public DbSet<SupportTicketCategoryLookup> SupportTicketCategories => Set<SupportTicketCategoryLookup>();
+    public DbSet<SupportTicketRecipientTypeLookup> SupportTicketRecipientTypes => Set<SupportTicketRecipientTypeLookup>();
     public DbSet<EventParticipantSmsRequest> EventParticipantSmsRequests => Set<EventParticipantSmsRequest>();
     public DbSet<SmsQueueItem> SmsQueueItems => Set<SmsQueueItem>();
+    public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<NotificationRecipient> NotificationRecipients => Set<NotificationRecipient>();
+    public DbSet<NotificationTemplate> NotificationTemplates => Set<NotificationTemplate>();
+    public DbSet<NotificationMessageTypeLookup> NotificationMessageTypes => Set<NotificationMessageTypeLookup>();
+    public DbSet<NotificationPriorityLookup> NotificationPriorities => Set<NotificationPriorityLookup>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+    public DbSet<PermissionAction> PermissionActions => Set<PermissionAction>();
+    public DbSet<RoleOperationPermission> RoleOperationPermissions => Set<RoleOperationPermission>();
+    public DbSet<UserOperationPermissionOverride> UserOperationPermissionOverrides => Set<UserOperationPermissionOverride>();
+    public DbSet<EventWorkflowLog> EventWorkflowLogs => Set<EventWorkflowLog>();
+    public DbSet<EventChangeRequest> EventChangeRequests => Set<EventChangeRequest>();
+    public DbSet<EventCancellationRequest> EventCancellationRequests => Set<EventCancellationRequest>();
+    public DbSet<EventSettlementRequest> EventSettlementRequests => Set<EventSettlementRequest>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        modelBuilder.HasSequence<int>("EventCodeSequence", "dbo")
+            .StartsAt(1200)
+            .IncrementsBy(1);
 
         // User
         modelBuilder.Entity<User>(b =>
@@ -142,6 +167,63 @@ public class RandevooDbContext : DbContext
                 new { Id = 4L, Name = "platform-support-team", DisplayNameFa = "کارشناس پشتیبانی", IsActive = true, DisplayOrder = 4, CreatedAt = new DateTime(2026, 6, 8, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false });
         });
 
+        modelBuilder.Entity<PermissionAction>(b =>
+        {
+            b.ToTable("PermissionActions");
+            b.HasKey(action => action.Id);
+            b.Property(action => action.Entity).IsRequired().HasMaxLength(80);
+            b.Property(action => action.EntityLabel).IsRequired().HasMaxLength(120).HasDefaultValue("");
+            b.Property(action => action.Action).IsRequired().HasMaxLength(80);
+            b.Property(action => action.Label).IsRequired().HasMaxLength(120);
+            b.Property(action => action.Description).HasMaxLength(500);
+            b.Property(action => action.GroupKey).IsRequired().HasMaxLength(80).HasDefaultValue("");
+            b.Property(action => action.GroupLabel).IsRequired().HasMaxLength(120).HasDefaultValue("");
+            b.Property(action => action.PagePath).HasMaxLength(160);
+            b.Property(action => action.HandlerName).HasMaxLength(120);
+            b.Property(action => action.UiSurface).IsRequired().HasMaxLength(40).HasDefaultValue("Manual");
+            b.Property(action => action.RiskLevel).IsRequired().HasMaxLength(20).HasDefaultValue("Low");
+            b.Property(action => action.IsSystemAction).HasDefaultValue(true);
+            b.Property(action => action.IsDeprecated).HasDefaultValue(false);
+            b.Property(action => action.IsActive).IsRequired();
+            b.Property(action => action.DisplayOrder).IsRequired();
+            b.HasIndex(action => new { action.Entity, action.Action }).IsUnique();
+            b.HasIndex(action => new { action.GroupKey, action.DisplayOrder });
+            b.HasIndex(action => action.RiskLevel);
+            b.HasQueryFilter(action => !action.IsDeleted);
+        });
+
+        modelBuilder.Entity<RoleOperationPermission>(b =>
+        {
+            b.ToTable("RoleOperationPermissions");
+            b.HasKey(permission => permission.Id);
+            b.Property(permission => permission.Entity).IsRequired().HasMaxLength(80);
+            b.Property(permission => permission.Action).IsRequired().HasMaxLength(80);
+            b.Property(permission => permission.Role).IsRequired();
+            b.Property(permission => permission.Allowed).IsRequired();
+            b.HasIndex(permission => new { permission.Role, permission.Entity, permission.Action }).IsUnique();
+            b.HasIndex(permission => new { permission.Entity, permission.Action });
+            b.HasQueryFilter(permission => !permission.IsDeleted);
+        });
+
+        modelBuilder.Entity<UserOperationPermissionOverride>(b =>
+        {
+            b.ToTable("UserOperationPermissionOverrides");
+            b.HasKey(permission => permission.Id);
+            b.Property(permission => permission.Entity).IsRequired().HasMaxLength(80);
+            b.Property(permission => permission.Action).IsRequired().HasMaxLength(80);
+            b.Property(permission => permission.Allowed).IsRequired();
+            b.Property(permission => permission.Note).HasMaxLength(500);
+            b.Property(permission => permission.ExpiresAtUtc);
+            b.HasIndex(permission => new { permission.UserId, permission.Entity, permission.Action }).IsUnique();
+            b.HasIndex(permission => new { permission.Entity, permission.Action });
+            b.HasIndex(permission => permission.ExpiresAtUtc);
+            b.HasQueryFilter(permission => !permission.IsDeleted);
+            b.HasOne(permission => permission.User)
+                .WithMany()
+                .HasForeignKey(permission => permission.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
         modelBuilder.Entity<EventReviewStatusLookup>(b =>
         {
             b.ToTable("ReviewStatuses");
@@ -157,6 +239,100 @@ public class RandevooDbContext : DbContext
                 new { Id = 2L, Name = "PendingReview", DisplayNameFa = "در انتظار بررسی", IsActive = true, DisplayOrder = 2, CreatedAt = new DateTime(2026, 6, 7, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
                 new { Id = 3L, Name = "Approved", DisplayNameFa = "تایید شده توسط مدیر", IsActive = true, DisplayOrder = 3, CreatedAt = new DateTime(2026, 6, 7, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
                 new { Id = 4L, Name = "Rejected", DisplayNameFa = "رد شده توسط مدیر", IsActive = true, DisplayOrder = 4, CreatedAt = new DateTime(2026, 6, 7, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false });
+        });
+
+        modelBuilder.Entity<EventApprovalStatusLookup>(b =>
+        {
+            b.ToTable("EventApprovalStatuses");
+            b.HasKey(status => status.Id);
+            b.Property(status => status.Name).IsRequired().HasMaxLength(50);
+            b.Property(status => status.DisplayNameFa).IsRequired().HasMaxLength(80);
+            b.Property(status => status.IsActive).IsRequired();
+            b.Property(status => status.DisplayOrder).IsRequired();
+            b.HasIndex(status => status.Name).IsUnique();
+            b.HasQueryFilter(status => !status.IsDeleted);
+            b.HasData(
+                new { Id = 1L, Name = "Draft", DisplayNameFa = "پیش‌نویس", IsActive = true, DisplayOrder = 1, CreatedAt = new DateTime(2026, 6, 11, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 2L, Name = "PendingReview", DisplayNameFa = "در انتظار بررسی مدیر", IsActive = true, DisplayOrder = 2, CreatedAt = new DateTime(2026, 6, 11, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 3L, Name = "Approved", DisplayNameFa = "تایید شده", IsActive = true, DisplayOrder = 3, CreatedAt = new DateTime(2026, 6, 11, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false });
+        });
+
+        modelBuilder.Entity<EventSaleStatusLookup>(b =>
+        {
+            b.ToTable("EventSaleStatuses");
+            b.HasKey(status => status.Id);
+            b.Property(status => status.Name).IsRequired().HasMaxLength(50);
+            b.Property(status => status.DisplayNameFa).IsRequired().HasMaxLength(80);
+            b.Property(status => status.IsActive).IsRequired();
+            b.Property(status => status.DisplayOrder).IsRequired();
+            b.HasIndex(status => status.Name).IsUnique();
+            b.HasQueryFilter(status => !status.IsDeleted);
+            b.HasData(
+                new { Id = 1L, Name = "Closed", DisplayNameFa = "فروش بسته", IsActive = true, DisplayOrder = 1, CreatedAt = new DateTime(2026, 6, 11, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 2L, Name = "Open", DisplayNameFa = "در حال فروش", IsActive = true, DisplayOrder = 2, CreatedAt = new DateTime(2026, 6, 11, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false });
+        });
+
+        modelBuilder.Entity<EventLifecycleStatusLookup>(b =>
+        {
+            b.ToTable("EventLifecycleStatuses");
+            b.HasKey(status => status.Id);
+            b.Property(status => status.Name).IsRequired().HasMaxLength(50);
+            b.Property(status => status.DisplayNameFa).IsRequired().HasMaxLength(80);
+            b.Property(status => status.IsActive).IsRequired();
+            b.Property(status => status.DisplayOrder).IsRequired();
+            b.HasIndex(status => status.Name).IsUnique();
+            b.HasQueryFilter(status => !status.IsDeleted);
+            b.HasData(
+                new { Id = 1L, Name = "Active", DisplayNameFa = "فعال", IsActive = true, DisplayOrder = 1, CreatedAt = new DateTime(2026, 6, 11, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 2L, Name = "Cancelled", DisplayNameFa = "لغو شده", IsActive = true, DisplayOrder = 2, CreatedAt = new DateTime(2026, 6, 11, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 3L, Name = "Completed", DisplayNameFa = "تمام شده", IsActive = true, DisplayOrder = 3, CreatedAt = new DateTime(2026, 6, 11, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false });
+        });
+
+        modelBuilder.Entity<EventRequestStatusLookup>(b =>
+        {
+            b.ToTable("EventRequestStatuses");
+            b.HasKey(status => status.Id);
+            b.Property(status => status.Name).IsRequired().HasMaxLength(50);
+            b.Property(status => status.DisplayNameFa).IsRequired().HasMaxLength(80);
+            b.Property(status => status.IsActive).IsRequired();
+            b.Property(status => status.DisplayOrder).IsRequired();
+            b.HasIndex(status => status.Name).IsUnique();
+            b.HasQueryFilter(status => !status.IsDeleted);
+            b.HasData(
+                new { Id = 1L, Name = "Pending", DisplayNameFa = "در انتظار بررسی", IsActive = true, DisplayOrder = 1, CreatedAt = new DateTime(2026, 6, 11, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 2L, Name = "Approved", DisplayNameFa = "تایید شده", IsActive = true, DisplayOrder = 2, CreatedAt = new DateTime(2026, 6, 11, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 3L, Name = "Rejected", DisplayNameFa = "رد شده", IsActive = true, DisplayOrder = 3, CreatedAt = new DateTime(2026, 6, 11, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 4L, Name = "Cancelled", DisplayNameFa = "لغو شده", IsActive = true, DisplayOrder = 4, CreatedAt = new DateTime(2026, 6, 11, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false });
+        });
+
+        modelBuilder.Entity<EventWorkflowActionTypeLookup>(b =>
+        {
+            b.ToTable("EventWorkflowActionTypes");
+            b.HasKey(type => type.Id);
+            b.Property(type => type.Name).IsRequired().HasMaxLength(80);
+            b.Property(type => type.DisplayNameFa).IsRequired().HasMaxLength(120);
+            b.Property(type => type.IsActive).IsRequired();
+            b.Property(type => type.DisplayOrder).IsRequired();
+            b.HasIndex(type => type.Name).IsUnique();
+            b.HasQueryFilter(type => !type.IsDeleted);
+            b.HasData(
+                new { Id = 1L, Name = "DraftSaved", DisplayNameFa = "ذخیره پیش‌نویس", IsActive = true, DisplayOrder = 1, CreatedAt = new DateTime(2026, 6, 11, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 2L, Name = "SubmittedForReview", DisplayNameFa = "ارسال برای بررسی", IsActive = true, DisplayOrder = 2, CreatedAt = new DateTime(2026, 6, 11, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 3L, Name = "Approved", DisplayNameFa = "تایید رویداد", IsActive = true, DisplayOrder = 3, CreatedAt = new DateTime(2026, 6, 11, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 4L, Name = "ReturnedToDraft", DisplayNameFa = "بازگشت برای اصلاح", IsActive = true, DisplayOrder = 4, CreatedAt = new DateTime(2026, 6, 11, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 5L, Name = "SaleOpened", DisplayNameFa = "باز شدن فروش", IsActive = true, DisplayOrder = 5, CreatedAt = new DateTime(2026, 6, 11, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 6L, Name = "SaleClosed", DisplayNameFa = "بسته شدن فروش", IsActive = true, DisplayOrder = 6, CreatedAt = new DateTime(2026, 6, 11, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 7L, Name = "ChangeRequested", DisplayNameFa = "درخواست تغییر", IsActive = true, DisplayOrder = 7, CreatedAt = new DateTime(2026, 6, 11, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 8L, Name = "ChangeApproved", DisplayNameFa = "تایید تغییر", IsActive = true, DisplayOrder = 8, CreatedAt = new DateTime(2026, 6, 11, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 9L, Name = "ChangeRejected", DisplayNameFa = "رد تغییر", IsActive = true, DisplayOrder = 9, CreatedAt = new DateTime(2026, 6, 11, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 10L, Name = "CancellationRequested", DisplayNameFa = "درخواست لغو", IsActive = true, DisplayOrder = 10, CreatedAt = new DateTime(2026, 6, 11, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 11L, Name = "Cancelled", DisplayNameFa = "لغو رویداد", IsActive = true, DisplayOrder = 11, CreatedAt = new DateTime(2026, 6, 11, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 12L, Name = "Completed", DisplayNameFa = "اتمام رویداد", IsActive = true, DisplayOrder = 12, CreatedAt = new DateTime(2026, 6, 11, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 13L, Name = "SettlementRequested", DisplayNameFa = "درخواست تسویه رویداد", IsActive = true, DisplayOrder = 13, CreatedAt = new DateTime(2026, 6, 11, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 14L, Name = "SettlementApproved", DisplayNameFa = "تایید تسویه رویداد", IsActive = true, DisplayOrder = 14, CreatedAt = new DateTime(2026, 6, 11, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 15L, Name = "SettlementRejected", DisplayNameFa = "رد تسویه رویداد", IsActive = true, DisplayOrder = 15, CreatedAt = new DateTime(2026, 6, 11, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 16L, Name = "OrganizerCredited", DisplayNameFa = "بستانکاری برگزارکننده", IsActive = true, DisplayOrder = 16, CreatedAt = new DateTime(2026, 6, 11, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 17L, Name = "WithdrawalRequested", DisplayNameFa = "درخواست برداشت", IsActive = true, DisplayOrder = 17, CreatedAt = new DateTime(2026, 6, 11, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false });
         });
 
         modelBuilder.Entity<EventDiscountTypeLookup>(b =>
@@ -192,7 +368,12 @@ public class RandevooDbContext : DbContext
                 new { Id = 5L, Name = "PlatformCommission", DisplayNameFa = "کمیسیون پلتفرم", IsActive = true, DisplayOrder = 5, CreatedAt = new DateTime(2026, 6, 7, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
                 new { Id = 6L, Name = "EmergencyRemovalRefund", DisplayNameFa = "بازگشت حذف اضطراری", IsActive = true, DisplayOrder = 6, CreatedAt = new DateTime(2026, 6, 7, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
                 new { Id = 7L, Name = "PlannerWithdrawalPayout", DisplayNameFa = "تسویه برگزارکننده", IsActive = true, DisplayOrder = 7, CreatedAt = new DateTime(2026, 6, 7, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
-                new { Id = 8L, Name = "EventPlannerIncomeReversal", DisplayNameFa = "برگشت درآمد برگزارکننده", IsActive = true, DisplayOrder = 8, CreatedAt = new DateTime(2026, 6, 7, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false });
+                new { Id = 8L, Name = "EventPlannerIncomeReversal", DisplayNameFa = "برگشت درآمد برگزارکننده", IsActive = true, DisplayOrder = 8, CreatedAt = new DateTime(2026, 6, 7, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 9L, Name = "EventSettlementCredit", DisplayNameFa = "بستانکاری تسویه رویداد", IsActive = true, DisplayOrder = 9, CreatedAt = new DateTime(2026, 6, 11, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 10L, Name = "EventSettlementReversal", DisplayNameFa = "برگشت بستانکاری رویداد", IsActive = true, DisplayOrder = 10, CreatedAt = new DateTime(2026, 6, 11, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 11L, Name = "PlatformCommissionRecognized", DisplayNameFa = "شناسایی کمیسیون پلتفرم", IsActive = true, DisplayOrder = 11, CreatedAt = new DateTime(2026, 6, 11, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 12L, Name = "ManualReceiptWalletCredit", DisplayNameFa = "اعتبار کیف پول بابت رسید دستی", IsActive = true, DisplayOrder = 12, CreatedAt = new DateTime(2026, 6, 14, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 13L, Name = "OrganizerManualReceiptLiability", DisplayNameFa = "بدهی برگزارکننده بابت رسید دستی", IsActive = true, DisplayOrder = 13, CreatedAt = new DateTime(2026, 6, 14, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false });
         });
 
         modelBuilder.Entity<CurrencyLookup>(b =>
@@ -202,18 +383,19 @@ public class RandevooDbContext : DbContext
             b.Property(currency => currency.Code).IsRequired().HasMaxLength(3);
             b.Property(currency => currency.DisplayNameFa).IsRequired().HasMaxLength(80);
             b.Property(currency => currency.Symbol).IsRequired().HasMaxLength(12);
+            b.Property(currency => currency.DecimalPlaces).IsRequired().HasDefaultValue(2);
             b.Property(currency => currency.IsActive).IsRequired();
             b.Property(currency => currency.DisplayOrder).IsRequired();
             b.HasIndex(currency => currency.Code).IsUnique();
             b.HasQueryFilter(currency => !currency.IsDeleted);
             b.HasData(
-                new { Id = 1L, Code = "IRR", DisplayNameFa = "ریال ایران", Symbol = "ریال", IsActive = true, DisplayOrder = 1, CreatedAt = new DateTime(2026, 6, 8, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
-                new { Id = 2L, Code = "EUR", DisplayNameFa = "یورو", Symbol = "€", IsActive = true, DisplayOrder = 2, CreatedAt = new DateTime(2026, 6, 8, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
-                new { Id = 3L, Code = "USD", DisplayNameFa = "دلار آمریکا", Symbol = "$", IsActive = true, DisplayOrder = 3, CreatedAt = new DateTime(2026, 6, 8, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
-                new { Id = 4L, Code = "CAD", DisplayNameFa = "دلار کانادا", Symbol = "C$", IsActive = true, DisplayOrder = 4, CreatedAt = new DateTime(2026, 6, 8, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
-                new { Id = 5L, Code = "GBP", DisplayNameFa = "پوند انگلیس", Symbol = "£", IsActive = true, DisplayOrder = 5, CreatedAt = new DateTime(2026, 6, 8, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
-                new { Id = 6L, Code = "AED", DisplayNameFa = "درهم امارات", Symbol = "AED", IsActive = true, DisplayOrder = 6, CreatedAt = new DateTime(2026, 6, 8, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
-                new { Id = 7L, Code = "TRY", DisplayNameFa = "لیر ترکیه", Symbol = "₺", IsActive = true, DisplayOrder = 7, CreatedAt = new DateTime(2026, 6, 8, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false });
+                new { Id = 1L, Code = "IRR", DisplayNameFa = "ریال ایران", Symbol = "ریال", DecimalPlaces = 0, IsActive = true, DisplayOrder = 1, CreatedAt = new DateTime(2026, 6, 8, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 2L, Code = "EUR", DisplayNameFa = "یورو", Symbol = "€", DecimalPlaces = 2, IsActive = true, DisplayOrder = 2, CreatedAt = new DateTime(2026, 6, 8, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 3L, Code = "USD", DisplayNameFa = "دلار آمریکا", Symbol = "$", DecimalPlaces = 2, IsActive = true, DisplayOrder = 3, CreatedAt = new DateTime(2026, 6, 8, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 4L, Code = "CAD", DisplayNameFa = "دلار کانادا", Symbol = "C$", DecimalPlaces = 2, IsActive = true, DisplayOrder = 4, CreatedAt = new DateTime(2026, 6, 8, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 5L, Code = "GBP", DisplayNameFa = "پوند انگلیس", Symbol = "£", DecimalPlaces = 2, IsActive = true, DisplayOrder = 5, CreatedAt = new DateTime(2026, 6, 8, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 6L, Code = "AED", DisplayNameFa = "درهم امارات", Symbol = "AED", DecimalPlaces = 2, IsActive = true, DisplayOrder = 6, CreatedAt = new DateTime(2026, 6, 8, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 7L, Code = "TRY", DisplayNameFa = "لیر ترکیه", Symbol = "₺", DecimalPlaces = 2, IsActive = true, DisplayOrder = 7, CreatedAt = new DateTime(2026, 6, 8, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false });
         });
 
         modelBuilder.Entity<CurrencyExchangeRate>(b =>
@@ -428,10 +610,15 @@ public class RandevooDbContext : DbContext
             b.HasIndex(t => t.UserId);
             b.HasIndex(t => t.CurrencyCode);
             b.HasIndex(t => t.ExchangeRateId);
+            b.HasIndex(t => t.TicketOrderId);
             b.HasQueryFilter(t => !t.BalanceAccount.IsDeleted);
             b.HasOne(t => t.ExchangeRate)
                 .WithMany()
                 .HasForeignKey(t => t.ExchangeRateId)
+                .OnDelete(DeleteBehavior.Restrict);
+            b.HasOne(t => t.TicketOrder)
+                .WithMany()
+                .HasForeignKey(t => t.TicketOrderId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
 
@@ -450,6 +637,7 @@ public class RandevooDbContext : DbContext
             b.HasIndex(payment => payment.UserId);
             b.HasIndex(payment => payment.DatingEventId);
             b.HasIndex(payment => payment.EventTicketId);
+            b.HasIndex(payment => payment.TicketOrderId);
             b.HasIndex(payment => payment.BalanceTransactionId);
             b.HasIndex(payment => payment.CurrencyCode);
             b.HasIndex(payment => payment.ExchangeRateId);
@@ -467,6 +655,10 @@ public class RandevooDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(payment => payment.EventTicketId)
                 .OnDelete(DeleteBehavior.Restrict);
+            b.HasOne(payment => payment.TicketOrder)
+                .WithMany()
+                .HasForeignKey(payment => payment.TicketOrderId)
+                .OnDelete(DeleteBehavior.Restrict);
             b.HasOne(payment => payment.BalanceTransaction)
                 .WithMany()
                 .HasForeignKey(payment => payment.BalanceTransactionId)
@@ -474,6 +666,143 @@ public class RandevooDbContext : DbContext
             b.HasOne(payment => payment.ExchangeRate)
                 .WithMany()
                 .HasForeignKey(payment => payment.ExchangeRateId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<ManualPaymentReceipt>(b =>
+        {
+            b.ToTable("ManualPaymentReceipts");
+            b.HasKey(receipt => receipt.Id);
+            b.Property(receipt => receipt.PaymentCollectionMethod).IsRequired();
+            b.Property(receipt => receipt.DestinationType).IsRequired();
+            b.Property(receipt => receipt.OriginalAmount).HasPrecision(18, 2).IsRequired();
+            b.Property(receipt => receipt.DiscountAmount).HasPrecision(18, 2).IsRequired();
+            b.Property(receipt => receipt.Amount).HasPrecision(18, 2).IsRequired();
+            b.Property(receipt => receipt.CurrencyCode).IsRequired().HasMaxLength(3).HasDefaultValue("IRR");
+            b.Property(receipt => receipt.ReportingCurrencyCode).IsRequired().HasMaxLength(3).HasDefaultValue("IRR");
+            b.Property(receipt => receipt.ReportingAmountIrr).HasPrecision(18, 2).IsRequired();
+            b.Property(receipt => receipt.ExchangeRateToIrr).HasPrecision(18, 6).IsRequired().HasDefaultValue(1m);
+            b.Property(receipt => receipt.ExchangeRateCapturedAtUtc).HasDefaultValueSql("GETUTCDATE()").IsRequired();
+            b.Property(receipt => receipt.UploadedFilePath).IsRequired().HasMaxLength(1000);
+            b.Property(receipt => receipt.TrackingNumber).HasMaxLength(120);
+            b.Property(receipt => receipt.PayerNote).HasMaxLength(1000);
+            b.Property(receipt => receipt.Status).IsRequired();
+            b.Property(receipt => receipt.SubmittedAtUtc).HasDefaultValueSql("GETUTCDATE()").IsRequired();
+            b.Property(receipt => receipt.RejectReason).HasMaxLength(1000);
+            b.Property(receipt => receipt.DiscountCode).HasMaxLength(50);
+            b.HasIndex(receipt => new { receipt.DestinationType, receipt.Status, receipt.SubmittedAtUtc });
+            b.HasIndex(receipt => receipt.DatingEventId);
+            b.HasIndex(receipt => receipt.ParticipantUserId);
+            b.HasIndex(receipt => receipt.PlannerUserId);
+            b.HasIndex(receipt => receipt.EventTicketId);
+            b.HasIndex(receipt => receipt.TicketOrderId);
+            b.HasIndex(receipt => receipt.WalletCreditTransactionId);
+            b.HasIndex(receipt => receipt.EventDiscountCodeId);
+            b.HasIndex(receipt => receipt.CurrencyCode);
+            b.HasIndex(receipt => receipt.ExchangeRateId);
+            b.HasQueryFilter(receipt => !receipt.IsDeleted
+                && !receipt.DatingEvent.IsDeleted
+                && !receipt.ParticipantUser.IsDeleted
+                && !receipt.PlannerUser.IsDeleted);
+            b.HasOne(receipt => receipt.DatingEvent)
+                .WithMany()
+                .HasForeignKey(receipt => receipt.DatingEventId)
+                .OnDelete(DeleteBehavior.Restrict);
+            b.HasOne(receipt => receipt.ParticipantUser)
+                .WithMany()
+                .HasForeignKey(receipt => receipt.ParticipantUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            b.HasOne(receipt => receipt.PlannerUser)
+                .WithMany()
+                .HasForeignKey(receipt => receipt.PlannerUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            b.HasOne(receipt => receipt.EventTicket)
+                .WithMany()
+                .HasForeignKey(receipt => receipt.EventTicketId)
+                .OnDelete(DeleteBehavior.Restrict);
+            b.HasOne(receipt => receipt.TicketOrder)
+                .WithMany()
+                .HasForeignKey(receipt => receipt.TicketOrderId)
+                .OnDelete(DeleteBehavior.Restrict);
+            b.HasOne(receipt => receipt.WalletCreditTransaction)
+                .WithMany()
+                .HasForeignKey(receipt => receipt.WalletCreditTransactionId)
+                .OnDelete(DeleteBehavior.Restrict);
+            b.HasOne(receipt => receipt.EventDiscountCode)
+                .WithMany()
+                .HasForeignKey(receipt => receipt.EventDiscountCodeId)
+                .OnDelete(DeleteBehavior.Restrict);
+            b.HasOne(receipt => receipt.ReviewedByUser)
+                .WithMany()
+                .HasForeignKey(receipt => receipt.ReviewedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            b.HasOne(receipt => receipt.ExchangeRate)
+                .WithMany()
+                .HasForeignKey(receipt => receipt.ExchangeRateId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<TicketRefundRequest>(b =>
+        {
+            b.ToTable("TicketRefundRequests");
+            b.HasKey(request => request.Id);
+            b.Property(request => request.Status).IsRequired();
+            b.Property(request => request.RequestedAmount).HasPrecision(18, 2).IsRequired();
+            b.Property(request => request.ApprovedAmount).HasPrecision(18, 2).IsRequired();
+            b.Property(request => request.CurrencyCode).IsRequired().HasMaxLength(3).HasDefaultValue("IRR");
+            b.Property(request => request.ReportingRequestedAmountIrr).HasPrecision(18, 2).IsRequired();
+            b.Property(request => request.ReportingApprovedAmountIrr).HasPrecision(18, 2).IsRequired();
+            b.Property(request => request.ExchangeRateToIrr).HasPrecision(18, 6).IsRequired().HasDefaultValue(1m);
+            b.Property(request => request.ExchangeRateCapturedAtUtc).HasDefaultValueSql("GETUTCDATE()").IsRequired();
+            b.Property(request => request.RequestReason).IsRequired().HasMaxLength(1000);
+            b.Property(request => request.RequestedAtUtc).HasDefaultValueSql("GETUTCDATE()").IsRequired();
+            b.Property(request => request.ReviewNote).HasMaxLength(1000);
+            b.HasIndex(request => new { request.Status, request.RequestedAtUtc });
+            b.HasIndex(request => request.EventTicketId);
+            b.HasIndex(request => request.TicketOrderId);
+            b.HasIndex(request => request.DatingEventId);
+            b.HasIndex(request => request.BuyerUserId);
+            b.HasIndex(request => request.ParticipantUserId);
+            b.HasIndex(request => request.RequestedByUserId);
+            b.HasIndex(request => request.ReviewedByUserId);
+            b.HasIndex(request => request.WalletCreditTransactionId);
+            b.HasIndex(request => request.ExchangeRateId);
+            b.HasQueryFilter(request => !request.IsDeleted && !request.DatingEvent.IsDeleted);
+            b.HasOne(request => request.EventTicket)
+                .WithMany()
+                .HasForeignKey(request => request.EventTicketId)
+                .OnDelete(DeleteBehavior.Restrict);
+            b.HasOne(request => request.TicketOrder)
+                .WithMany()
+                .HasForeignKey(request => request.TicketOrderId)
+                .OnDelete(DeleteBehavior.Restrict);
+            b.HasOne(request => request.DatingEvent)
+                .WithMany()
+                .HasForeignKey(request => request.DatingEventId)
+                .OnDelete(DeleteBehavior.Restrict);
+            b.HasOne(request => request.BuyerUser)
+                .WithMany()
+                .HasForeignKey(request => request.BuyerUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            b.HasOne(request => request.ParticipantUser)
+                .WithMany()
+                .HasForeignKey(request => request.ParticipantUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            b.HasOne(request => request.RequestedByUser)
+                .WithMany()
+                .HasForeignKey(request => request.RequestedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            b.HasOne(request => request.ReviewedByUser)
+                .WithMany()
+                .HasForeignKey(request => request.ReviewedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            b.HasOne(request => request.WalletCreditTransaction)
+                .WithMany()
+                .HasForeignKey(request => request.WalletCreditTransactionId)
+                .OnDelete(DeleteBehavior.Restrict);
+            b.HasOne(request => request.ExchangeRate)
+                .WithMany()
+                .HasForeignKey(request => request.ExchangeRateId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
 
@@ -629,8 +958,12 @@ public class RandevooDbContext : DbContext
         modelBuilder.Entity<DatingEvent>(b =>
         {
             b.HasKey(e => e.Id);
+            b.Property(e => e.EventCode)
+                .IsRequired()
+                .HasDefaultValueSql("NEXT VALUE FOR dbo.EventCodeSequence");
             b.Property(e => e.Title).IsRequired().HasMaxLength(150);
             b.Property(e => e.Address).IsRequired().HasMaxLength(300);
+            b.HasIndex(e => e.EventCode).IsUnique();
             b.HasIndex(e => e.EventTypeId);
             b.Property(e => e.EventModeId).HasDefaultValue(2L).IsRequired();
             b.Property(e => e.OnlineJoinUrl).HasMaxLength(500);
@@ -643,13 +976,22 @@ public class RandevooDbContext : DbContext
             b.HasIndex(e => new { e.IsCancelled, e.DateTimeEnd });
             b.HasIndex(e => new { e.IsCancelled, e.IsOpenForSell, e.DateTimeEnd });
             b.HasIndex(e => new { e.ReviewStatus, e.DateTimeStart });
+            b.HasIndex(e => new { e.ApprovalStatus, e.DateTimeStart });
+            b.HasIndex(e => new { e.LifecycleStatus, e.SaleStatus, e.DateTimeEnd });
             b.HasIndex(e => new { e.DateTimeStart, e.Id });
             b.HasIndex(e => new { e.UpdatedAt, e.Id });
             b.Property(e => e.EventPlannerCommissionPercent).HasPrecision(5, 2).IsRequired();
             b.Property(e => e.PaymentCollectionMethod).HasDefaultValue(EventPaymentCollectionMethod.PlatformGateway).IsRequired();
             b.Property(e => e.OrganizerPaymentInstructions).HasMaxLength(1200);
+            b.HasIndex(e => e.OrganizerPaymentAccountId);
             b.Property(e => e.NumberOfLikesAllowed).HasColumnName("NumberOfLikesAllowed").IsRequired();
             b.Property(e => e.ReviewStatus).IsRequired();
+            b.Property(e => e.ApprovalStatus).HasDefaultValue(EventApprovalStatus.Draft).IsRequired();
+            b.Property(e => e.SaleStatus).HasDefaultValue(EventSaleStatus.Closed).IsRequired();
+            b.Property(e => e.LifecycleStatus).HasDefaultValue(EventLifecycleStatus.Active).IsRequired();
+            b.Property(e => e.AdminReviewNote).HasMaxLength(1000);
+            b.Property(e => e.CancellationReason).HasMaxLength(1000);
+            b.Property(e => e.CurrencyCode).IsRequired().HasMaxLength(3).HasDefaultValue("IRR");
             b.Property(e => e.MaleTicketPrice).HasPrecision(18, 2).IsRequired();
             b.Property(e => e.MaleTicketCurrencyCode).IsRequired().HasMaxLength(3).HasDefaultValue("IRR");
             b.Property(e => e.FemaleTicketPrice).HasPrecision(18, 2).IsRequired();
@@ -660,12 +1002,25 @@ public class RandevooDbContext : DbContext
             b.Property(e => e.EventImage3).HasMaxLength(500);
             b.Property(e => e.EventDescriptionHtml).IsRequired().HasMaxLength(10000);
             b.HasIndex(e => e.EventPlannerUserId);
+            b.HasIndex(e => e.CurrencyCode);
             b.HasIndex(e => e.MaleTicketCurrencyCode);
             b.HasIndex(e => e.FemaleTicketCurrencyCode);
             b.HasQueryFilter(e => !e.IsDeleted);
             b.HasOne(e => e.EventPlannerUser)
                 .WithMany()
                 .HasForeignKey(e => e.EventPlannerUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            b.HasOne(e => e.ApprovedByUser)
+                .WithMany()
+                .HasForeignKey(e => e.ApprovedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            b.HasOne(e => e.CancelledByUser)
+                .WithMany()
+                .HasForeignKey(e => e.CancelledByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            b.HasOne(e => e.OrganizerPaymentAccount)
+                .WithMany()
+                .HasForeignKey(e => e.OrganizerPaymentAccountId)
                 .OnDelete(DeleteBehavior.Restrict);
             b.HasOne(e => e.EventType)
                 .WithMany()
@@ -828,9 +1183,69 @@ public class RandevooDbContext : DbContext
                 .OnDelete(DeleteBehavior.Restrict);
         });
 
+        modelBuilder.Entity<TicketOrder>(b =>
+        {
+            b.ToTable("TicketOrders");
+            b.HasKey(order => order.Id);
+            b.Property(order => order.CurrencyCode).IsRequired().HasMaxLength(3).HasDefaultValue("IRR");
+            b.Property(order => order.GrossAmount).HasPrecision(18, 2).IsRequired();
+            b.Property(order => order.DiscountAmount).HasPrecision(18, 2).IsRequired();
+            b.Property(order => order.NetAmount).HasPrecision(18, 2).IsRequired();
+            b.Property(order => order.PlatformCommissionAmount).HasPrecision(18, 2).IsRequired();
+            b.Property(order => order.OrganizerIncomeAmount).HasPrecision(18, 2).IsRequired();
+            b.Property(order => order.PaymentCollectionMethod).IsRequired();
+            b.Property(order => order.PaymentStatus).IsRequired();
+            b.Property(order => order.OrderStatus).IsRequired();
+            b.Property(order => order.DiscountCode).HasMaxLength(50);
+            b.Property(order => order.ReportingCurrencyCode).IsRequired().HasMaxLength(3).HasDefaultValue("IRR");
+            b.Property(order => order.ReportingGrossAmountIrr).HasPrecision(18, 2).IsRequired();
+            b.Property(order => order.ReportingDiscountAmountIrr).HasPrecision(18, 2).IsRequired();
+            b.Property(order => order.ReportingNetAmountIrr).HasPrecision(18, 2).IsRequired();
+            b.Property(order => order.ReportingPlatformCommissionIrr).HasPrecision(18, 2).IsRequired();
+            b.Property(order => order.ReportingOrganizerIncomeIrr).HasPrecision(18, 2).IsRequired();
+            b.Property(order => order.ExchangeRateToIrr).HasPrecision(18, 6).IsRequired().HasDefaultValue(1m);
+            b.Property(order => order.ExchangeRateCapturedAtUtc).HasDefaultValueSql("GETUTCDATE()").IsRequired();
+            b.Property(order => order.Notes).HasMaxLength(500);
+            b.HasIndex(order => order.DatingEventId);
+            b.HasIndex(order => order.BuyerUserId);
+            b.HasIndex(order => new { order.PaymentStatus, order.CreatedAt });
+            b.HasIndex(order => new { order.OrderStatus, order.CreatedAt });
+            b.HasIndex(order => order.CurrencyCode);
+            b.HasIndex(order => order.ExchangeRateId);
+            b.HasIndex(order => order.EventDiscountCodeId);
+            b.HasIndex(order => order.ApprovedByUserId);
+            b.HasQueryFilter(order => !order.IsDeleted && !order.DatingEvent.IsDeleted && !order.BuyerUser.IsDeleted);
+            b.HasOne(order => order.DatingEvent)
+                .WithMany()
+                .HasForeignKey(order => order.DatingEventId)
+                .OnDelete(DeleteBehavior.Restrict);
+            b.HasOne(order => order.BuyerUser)
+                .WithMany()
+                .HasForeignKey(order => order.BuyerUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            b.HasMany(order => order.Tickets)
+                .WithOne(ticket => ticket.TicketOrder)
+                .HasForeignKey(ticket => ticket.TicketOrderId)
+                .OnDelete(DeleteBehavior.Restrict);
+            b.HasOne(order => order.EventDiscountCode)
+                .WithMany()
+                .HasForeignKey(order => order.EventDiscountCodeId)
+                .OnDelete(DeleteBehavior.Restrict);
+            b.HasOne(order => order.ExchangeRate)
+                .WithMany()
+                .HasForeignKey(order => order.ExchangeRateId)
+                .OnDelete(DeleteBehavior.Restrict);
+            b.HasOne(order => order.ApprovedByUser)
+                .WithMany()
+                .HasForeignKey(order => order.ApprovedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            b.Navigation(order => order.Tickets).UsePropertyAccessMode(PropertyAccessMode.Field);
+        });
+
         modelBuilder.Entity<EventTicket>(b =>
         {
             b.HasKey(t => t.Id);
+            b.Property(t => t.TicketOrderId).IsRequired();
             b.Property(t => t.OriginalPrice).HasPrecision(18, 2).IsRequired();
             b.Property(t => t.CurrencyCode).IsRequired().HasMaxLength(3).HasDefaultValue("IRR");
             b.Property(t => t.ReportingOriginalPriceIrr).HasPrecision(18, 2).IsRequired();
@@ -842,6 +1257,7 @@ public class RandevooDbContext : DbContext
             b.Property(t => t.Price).HasPrecision(18, 2).IsRequired();
             b.Property(t => t.RemovalReason).HasMaxLength(500);
             b.HasIndex(t => new { t.DatingEventId, t.UserId }).IsUnique();
+            b.HasIndex(t => t.TicketOrderId);
             b.HasIndex(t => t.CurrencyCode);
             b.HasIndex(t => t.ExchangeRateId);
             b.HasIndex(t => t.EventDiscountCodeId);
@@ -849,6 +1265,10 @@ public class RandevooDbContext : DbContext
             b.HasOne(t => t.User)
                 .WithMany()
                 .HasForeignKey(t => t.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            b.HasOne(t => t.TicketOrder)
+                .WithMany(order => order.Tickets)
+                .HasForeignKey(t => t.TicketOrderId)
                 .OnDelete(DeleteBehavior.Restrict);
             b.HasOne(t => t.EventDiscountCode)
                 .WithMany()
@@ -1001,13 +1421,31 @@ public class RandevooDbContext : DbContext
             b.ToTable("SupportTickets");
             b.HasKey(ticket => ticket.Id);
             b.Property(ticket => ticket.Title).IsRequired().HasMaxLength(180);
+            b.Property(ticket => ticket.TicketTypeId).HasDefaultValue(3L).IsRequired();
+            b.Property(ticket => ticket.TicketStatusId).HasDefaultValue(1L).IsRequired();
+            b.Property(ticket => ticket.TicketRecipientTypeId).HasDefaultValue(1L).IsRequired();
             b.Property(ticket => ticket.Category).IsRequired();
             b.Property(ticket => ticket.Status).IsRequired();
             b.Property(ticket => ticket.SubmitterRole).IsRequired();
             b.HasIndex(ticket => new { ticket.Status, ticket.Category, ticket.CreatedAt });
+            b.HasIndex(ticket => new { ticket.TicketStatusId, ticket.TicketTypeId, ticket.TicketRecipientTypeId, ticket.CreatedAt });
             b.HasIndex(ticket => ticket.SubmitterUserId);
             b.HasIndex(ticket => ticket.AssignedSupportUserId);
+            b.HasIndex(ticket => ticket.RecipientPlannerUserId);
+            b.HasIndex(ticket => ticket.DatingEventId);
             b.HasQueryFilter(ticket => !ticket.IsDeleted);
+            b.HasOne(ticket => ticket.TicketType)
+                .WithMany()
+                .HasForeignKey(ticket => ticket.TicketTypeId)
+                .OnDelete(DeleteBehavior.Restrict);
+            b.HasOne(ticket => ticket.TicketStatus)
+                .WithMany()
+                .HasForeignKey(ticket => ticket.TicketStatusId)
+                .OnDelete(DeleteBehavior.Restrict);
+            b.HasOne(ticket => ticket.TicketRecipientType)
+                .WithMany()
+                .HasForeignKey(ticket => ticket.TicketRecipientTypeId)
+                .OnDelete(DeleteBehavior.Restrict);
             b.HasOne(ticket => ticket.SubmitterUser)
                 .WithMany()
                 .HasForeignKey(ticket => ticket.SubmitterUserId)
@@ -1015,6 +1453,14 @@ public class RandevooDbContext : DbContext
             b.HasOne(ticket => ticket.AssignedSupportUser)
                 .WithMany()
                 .HasForeignKey(ticket => ticket.AssignedSupportUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            b.HasOne(ticket => ticket.DatingEvent)
+                .WithMany()
+                .HasForeignKey(ticket => ticket.DatingEventId)
+                .OnDelete(DeleteBehavior.Restrict);
+            b.HasOne(ticket => ticket.RecipientPlannerUser)
+                .WithMany()
+                .HasForeignKey(ticket => ticket.RecipientPlannerUserId)
                 .OnDelete(DeleteBehavior.Restrict);
             b.HasMany(ticket => ticket.Messages)
                 .WithOne(message => message.SupportTicket)
@@ -1050,6 +1496,18 @@ public class RandevooDbContext : DbContext
             b.Property(category => category.DisplayOrder).IsRequired();
             b.HasIndex(category => category.Name).IsUnique();
             b.HasQueryFilter(category => !category.IsDeleted);
+        });
+
+        modelBuilder.Entity<SupportTicketRecipientTypeLookup>(b =>
+        {
+            b.ToTable("SupportTicketRecipientTypes");
+            b.HasKey(recipient => recipient.Id);
+            b.Property(recipient => recipient.Name).IsRequired().HasMaxLength(80);
+            b.Property(recipient => recipient.DisplayNameFa).IsRequired().HasMaxLength(120);
+            b.Property(recipient => recipient.IsActive).IsRequired();
+            b.Property(recipient => recipient.DisplayOrder).IsRequired();
+            b.HasIndex(recipient => recipient.Name).IsUnique();
+            b.HasQueryFilter(recipient => !recipient.IsDeleted);
         });
 
         modelBuilder.Entity<SupportTicketMessage>(b =>
@@ -1156,5 +1614,296 @@ public class RandevooDbContext : DbContext
                 .HasForeignKey(item => item.EventParticipantSmsRequestId)
                 .OnDelete(DeleteBehavior.NoAction);
         });
+
+        modelBuilder.Entity<NotificationMessageTypeLookup>(b =>
+        {
+            b.ToTable("NotificationMessageTypes");
+            b.HasKey(item => item.Id);
+            b.Property(item => item.Type).IsRequired();
+            b.Property(item => item.Code).IsRequired().HasMaxLength(80);
+            b.Property(item => item.DisplayNameFa).IsRequired().HasMaxLength(120);
+            b.Property(item => item.DescriptionFa).IsRequired().HasMaxLength(500);
+            b.Property(item => item.RequiresApproval).IsRequired();
+            b.Property(item => item.SupportsSms).IsRequired();
+            b.Property(item => item.AllowedSenderRoles).IsRequired().HasMaxLength(200);
+            b.Property(item => item.AllowedTargets).IsRequired().HasMaxLength(300);
+            b.Property(item => item.DefaultPriority).IsRequired();
+            b.Property(item => item.IsActive).IsRequired();
+            b.Property(item => item.DisplayOrder).IsRequired();
+            b.HasIndex(item => item.Code).IsUnique();
+            b.HasIndex(item => new { item.IsActive, item.DisplayOrder });
+            b.HasQueryFilter(item => !item.IsDeleted);
+            b.HasData(
+                new { Id = 1L, Type = NotificationType.System, Code = "System", DisplayNameFa = "پیام سیستمی", DescriptionFa = "پیام‌های خودکار سیستم برای اطلاع‌رسانی داخلی.", RequiresApproval = false, SupportsSms = false, AllowedSenderRoles = "Admin,PlatformSupportTeam", AllowedTargets = "User,EventParticipants,EventBuyers,Planners", DefaultPriority = NotificationPriority.Normal, IsActive = true, DisplayOrder = 10, CreatedAt = new DateTime(2026, 6, 15, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 2L, Type = NotificationType.AdminToPlanner, Code = "AdminToPlanner", DisplayNameFa = "پیام مدیر به برگزارکننده", DescriptionFa = "پیام مدیریتی یا عملیاتی برای برگزارکننده‌ها.", RequiresApproval = false, SupportsSms = false, AllowedSenderRoles = "Admin,PlatformSupportTeam", AllowedTargets = "User,Planners", DefaultPriority = NotificationPriority.Normal, IsActive = true, DisplayOrder = 20, CreatedAt = new DateTime(2026, 6, 15, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 3L, Type = NotificationType.PlannerToParticipant, Code = "PlannerToParticipant", DisplayNameFa = "پیام برگزارکننده به شرکت‌کننده", DescriptionFa = "پیام برگزارکننده فقط برای شرکت‌کنندگان یا خریداران رویدادهای خودش.", RequiresApproval = true, SupportsSms = true, AllowedSenderRoles = "EventPlanner", AllowedTargets = "EventParticipants,EventBuyers,User", DefaultPriority = NotificationPriority.Important, IsActive = true, DisplayOrder = 30, CreatedAt = new DateTime(2026, 6, 15, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 4L, Type = NotificationType.AdminToUser, Code = "AdminToUser", DisplayNameFa = "پیام مدیر به کاربر", DescriptionFa = "پیام مستقیم مدیر یا پشتیبان به یک کاربر یا گروه مجاز.", RequiresApproval = false, SupportsSms = false, AllowedSenderRoles = "Admin,PlatformSupportTeam", AllowedTargets = "User,EventParticipants,EventBuyers", DefaultPriority = NotificationPriority.Normal, IsActive = true, DisplayOrder = 40, CreatedAt = new DateTime(2026, 6, 15, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 5L, Type = NotificationType.EventUpdate, Code = "EventUpdate", DisplayNameFa = "اطلاع‌رسانی رویداد", DescriptionFa = "اطلاع‌رسانی تغییرات زمان، مکان یا جزئیات رویداد.", RequiresApproval = true, SupportsSms = true, AllowedSenderRoles = "Admin,PlatformSupportTeam,EventPlanner", AllowedTargets = "EventParticipants,EventBuyers", DefaultPriority = NotificationPriority.Important, IsActive = true, DisplayOrder = 50, CreatedAt = new DateTime(2026, 6, 15, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 6L, Type = NotificationType.Finance, Code = "Finance", DisplayNameFa = "پیام مالی", DescriptionFa = "اطلاع‌رسانی مالی، رسید، تسویه یا وضعیت پرداخت.", RequiresApproval = false, SupportsSms = false, AllowedSenderRoles = "Admin,PlatformSupportTeam", AllowedTargets = "User,EventParticipants,EventBuyers,Planners", DefaultPriority = NotificationPriority.Important, IsActive = true, DisplayOrder = 60, CreatedAt = new DateTime(2026, 6, 15, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 7L, Type = NotificationType.Refund, Code = "Refund", DisplayNameFa = "بازگشت وجه", DescriptionFa = "اطلاع‌رسانی مربوط به درخواست یا نتیجه بازگشت وجه.", RequiresApproval = false, SupportsSms = false, AllowedSenderRoles = "Admin,PlatformSupportTeam", AllowedTargets = "User,EventParticipants,EventBuyers", DefaultPriority = NotificationPriority.Important, IsActive = true, DisplayOrder = 70, CreatedAt = new DateTime(2026, 6, 15, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false });
+        });
+
+        modelBuilder.Entity<NotificationPriorityLookup>(b =>
+        {
+            b.ToTable("NotificationPriorities");
+            b.HasKey(item => item.Id);
+            b.Property(item => item.Priority).IsRequired();
+            b.Property(item => item.Code).IsRequired().HasMaxLength(80);
+            b.Property(item => item.DisplayNameFa).IsRequired().HasMaxLength(80);
+            b.Property(item => item.DescriptionFa).IsRequired().HasMaxLength(300);
+            b.Property(item => item.IsActive).IsRequired();
+            b.Property(item => item.DisplayOrder).IsRequired();
+            b.HasIndex(item => item.Code).IsUnique();
+            b.HasQueryFilter(item => !item.IsDeleted);
+            b.HasData(
+                new { Id = 1L, Priority = NotificationPriority.Normal, Code = "Normal", DisplayNameFa = "عادی", DescriptionFa = "پیام اطلاع‌رسانی معمولی.", IsActive = true, DisplayOrder = 10, CreatedAt = new DateTime(2026, 6, 15, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 2L, Priority = NotificationPriority.Important, Code = "Important", DisplayNameFa = "مهم", DescriptionFa = "پیامی که بهتر است کاربر زودتر ببیند.", IsActive = true, DisplayOrder = 20, CreatedAt = new DateTime(2026, 6, 15, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 3L, Priority = NotificationPriority.Critical, Code = "Critical", DisplayNameFa = "فوری", DescriptionFa = "پیام حساس درباره تغییر مهم، مالی یا لغو.", IsActive = true, DisplayOrder = 30, CreatedAt = new DateTime(2026, 6, 15, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false });
+        });
+
+        modelBuilder.Entity<Notification>(b =>
+        {
+            b.ToTable("Notifications");
+            b.HasKey(notification => notification.Id);
+            b.Property(notification => notification.Type).IsRequired();
+            b.Property(notification => notification.Priority).IsRequired();
+            b.Property(notification => notification.ApprovalStatus).IsRequired();
+            b.Property(notification => notification.Title).IsRequired().HasMaxLength(180);
+            b.Property(notification => notification.Body).IsRequired().HasMaxLength(2000);
+            b.Property(notification => notification.ReferenceType).HasMaxLength(100);
+            b.Property(notification => notification.ReviewNote).HasMaxLength(1000);
+            b.HasIndex(notification => new { notification.ApprovalStatus, notification.CreatedAt });
+            b.HasIndex(notification => new { notification.Type, notification.CreatedAt });
+            b.HasIndex(notification => notification.DatingEventId);
+            b.HasIndex(notification => notification.CreatedByUserId);
+            b.HasIndex(notification => notification.ReviewedByUserId);
+            b.HasIndex(notification => new { notification.ReferenceType, notification.ReferenceId });
+            b.HasQueryFilter(notification => !notification.IsDeleted);
+            b.HasOne(notification => notification.DatingEvent)
+                .WithMany()
+                .HasForeignKey(notification => notification.DatingEventId)
+                .OnDelete(DeleteBehavior.Restrict);
+            b.HasOne(notification => notification.CreatedByUser)
+                .WithMany()
+                .HasForeignKey(notification => notification.CreatedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            b.HasOne(notification => notification.ReviewedByUser)
+                .WithMany()
+                .HasForeignKey(notification => notification.ReviewedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            b.HasMany(notification => notification.Recipients)
+                .WithOne(recipient => recipient.Notification)
+                .HasForeignKey(recipient => recipient.NotificationId)
+                .OnDelete(DeleteBehavior.Cascade);
+            b.Navigation(notification => notification.Recipients).UsePropertyAccessMode(PropertyAccessMode.Field);
+        });
+
+        modelBuilder.Entity<NotificationRecipient>(b =>
+        {
+            b.ToTable("NotificationRecipients");
+            b.HasKey(recipient => recipient.Id);
+            b.Property(recipient => recipient.Channel).IsRequired();
+            b.Property(recipient => recipient.Status).IsRequired();
+            b.Property(recipient => recipient.FailureReason).HasMaxLength(1000);
+            b.HasIndex(recipient => new { recipient.RecipientUserId, recipient.Status, recipient.CreatedAt });
+            b.HasIndex(recipient => new { recipient.NotificationId, recipient.RecipientUserId, recipient.Channel }).IsUnique();
+            b.HasIndex(recipient => recipient.ReadAtUtc);
+            b.HasQueryFilter(recipient => !recipient.IsDeleted && !recipient.Notification.IsDeleted && !recipient.RecipientUser.IsDeleted);
+            b.HasOne(recipient => recipient.RecipientUser)
+                .WithMany()
+                .HasForeignKey(recipient => recipient.RecipientUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<NotificationTemplate>(b =>
+        {
+            b.ToTable("NotificationTemplates");
+            b.HasKey(template => template.Id);
+            b.Property(template => template.Code).IsRequired().HasMaxLength(80);
+            b.Property(template => template.TitleTemplate).IsRequired().HasMaxLength(180);
+            b.Property(template => template.BodyTemplate).IsRequired().HasMaxLength(2000);
+            b.Property(template => template.Type).IsRequired();
+            b.Property(template => template.Priority).IsRequired();
+            b.Property(template => template.RequiresApproval).IsRequired();
+            b.Property(template => template.IsActive).IsRequired();
+            b.HasIndex(template => template.Code).IsUnique();
+            b.HasIndex(template => new { template.Type, template.IsActive });
+            b.HasQueryFilter(template => !template.IsDeleted);
+            b.HasData(
+                new { Id = 1L, Code = "event-cancelled", TitleTemplate = "لغو رویداد", BodyTemplate = "رویداد {EventTitle} لغو شد و مبلغ پرداختی به کیف پول شما اضافه می‌شود.", Type = NotificationType.EventUpdate, Priority = NotificationPriority.Critical, RequiresApproval = false, IsActive = true, CreatedAt = new DateTime(2026, 6, 14, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 2L, Code = "refund-approved", TitleTemplate = "بازگشت وجه تایید شد", BodyTemplate = "درخواست بازگشت وجه شما برای {EventTitle} تایید و مبلغ به کیف پول اضافه شد.", Type = NotificationType.Refund, Priority = NotificationPriority.Important, RequiresApproval = false, IsActive = true, CreatedAt = new DateTime(2026, 6, 14, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 3L, Code = "manual-receipt-wallet-credit", TitleTemplate = "رسید پرداخت به کیف پول منتقل شد", BodyTemplate = "رسید پرداخت شما برای رویداد لغوشده {EventTitle} تایید شد و مبلغ به کیف پول اضافه شد.", Type = NotificationType.Finance, Priority = NotificationPriority.Important, RequiresApproval = false, IsActive = true, CreatedAt = new DateTime(2026, 6, 14, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false });
+        });
+
+        modelBuilder.Entity<EventWorkflowLog>(b =>
+        {
+            b.HasKey(log => log.Id);
+            b.Property(log => log.ActionType).IsRequired();
+            b.Property(log => log.Reason).HasMaxLength(1000);
+            b.Property(log => log.BeforeJson).HasMaxLength(8000);
+            b.Property(log => log.AfterJson).HasMaxLength(8000);
+            b.Property(log => log.MetadataJson).HasMaxLength(4000);
+            b.HasIndex(log => new { log.DatingEventId, log.CreatedAt });
+            b.HasIndex(log => log.ActionType);
+            b.HasQueryFilter(log => !log.IsDeleted);
+            b.HasOne(log => log.DatingEvent)
+                .WithMany()
+                .HasForeignKey(log => log.DatingEventId)
+                .OnDelete(DeleteBehavior.Cascade);
+            b.HasOne(log => log.ActorUser)
+                .WithMany()
+                .HasForeignKey(log => log.ActorUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<EventChangeRequest>(b =>
+        {
+            b.HasKey(request => request.Id);
+            b.Property(request => request.Status).IsRequired();
+            b.Property(request => request.Reason).HasMaxLength(1000);
+            b.Property(request => request.BeforeJson).IsRequired().HasMaxLength(8000);
+            b.Property(request => request.AfterJson).IsRequired().HasMaxLength(8000);
+            b.Property(request => request.ReviewNote).HasMaxLength(1000);
+            b.HasIndex(request => new { request.DatingEventId, request.Status, request.RequestedAtUtc });
+            b.HasQueryFilter(request => !request.IsDeleted);
+            b.HasOne(request => request.DatingEvent)
+                .WithMany()
+                .HasForeignKey(request => request.DatingEventId)
+                .OnDelete(DeleteBehavior.Cascade);
+            b.HasOne(request => request.RequestedByUser)
+                .WithMany()
+                .HasForeignKey(request => request.RequestedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            b.HasOne(request => request.ReviewedByUser)
+                .WithMany()
+                .HasForeignKey(request => request.ReviewedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<EventCancellationRequest>(b =>
+        {
+            b.HasKey(request => request.Id);
+            b.Property(request => request.Status).IsRequired();
+            b.Property(request => request.Reason).IsRequired().HasMaxLength(1000);
+            b.Property(request => request.ReviewNote).HasMaxLength(1000);
+            b.Property(request => request.PublicMessage).HasMaxLength(1000);
+            b.Property(request => request.PreviewJson).HasMaxLength(8000);
+            b.Property(request => request.ExecutedAtUtc);
+            b.HasIndex(request => new { request.DatingEventId, request.Status, request.RequestedAtUtc });
+            b.HasQueryFilter(request => !request.IsDeleted);
+            b.HasOne(request => request.DatingEvent)
+                .WithMany()
+                .HasForeignKey(request => request.DatingEventId)
+                .OnDelete(DeleteBehavior.Cascade);
+            b.HasOne(request => request.RequestedByUser)
+                .WithMany()
+                .HasForeignKey(request => request.RequestedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            b.HasOne(request => request.ReviewedByUser)
+                .WithMany()
+                .HasForeignKey(request => request.ReviewedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<EventSettlementRequest>(b =>
+        {
+            b.HasKey(request => request.Id);
+            b.Property(request => request.Status).IsRequired();
+            b.Property(request => request.GrossAmount).HasPrecision(18, 2).IsRequired();
+            b.Property(request => request.PlatformCommissionAmount).HasPrecision(18, 2).IsRequired();
+            b.Property(request => request.OrganizerIncomeAmount).HasPrecision(18, 2).IsRequired();
+            b.Property(request => request.ReportingOrganizerIncomeIrr).HasPrecision(18, 2).IsRequired();
+            b.Property(request => request.RequestNote).HasMaxLength(1000);
+            b.Property(request => request.ReviewNote).HasMaxLength(1000);
+            b.HasIndex(request => new { request.DatingEventId, request.Status, request.RequestedAtUtc });
+            b.HasIndex(request => request.OrganizerCreditTransactionId);
+            b.HasQueryFilter(request => !request.IsDeleted);
+            b.HasOne(request => request.DatingEvent)
+                .WithMany()
+                .HasForeignKey(request => request.DatingEventId)
+                .OnDelete(DeleteBehavior.Cascade);
+            b.HasOne(request => request.RequestedByUser)
+                .WithMany()
+                .HasForeignKey(request => request.RequestedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            b.HasOne(request => request.ReviewedByUser)
+                .WithMany()
+                .HasForeignKey(request => request.ReviewedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            b.HasOne(request => request.OrganizerCreditTransaction)
+                .WithMany()
+                .HasForeignKey(request => request.OrganizerCreditTransactionId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+    }
+
+    private static object[] CreatePermissionActionSeeds()
+    {
+        var createdAt = new DateTime(2026, 6, 10, 0, 0, 0, DateTimeKind.Utc);
+        return new object[]
+        {
+            new { Id = 1L, Entity = "participants", Action = "list", Label = "مشاهده فهرست", Description = "دیدن فهرست شرکت‌کنندگان", IsActive = true, DisplayOrder = 1, CreatedAt = createdAt, IsDeleted = false },
+            new { Id = 2L, Entity = "participants", Action = "viewDetails", Label = "مشاهده جزئیات", Description = "باز کردن پروفایل شرکت‌کننده", IsActive = true, DisplayOrder = 2, CreatedAt = createdAt, IsDeleted = false },
+            new { Id = 3L, Entity = "participants", Action = "viewContactInfo", Label = "مشاهده اطلاعات تماس", Description = "نمایش شماره موبایل و اطلاعات تماس شرکت‌کننده", IsActive = true, DisplayOrder = 3, CreatedAt = createdAt, IsDeleted = false },
+            new { Id = 4L, Entity = "participants", Action = "editProfile", Label = "ویرایش پروفایل", Description = "ویرایش اطلاعات پروفایل شرکت‌کننده", IsActive = true, DisplayOrder = 4, CreatedAt = createdAt, IsDeleted = false },
+            new { Id = 5L, Entity = "participants", Action = "viewFinance", Label = "مشاهده مالی", Description = "مشاهده موجودی و پرداخت‌های شرکت‌کننده", IsActive = true, DisplayOrder = 5, CreatedAt = createdAt, IsDeleted = false },
+            new { Id = 6L, Entity = "participants", Action = "viewOrder", Label = "مشاهده سفارش", Description = "مشاهده تراکنش یا سفارش مرتبط با بلیت", IsActive = true, DisplayOrder = 6, CreatedAt = createdAt, IsDeleted = false },
+            new { Id = 7L, Entity = "participants", Action = "resendProfileLink", Label = "ارسال لینک تکمیل پروفایل", Description = "ارسال یا ارسال مجدد دعوت تکمیل پروفایل", IsActive = true, DisplayOrder = 7, CreatedAt = createdAt, IsDeleted = false },
+            new { Id = 8L, Entity = "participants", Action = "changeStatus", Label = "تغییر وضعیت", Description = "تغییر وضعیت شرکت‌کننده در رویداد", IsActive = true, DisplayOrder = 8, CreatedAt = createdAt, IsDeleted = false },
+            new { Id = 9L, Entity = "participants", Action = "replaceParticipant", Label = "جایگزینی شرکت‌کننده", Description = "جایگزین کردن شرکت‌کننده بلیت", IsActive = true, DisplayOrder = 9, CreatedAt = createdAt, IsDeleted = false },
+            new { Id = 10L, Entity = "participants", Action = "emergencyRefund", Label = "بازگشت اضطراری", Description = "حذف اضطراری شرکت‌کننده و بازگشت وجه", IsActive = true, DisplayOrder = 10, CreatedAt = createdAt, IsDeleted = false },
+            new { Id = 11L, Entity = "participants", Action = "export", Label = "خروجی گرفتن", Description = "دریافت خروجی از فهرست شرکت‌کنندگان", IsActive = true, DisplayOrder = 11, CreatedAt = createdAt, IsDeleted = false },
+            new { Id = 12L, Entity = "events", Action = "viewParticipants", Label = "فهرست شرکت‌کنندگان رویداد", Description = "ورود از رویداد به فهرست شرکت‌کنندگان", IsActive = true, DisplayOrder = 1, CreatedAt = createdAt, IsDeleted = false },
+            new { Id = 13L, Entity = "orders", Action = "view", Label = "مشاهده سفارش", Description = "مشاهده سفارش‌ها و تراکنش‌های مرتبط", IsActive = true, DisplayOrder = 1, CreatedAt = createdAt, IsDeleted = false },
+            new { Id = 14L, Entity = "users", Action = "manageOperationPermissions", Label = "مدیریت دسترسی عملیات", Description = "تغییر سطح دسترسی نقش‌ها و کاربران", IsActive = true, DisplayOrder = 1, CreatedAt = createdAt, IsDeleted = false }
+        };
+    }
+
+    private static object[] CreateRoleOperationPermissionSeeds()
+    {
+        var createdAt = new DateTime(2026, 6, 10, 0, 0, 0, DateTimeKind.Utc);
+        var seeds = new List<object>();
+        long id = 1;
+        var participantActions = new[]
+        {
+            "list",
+            "viewDetails",
+            "viewContactInfo",
+            "editProfile",
+            "viewFinance",
+            "viewOrder",
+            "resendProfileLink",
+            "changeStatus",
+            "replaceParticipant",
+            "emergencyRefund",
+            "export"
+        };
+
+        foreach (var action in participantActions)
+        {
+            seeds.Add(new { Id = id++, Role = UserRole.Admin, Entity = "participants", Action = action, Allowed = true, CreatedAt = createdAt, IsDeleted = false });
+        }
+
+        foreach (var action in participantActions)
+        {
+            var allowed = action is "list" or "viewDetails" or "viewContactInfo" or "viewOrder" or "resendProfileLink";
+            seeds.Add(new { Id = id++, Role = UserRole.EventPlanner, Entity = "participants", Action = action, Allowed = allowed, CreatedAt = createdAt, IsDeleted = false });
+        }
+
+        foreach (var action in participantActions)
+        {
+            var allowed = action is "list" or "viewDetails" or "viewContactInfo" or "viewOrder" or "resendProfileLink" or "changeStatus";
+            seeds.Add(new { Id = id++, Role = UserRole.PlatformSupportTeam, Entity = "participants", Action = action, Allowed = allowed, CreatedAt = createdAt, IsDeleted = false });
+        }
+
+        seeds.Add(new { Id = id++, Role = UserRole.Admin, Entity = "events", Action = "viewParticipants", Allowed = true, CreatedAt = createdAt, IsDeleted = false });
+        seeds.Add(new { Id = id++, Role = UserRole.EventPlanner, Entity = "events", Action = "viewParticipants", Allowed = true, CreatedAt = createdAt, IsDeleted = false });
+        seeds.Add(new { Id = id++, Role = UserRole.PlatformSupportTeam, Entity = "events", Action = "viewParticipants", Allowed = true, CreatedAt = createdAt, IsDeleted = false });
+        seeds.Add(new { Id = id++, Role = UserRole.Admin, Entity = "orders", Action = "view", Allowed = true, CreatedAt = createdAt, IsDeleted = false });
+        seeds.Add(new { Id = id++, Role = UserRole.EventPlanner, Entity = "orders", Action = "view", Allowed = true, CreatedAt = createdAt, IsDeleted = false });
+        seeds.Add(new { Id = id++, Role = UserRole.PlatformSupportTeam, Entity = "orders", Action = "view", Allowed = true, CreatedAt = createdAt, IsDeleted = false });
+        seeds.Add(new { Id = id, Role = UserRole.Admin, Entity = "users", Action = "manageOperationPermissions", Allowed = true, CreatedAt = createdAt, IsDeleted = false });
+
+        return seeds.ToArray();
     }
 }

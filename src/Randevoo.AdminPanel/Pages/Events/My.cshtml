@@ -16,6 +16,11 @@
     <div class="alert alert-success border-0 mb-4">@Model.StatusMessage</div>
 }
 
+@if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+{
+    <div class="alert alert-danger border-0 mb-4">@Model.ErrorMessage</div>
+}
+
 <div class="glass-panel p-4">
     <div class="table-responsive">
         <table class="table align-middle">
@@ -23,8 +28,8 @@
                 <tr>
                     <th>رویداد</th>
                     <th>زمان شروع</th>
-                    <th>وضعیت رویداد</th>
-                    <th>بررسی مدیر</th>
+                    <th>وضعیت عملیاتی</th>
+                    <th>وضعیت پروفایل</th>
                     <th>نظر مدیر</th>
                     <th>عملیات</th>
                 </tr>
@@ -35,6 +40,7 @@
                     <tr>
                         <td>
                             <div class="fw-semibold">@item.DisplayTitle</div>
+                            <div class="text-muted small">رویداد @item.DisplayCode</div>
                             <div class="text-muted small">@item.ActiveDraft.City</div>
                             @if (item.ActiveDraft.Tags.Count > 0)
                             {
@@ -48,7 +54,7 @@
                         </td>
                         <td>@PersianDateFormatter.Format(item.ActiveDraft.StartAtUtc, Model.IsRtl)</td>
                         <td><span class="status-badge @Model.GetOperationalStatusClass(item.OperationalStatus)">@DisplayFormatter.OperationalStatus(item.OperationalStatus)</span></td>
-                        <td><span class="status-badge @Model.GetReviewStatusClass(item.ReviewStatus)">@DisplayFormatter.ReviewStatus(item.ReviewStatus)</span></td>
+                        <td><span class="status-badge @Model.GetProfileStatusClass(item.ApprovalStatus)">@DisplayFormatter.ProfileStatus(item.ApprovalStatus)</span></td>
                         <td class="text-muted">@item.AdminReviewNote</td>
                         <td class="text-end table-action-cell">
                             <div class="dropdown">
@@ -65,8 +71,11 @@
                                     <a asp-page="/Events/Faqs" asp-route-eventId="@item.Id" class="dropdown-item">
                                         <i class="bi bi-question-circle"></i>سوالات متداول
                                     </a>
-                                    <a asp-page="/Events/Buyers" asp-route-eventId="@item.Id" class="dropdown-item">
-                                        <i class="bi bi-ticket-perforated"></i>خریداران بلیت
+                                    <a asp-page="/Participants/Index" asp-route-EventId="@item.Id" class="dropdown-item">
+                                        <i class="bi bi-people"></i>فهرست شرکت‌کنندگان
+                                    </a>
+                                    <a asp-page="/Buyers/Index" asp-route-EventId="@item.Id" class="dropdown-item">
+                                        <i class="bi bi-bag-check"></i>خریداران بلیت
                                     </a>
                                     <a asp-page="/Events/Sms" asp-route-eventId="@item.Id" class="dropdown-item">
                                         <i class="bi bi-chat-dots"></i>پیام به شرکت کنندگان
@@ -75,24 +84,9 @@
                                         <i class="bi bi-box-arrow-up-left"></i>نمایش عمومی
                                     </a>
                                     <div class="dropdown-divider"></div>
-                                    <form method="post" asp-page-handler="OpenSale">
-                                        <input type="hidden" name="id" value="@item.Id" />
-                                        <button type="submit" class="dropdown-item">
-                                            <i class="bi bi-play-circle"></i>درخواست فروش
-                                        </button>
-                                    </form>
-                                    <form method="post" asp-page-handler="CloseSale">
-                                        <input type="hidden" name="id" value="@item.Id" />
-                                        <button type="submit" class="dropdown-item">
-                                            <i class="bi bi-pause-circle"></i>درخواست بستن فروش
-                                        </button>
-                                    </form>
-                                    <form method="post" asp-page-handler="Cancel">
-                                        <input type="hidden" name="id" value="@item.Id" />
-                                        <button type="submit" class="dropdown-item text-danger">
-                                            <i class="bi bi-x-circle"></i>درخواست لغو
-                                        </button>
-                                    </form>
+                                    <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#eventStatusTransitionModal-@item.Id">
+                                        <i class="bi bi-arrow-repeat"></i>تغییر وضعیت رویداد
+                                    </button>
                                 </div>
                             </div>
                         </td>
@@ -102,3 +96,8 @@
         </table>
     </div>
 </div>
+
+@foreach (var item in Model.Events)
+{
+    <partial name="_StatusTransitionModal" model="Model.CreateStatusTransitionModal(item)" />
+}

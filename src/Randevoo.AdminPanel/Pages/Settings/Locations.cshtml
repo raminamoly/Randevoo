@@ -1,0 +1,226 @@
+@page
+@model Randevoo.AdminPanel.Pages.Settings.LocationsModel
+@{
+    ViewData["Title"] = "کشورها و شهرها";
+}
+
+<section class="page-header">
+    <div>
+        <h1>کشورها و شهرها</h1>
+        <p class="text-muted mb-0">کشورها و شهرهای فعال این صفحه در فرم ساخت و ویرایش رویداد نمایش داده می‌شوند.</p>
+    </div>
+</section>
+
+@if (!string.IsNullOrWhiteSpace(Model.StatusMessage))
+{
+    <div class="alert alert-success border-0 mb-4">@Model.StatusMessage</div>
+}
+
+<div asp-validation-summary="ModelOnly" class="alert alert-danger border-0" role="alert"></div>
+
+<section class="glass-panel p-4 mb-4">
+    <form method="get" class="permission-filter-bar">
+        <div>
+            <label asp-for="Search" class="form-label">جستجو</label>
+            <input asp-for="Search" class="form-control" placeholder="نام کشور، کد یا شهر" />
+        </div>
+        <div>
+            <label asp-for="CountryId" class="form-label">کشور</label>
+            <select asp-for="CountryId" asp-items="Model.CountryOptions" class="form-select" data-searchable-select="true" data-search-placeholder="جستجوی کشور">
+                <option value="">همه کشورها</option>
+            </select>
+        </div>
+        <div class="d-flex gap-2 align-items-end">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-search"></i>اعمال
+            </button>
+            <a asp-page="/Settings/Locations" class="btn btn-outline-secondary">
+                <i class="bi bi-x-circle"></i>پاک کردن
+            </a>
+        </div>
+    </form>
+</section>
+
+<div class="locations-admin-grid">
+    <section class="glass-panel p-4">
+        <div class="base-data-editor-bar">
+            <div>
+                <span class="base-data-editor-kicker">کشورها</span>
+                <h2 class="section-title mb-0">مدیریت کشور</h2>
+            </div>
+        </div>
+        <form method="post" asp-page-handler="SaveCountry" class="stacked-form mt-3">
+            <input type="hidden" asp-for="CountryInput.Id" />
+            <div class="row g-3">
+                <div class="col-md-5">
+                    <label asp-for="CountryInput.Name" class="form-label">نام کشور</label>
+                    <input asp-for="CountryInput.Name" class="form-control" />
+                    <span asp-validation-for="CountryInput.Name" class="text-danger small"></span>
+                </div>
+                <div class="col-md-3">
+                    <label asp-for="CountryInput.Code" class="form-label">کد</label>
+                    <input asp-for="CountryInput.Code" class="form-control" dir="ltr" />
+                    <span asp-validation-for="CountryInput.Code" class="text-danger small"></span>
+                </div>
+                <div class="col-md-2">
+                    <label asp-for="CountryInput.DisplayOrder" class="form-label">ترتیب</label>
+                    <input asp-for="CountryInput.DisplayOrder" class="form-control" type="number" />
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <label class="form-check permission-filter-check mb-0">
+                        <input asp-for="CountryInput.IsActive" class="form-check-input" />
+                        <span class="form-check-label">فعال</span>
+                    </label>
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save"></i>ذخیره کشور
+                    </button>
+                </div>
+            </div>
+        </form>
+
+        <div class="table-responsive mt-4">
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th>کشور</th>
+                        <th>کد</th>
+                        <th>شهرها</th>
+                        <th>وضعیت</th>
+                        <th class="text-end">عملیات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var country in Model.Countries)
+                    {
+                        <tr>
+                            <td>
+                                <a asp-page="/Settings/Locations" asp-route-CountryId="@country.Id" asp-route-Search="@Model.Search" class="fw-semibold">@country.Name</a>
+                                <div class="text-muted small">ترتیب @country.DisplayOrder</div>
+                            </td>
+                            <td dir="ltr">@country.Code</td>
+                            <td>@country.CityCount</td>
+                            <td>
+                                <span class="status-badge @(country.IsActive ? "status-approved" : "status-rejected")">@(country.IsActive ? "فعال" : "غیرفعال")</span>
+                            </td>
+                            <td class="text-end">
+                                <button type="button"
+                                        class="btn btn-sm btn-outline-primary"
+                                        data-location-edit-country="true"
+                                        data-id="@country.Id"
+                                        data-name="@country.Name"
+                                        data-code="@country.Code"
+                                        data-display-order="@country.DisplayOrder"
+                                        data-is-active="@country.IsActive.ToString().ToLowerInvariant()">
+                                    ویرایش
+                                </button>
+                                <form method="post" asp-page-handler="ToggleCountry" asp-route-id="@country.Id" class="d-inline">
+                                    <button type="submit" class="btn btn-sm btn-outline-secondary">@(country.IsActive ? "غیرفعال" : "فعال")</button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="glass-panel p-4">
+        <div class="base-data-editor-bar">
+            <div>
+                <span class="base-data-editor-kicker">شهرها</span>
+                <h2 class="section-title mb-0">مدیریت شهر</h2>
+            </div>
+        </div>
+        <form method="post" asp-page-handler="SaveCity" class="stacked-form mt-3">
+            <input type="hidden" asp-for="CityInput.Id" />
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label asp-for="CityInput.CountryId" class="form-label">کشور</label>
+                    <select asp-for="CityInput.CountryId" asp-items="Model.CountryOptions" class="form-select" data-searchable-select="true" data-search-placeholder="جستجوی کشور"></select>
+                    <span asp-validation-for="CityInput.CountryId" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="CityInput.Name" class="form-label">نام شهر</label>
+                    <input asp-for="CityInput.Name" class="form-control" />
+                    <span asp-validation-for="CityInput.Name" class="text-danger small"></span>
+                </div>
+                <div class="col-md-3">
+                    <label asp-for="CityInput.Latitude" class="form-label">عرض</label>
+                    <input asp-for="CityInput.Latitude" class="form-control" type="number" step="0.000001" dir="ltr" />
+                </div>
+                <div class="col-md-3">
+                    <label asp-for="CityInput.Longitude" class="form-label">طول</label>
+                    <input asp-for="CityInput.Longitude" class="form-control" type="number" step="0.000001" dir="ltr" />
+                </div>
+                <div class="col-md-3">
+                    <label asp-for="CityInput.DisplayOrder" class="form-label">ترتیب</label>
+                    <input asp-for="CityInput.DisplayOrder" class="form-control" type="number" />
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <label class="form-check permission-filter-check mb-0">
+                        <input asp-for="CityInput.IsActive" class="form-check-input" />
+                        <span class="form-check-label">فعال</span>
+                    </label>
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save"></i>ذخیره شهر
+                    </button>
+                </div>
+            </div>
+        </form>
+
+        <div class="table-responsive mt-4">
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th>شهر</th>
+                        <th>کشور</th>
+                        <th>موقعیت</th>
+                        <th>وضعیت</th>
+                        <th class="text-end">عملیات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var city in Model.Cities)
+                    {
+                        <tr class="@(!city.CountryIsActive ? "permission-row-muted" : string.Empty)">
+                            <td>
+                                <div class="fw-semibold">@city.Name</div>
+                                <div class="text-muted small">ترتیب @city.DisplayOrder</div>
+                            </td>
+                            <td>@city.CountryName</td>
+                            <td dir="ltr">@city.Latitude, @city.Longitude</td>
+                            <td>
+                                <span class="status-badge @(city.IsActive && city.CountryIsActive ? "status-approved" : "status-rejected")">
+                                    @(city.IsActive && city.CountryIsActive ? "فعال" : "غیرفعال")
+                                </span>
+                            </td>
+                            <td class="text-end">
+                                <button type="button"
+                                        class="btn btn-sm btn-outline-primary"
+                                        data-location-edit-city="true"
+                                        data-id="@city.Id"
+                                        data-country-id="@city.CountryId"
+                                        data-name="@city.Name"
+                                        data-latitude="@city.Latitude"
+                                        data-longitude="@city.Longitude"
+                                        data-display-order="@city.DisplayOrder"
+                                        data-is-active="@city.IsActive.ToString().ToLowerInvariant()">
+                                    ویرایش
+                                </button>
+                                <form method="post" asp-page-handler="ToggleCity" asp-route-id="@city.Id" class="d-inline">
+                                    <button type="submit" class="btn btn-sm btn-outline-secondary">@(city.IsActive ? "غیرفعال" : "فعال")</button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+
+<partial name="_ValidationScriptsPartial" />

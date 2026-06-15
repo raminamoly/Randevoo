@@ -42,6 +42,8 @@ public class UserModel : PageModel
         BalanceTransactionType.EventPlannerIncomeReversal => "برگشت درآمد برگزارکننده",
         BalanceTransactionType.PlannerWithdrawalPayout => "تسویه برگزارکننده",
         BalanceTransactionType.EmergencyRemovalRefund => "بازگشت اضطراری",
+        BalanceTransactionType.ManualReceiptWalletCredit => "اعتبار کیف پول بابت رسید دستی",
+        BalanceTransactionType.OrganizerManualReceiptLiability => "بدهی برگزارکننده بابت رسید دستی",
         BalanceTransactionType.AdminAdjustment => "اصلاح مدیر",
         _ => type.ToString()
     };

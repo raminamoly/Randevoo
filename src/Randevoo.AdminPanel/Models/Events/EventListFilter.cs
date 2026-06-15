@@ -7,7 +7,7 @@ public sealed class EventListFilter
     public string? City { get; set; }
     public long? EventModeId { get; set; }
     public EventOperationalStatus? OperationalStatus { get; set; }
-    public EventReviewStatus? ReviewStatus { get; set; }
+    public Randevoo.Domain.Enums.EventApprovalStatus? ApprovalStatus { get; set; }
     public DateTimeOffset? FromDateUtc { get; set; }
     public DateTimeOffset? ToDateUtc { get; set; }
     public string Sort { get; set; } = "updated-desc";

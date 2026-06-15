@@ -50,6 +50,7 @@ This document was generated from the current repository snapshot. It references 
 - `src/Randevoo.AdminPanel/Pages/Privacy.cshtml`
 - `src/Randevoo.AdminPanel/Pages/Public/Event.cshtml`
 - `src/Randevoo.AdminPanel/Pages/Settings/Index.cshtml`
+- `src/Randevoo.AdminPanel/Pages/Settings/Locations.cshtml`
 - `src/Randevoo.AdminPanel/Pages/Settings/OperationPermissions.cshtml`
 - `src/Randevoo.AdminPanel/Pages/Shared/_DashboardRangeFilter.cshtml`
 - `src/Randevoo.AdminPanel/Pages/Shared/_EventImageSlider.cshtml`
@@ -1578,6 +1579,13 @@ Accessible by:
 
 Purpose:
 Settings/Operation Permissions screen in the AdminPanel.
+
+Current behavior:
+- Admin-only permission center for the operation catalog, grouped entity tree, role matrix, and user-specific overrides.
+- Filters include Search, GroupKey, Entity, RiskLevel, Surface, IncludeInactive, and UserSearch.
+- Role matrix fields include RolePermissions[].Role, RolePermissions[].Entity, RolePermissions[].Action, and RolePermissions[].Allowed.
+- User override fields include OverrideInput.UserId, OverrideInput.ActionKey, OverrideInput.Allowed, OverrideInput.ExpiresAtUtc, and OverrideInput.Note.
+- EndUser is intentionally excluded because this screen manages admin-panel roles only.
 
 Main UI elements:
 - Forms: 4

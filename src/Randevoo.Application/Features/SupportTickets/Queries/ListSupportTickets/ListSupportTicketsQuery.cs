@@ -6,8 +6,9 @@ namespace Randevoo.Application.Features.SupportTickets.Queries.ListSupportTicket
 
 public record ListSupportTicketsQuery(
     long RequesterUserId,
-    SupportTicketStatus? Status,
-    SupportTicketCategory? Category,
+    long? TicketStatusId,
+    long? TicketTypeId,
+    long? TicketRecipientTypeId,
     UserRole? SubmitterRole,
     long? AssigneeUserId,
     DateTime? CreatedFromUtc,

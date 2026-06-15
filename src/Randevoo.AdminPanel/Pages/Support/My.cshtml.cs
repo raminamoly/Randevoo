@@ -19,9 +19,9 @@ public class MyModel : PageModel
 
     public IReadOnlyList<SupportTicketListItemDto> Tickets { get; private set; } = Array.Empty<SupportTicketListItemDto>();
 
-    public async Task OnGetAsync(SupportTicketStatus? status, SupportTicketCategory? category, CancellationToken cancellationToken)
+    public async Task OnGetAsync(long? ticketStatusId, long? ticketTypeId, long? ticketRecipientTypeId, CancellationToken cancellationToken)
     {
         var current = _session.CurrentUser ?? throw new InvalidOperationException("حساب جاری شناسایی نشد.");
-        Tickets = await _supportApi.GetTicketsAsync(current, status, category, null, null, cancellationToken: cancellationToken);
+        Tickets = await _supportApi.GetTicketsAsync(current, ticketStatusId, ticketTypeId, ticketRecipientTypeId, null, null, cancellationToken: cancellationToken);
     }
 }

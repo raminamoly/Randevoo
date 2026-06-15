@@ -28,8 +28,10 @@ public class ChangeSupportTicketStatusHandler : IRequestHandler<ChangeSupportTic
             ?? throw new NotFoundException("User", request.ActorUserId);
         var ticket = await _tickets.GetByIdWithDetailsAsync(request.TicketId, cancellationToken)
             ?? throw new NotFoundException("SupportTicket", request.TicketId);
+        if (!await _tickets.IsTicketStatusActiveAsync(request.TicketStatusId, cancellationToken))
+            throw new BusinessRuleViolationException("Invalid ticket status", "Ticket status is inactive or invalid");
 
-        ticket.ChangeStatus(actor, request.Status, request.Note);
+        ticket.ChangeStatus(actor, request.TicketStatusId, request.Note);
         await _tickets.UpdateAsync(ticket, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         await _auditLogger.TryLogAsync(new AuditLogEntry(actor.Id, "StatusChanged", nameof(ticket), ticket.Id.ToString(), ActorRole: actor.Role.ToString(), LogType: "support", Module: "support", Status: "success"), cancellationToken);

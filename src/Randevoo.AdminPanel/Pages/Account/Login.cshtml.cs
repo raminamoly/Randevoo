@@ -146,17 +146,24 @@ public class LoginModel : PageModel
 
     private static string ResolveHomePage(ClaimsPrincipal user)
     {
-        if (user.IsInRole(AdminRole.SupportTeam.ToString()))
-            return "/Support/Index";
+        if (user.IsInRole(AdminRole.Admin.ToString()))
+            return "/Events/Index";
 
-        return user.IsInRole(AdminRole.EventPlanner.ToString()) ? "/Dashboard/My" : "/Dashboard/Index";
+        if (user.IsInRole(AdminRole.EventPlanner.ToString()))
+            return "/Events/My";
+
+        if (user.IsInRole(AdminRole.SupportTeam.ToString()))
+            return "/Participants/Index";
+
+        return "/Account/Forbidden";
     }
 
     private static string ResolveHomePage(AdminRole role) => role switch
     {
-        AdminRole.SupportTeam => "/Support/Index",
-        AdminRole.EventPlanner => "/Dashboard/My",
-        _ => "/Dashboard/Index"
+        AdminRole.Admin => "/Events/Index",
+        AdminRole.EventPlanner => "/Events/My",
+        AdminRole.SupportTeam => "/Participants/Index",
+        _ => "/Account/Forbidden"
     };
 
     private sealed record QuickLoginUser(string Key, string Label, string Mobile, AdminRole Role);

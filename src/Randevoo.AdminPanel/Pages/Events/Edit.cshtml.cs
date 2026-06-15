@@ -7,12 +7,13 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Randevoo.AdminPanel.Models.Auth;
 using Randevoo.AdminPanel.Models.Common;
 using Randevoo.AdminPanel.Models.Events;
+using Randevoo.AdminPanel.Models.Finance;
 using Randevoo.AdminPanel.Services.ApiClients;
 using Randevoo.AdminPanel.Services.State;
 using Randevoo.Domain.Enums;
 using Randevoo.Domain.Exceptions;
 using AdminEventOperationalStatus = Randevoo.AdminPanel.Models.Events.EventOperationalStatus;
-using AdminEventReviewStatus = Randevoo.AdminPanel.Models.Events.EventReviewStatus;
+using DomainEventApprovalStatus = Randevoo.Domain.Enums.EventApprovalStatus;
 
 namespace Randevoo.AdminPanel.Pages.Events;
 
@@ -22,16 +23,16 @@ public class EditModel : PageModel
     private readonly IEventsApiClient _eventsApi;
     private readonly IEventTagsApiClient _eventTagsApi;
     private readonly IUsersApiClient _usersApi;
-    private readonly IPlannerProfilesApiClient _profilesApi;
+    private readonly IFinanceApiClient _financeApi;
     private readonly ILocationsApiClient _locationsApi;
     private readonly CurrentSessionState _session;
 
-    public EditModel(IEventsApiClient eventsApi, IEventTagsApiClient eventTagsApi, IUsersApiClient usersApi, IPlannerProfilesApiClient profilesApi, ILocationsApiClient locationsApi, CurrentSessionState session)
+    public EditModel(IEventsApiClient eventsApi, IEventTagsApiClient eventTagsApi, IUsersApiClient usersApi, IFinanceApiClient financeApi, ILocationsApiClient locationsApi, CurrentSessionState session)
     {
         _eventsApi = eventsApi;
         _eventTagsApi = eventTagsApi;
         _usersApi = usersApi;
-        _profilesApi = profilesApi;
+        _financeApi = financeApi;
         _locationsApi = locationsApi;
         _session = session;
     }
@@ -63,6 +64,9 @@ public class EditModel : PageModel
     [BindProperty]
     public long? AssignedPlannerId { get; set; }
 
+    [BindProperty]
+    public string SubmitAction { get; set; } = "draft";
+
     [BindProperty(SupportsGet = true)]
     public long? ExistingEventId { get; set; }
 
@@ -74,19 +78,19 @@ public class EditModel : PageModel
 
     public bool IsPlanner => _session.CurrentUser?.Role == AdminRole.EventPlanner;
 
-    public bool IsEventCurrencyLocked => true;
+    public bool IsEventCurrencyLocked { get; private set; }
 
     public string? ReviewNote { get; set; }
 
-    public string StatusText { get; set; } = AdminEventOperationalStatus.Draft.ToString();
+    public string StatusText { get; set; } = AdminEventOperationalStatus.SaleClosed.ToString();
 
-    public AdminEventOperationalStatus StatusValue { get; set; } = AdminEventOperationalStatus.Draft;
+    public AdminEventOperationalStatus StatusValue { get; set; } = AdminEventOperationalStatus.SaleClosed;
 
     public string StatusClass { get; set; } = "status-draft";
 
-    public AdminEventReviewStatus ReviewStatusValue { get; set; } = AdminEventReviewStatus.NotSubmitted;
+    public DomainEventApprovalStatus ProfileStatusValue { get; set; } = DomainEventApprovalStatus.Draft;
 
-    public string ReviewStatusClass { get; set; } = "status-draft";
+    public string ProfileStatusClass { get; set; } = "status-draft";
 
     public SelectList CountryOptions { get; private set; } = new(Array.Empty<object>());
 
@@ -118,17 +122,35 @@ public class EditModel : PageModel
 
     public SelectList PlannerOptions { get; private set; } = new(Array.Empty<object>());
 
+    public SelectList OrganizerPaymentAccountOptions { get; private set; } = new(Array.Empty<object>());
+
+    public string OrganizerPaymentAccountOptionsJson { get; private set; } = "[]";
+
+    public string? OrganizerPaymentAccountWarning { get; private set; }
+
+    public IReadOnlyList<EventChangeLogEntry> ProfileReviewHistoryEntries { get; private set; } = Array.Empty<EventChangeLogEntry>();
+
+    public EventProfileReviewHistoryModalViewModel ProfileReviewHistoryModal => new()
+    {
+        EventId = ExistingEventId ?? 0,
+        EventTitle = Input.Title,
+        Entries = ProfileReviewHistoryEntries
+    };
+
     private List<long> PlannerIds { get; set; } = new();
+
+    private IReadOnlyList<PlannerBankAccountItem> OrganizerPaymentAccounts { get; set; } = Array.Empty<PlannerBankAccountItem>();
 
     private IReadOnlyList<SystemLookupOption> CurrencyLookupOptions { get; set; } = Array.Empty<SystemLookupOption>();
 
-    public async Task<IActionResult> OnGetAsync()
+    public async Task<IActionResult> OnGetAsync(long? id)
     {
+        ExistingEventId = ResolveExistingEventId(id);
         await LoadLookupOptionsAsync();
 
-        if (ExistingEventId is long id)
+        if (ExistingEventId is long eventId)
         {
-            var @event = await _eventsApi.GetEventAsync(id);
+            var @event = await _eventsApi.GetEventAsync(eventId);
             if (@event is null)
             {
                 return NotFound();
@@ -139,9 +161,11 @@ public class EditModel : PageModel
             StatusText = @event.OperationalStatus.ToString();
             StatusValue = @event.OperationalStatus;
             StatusClass = GetOperationalStatusClass(@event.OperationalStatus);
-            ReviewStatusValue = @event.ReviewStatus;
-            ReviewStatusClass = GetReviewStatusClass(@event.ReviewStatus);
+            ProfileStatusValue = @event.ApprovalStatus;
+            ProfileStatusClass = GetProfileStatusClass(@event.ApprovalStatus);
+            ProfileReviewHistoryEntries = ExtractProfileReviewHistory(@event);
             AssignedPlannerId = @event.PlannerUserId;
+            IsEventCurrencyLocked = @event.IsCurrencyLocked;
         }
         else
         {
@@ -155,11 +179,12 @@ public class EditModel : PageModel
             {
                 Input.EventTypeId = long.Parse(EventTypeOptions.First().Value!);
             }
-            StatusText = AdminEventOperationalStatus.Draft.ToString();
-            StatusValue = AdminEventOperationalStatus.Draft;
-            StatusClass = GetOperationalStatusClass(AdminEventOperationalStatus.Draft);
-            ReviewStatusValue = AdminEventReviewStatus.NotSubmitted;
-            ReviewStatusClass = GetReviewStatusClass(AdminEventReviewStatus.NotSubmitted);
+            StatusText = AdminEventOperationalStatus.SaleClosed.ToString();
+            StatusValue = AdminEventOperationalStatus.SaleClosed;
+            StatusClass = GetOperationalStatusClass(AdminEventOperationalStatus.SaleClosed);
+            ProfileStatusValue = DomainEventApprovalStatus.Draft;
+            ProfileStatusClass = GetProfileStatusClass(DomainEventApprovalStatus.Draft);
+            IsEventCurrencyLocked = false;
             if (IsAdmin)
             {
                 AssignedPlannerId = GetDefaultPlannerId();
@@ -167,19 +192,18 @@ public class EditModel : PageModel
         }
 
         await LoadLookupOptionsAsync();
-        if (IsNew)
-            await ApplyPlannerCurrencyDefaultAsync();
         SyncFormTextFromInput();
         return Page();
     }
 
-    public async Task<IActionResult> OnPostAsync()
+    public async Task<IActionResult> OnPostAsync(long? id)
     {
+        ExistingEventId = ResolveExistingEventId(id);
         var current = _session.CurrentUser ?? throw new InvalidOperationException("حساب جاری شناسایی نشد.");
         await LoadLookupOptionsAsync();
 
         ApplyEventContextDefaults();
-        await ApplyPlannerCurrencyDefaultAsync();
+        await ApplyExistingCurrencyLockAsync();
 
         if (!TryCombineDateAndTime(StartDateText, StartTimeText, _session.IsRtl, out var startAtUtc, out var startError))
         {
@@ -251,7 +275,8 @@ public class EditModel : PageModel
 
         try
         {
-            var saved = await _eventsApi.SaveEventAsync(Input, current, ExistingEventId, AssignedPlannerId);
+            var submitForReview = string.Equals(SubmitAction, "submit", StringComparison.OrdinalIgnoreCase);
+            var saved = await _eventsApi.SaveEventAsync(Input, current, ExistingEventId, AssignedPlannerId, submitForReview);
             return RedirectToPage("/Events/Details", new { id = saved.Id });
         }
         catch (BusinessRuleViolationException ex)
@@ -299,33 +324,56 @@ public class EditModel : PageModel
             CurrencyLookupOptions.Select(item => new { Code = item.Name, Title = $"{item.DisplayNameFa} ({item.Name})" }),
             "Code",
             "Title");
+        await LoadOrganizerPaymentAccountOptionsAsync();
         CurrencyRatesJson = JsonSerializer.Serialize(CurrencyLookupOptions.ToDictionary(
             item => item.Name,
             item => new
             {
                 item.DisplayNameFa,
                 item.Symbol,
+                item.DecimalPlaces,
                 RateToIrr = item.ExchangeRateToIrr ?? 1m,
                 item.ExchangeRateEffectiveFromUtc
             },
             StringComparer.OrdinalIgnoreCase));
 
-        Countries = await _locationsApi.GetCountriesAsync();
-        Cities = await _locationsApi.GetCitiesAsync();
+        Countries = await _locationsApi.GetCountriesAsync(includeInactive: true);
+        Cities = await _locationsApi.GetCitiesAsync(includeInactive: true);
         EducationLevels = await _locationsApi.GetEducationLevelsAsync();
 
+        var activeCountries = Countries.Where(country => country.IsActive).ToList();
         if (string.IsNullOrWhiteSpace(Input.Country) || Countries.All(country => country.Name != Input.Country))
         {
-            Input.Country = Countries.FirstOrDefault()?.Name ?? "ایران";
+            Input.Country = activeCountries.FirstOrDefault()?.Name ?? Countries.FirstOrDefault()?.Name ?? "ایران";
         }
 
+        var activeCitiesForCountry = Cities.Where(city => city.CountryName == Input.Country && city.IsActive).ToList();
         if (string.IsNullOrWhiteSpace(Input.City) || Cities.All(city => city.CountryName != Input.Country || city.Name != Input.City))
         {
-            Input.City = Cities.FirstOrDefault(city => city.CountryName == Input.Country)?.Name ?? string.Empty;
+            Input.City = activeCitiesForCountry.FirstOrDefault()?.Name
+                ?? Cities.FirstOrDefault(city => city.CountryName == Input.Country)?.Name
+                ?? string.Empty;
         }
 
-        CountryOptions = new SelectList(Countries, "Name", "Name", Input.Country);
-        CityOptions = new SelectList(Cities.Where(city => city.CountryName == Input.Country), "Name", "Name", Input.City);
+        var countryOptions = Countries
+            .Where(country => country.IsActive || string.Equals(country.Name, Input.Country, StringComparison.OrdinalIgnoreCase))
+            .Select(country => new
+            {
+                Value = country.Name,
+                Text = country.IsActive ? country.Name : $"{country.Name} (غیرفعال)"
+            })
+            .ToList();
+        var cityOptions = Cities
+            .Where(city => city.CountryName == Input.Country
+                && (city.IsActive || string.Equals(city.Name, Input.City, StringComparison.OrdinalIgnoreCase)))
+            .Select(city => new
+            {
+                Value = city.Name,
+                Text = city.IsActive ? city.Name : $"{city.Name} (غیرفعال)"
+            })
+            .ToList();
+        CountryOptions = new SelectList(countryOptions, "Value", "Text", Input.Country);
+        CityOptions = new SelectList(cityOptions, "Value", "Text", Input.City);
         Input.MinimumEducationLevelId ??= MapRestrictionToEducationLevelId(Input.EducationLevelRestriction);
         var minimumEducationOptions = new[] { new { Id = string.Empty, Title = "بدون محدودیت" } }
             .Concat(EducationLevels
@@ -333,29 +381,128 @@ public class EditModel : PageModel
                 .Select(level => new { Id = level.Id.ToString(), level.Title }))
             .ToList();
         MinimumEducationLevelOptions = new SelectList(minimumEducationOptions, "Id", "Title", Input.MinimumEducationLevelId?.ToString() ?? string.Empty);
-        CityOptionsJson = JsonSerializer.Serialize(Cities.Select(city => new
+        CityOptionsJson = JsonSerializer.Serialize(Cities
+            .Where(city => city.IsActive
+                || (string.Equals(city.CountryName, Input.Country, StringComparison.OrdinalIgnoreCase)
+                    && string.Equals(city.Name, Input.City, StringComparison.OrdinalIgnoreCase)))
+            .Select(city => new
         {
             city.CountryName,
             city.Name,
             city.Latitude,
-            city.Longitude
+            city.Longitude,
+            city.IsActive
         }));
+    }
+
+    private async Task LoadOrganizerPaymentAccountOptionsAsync()
+    {
+        OrganizerPaymentAccountWarning = null;
+        OrganizerPaymentAccounts = Array.Empty<PlannerBankAccountItem>();
+        OrganizerPaymentAccountOptions = new SelectList(Array.Empty<object>(), "Value", "Text");
+        OrganizerPaymentAccountOptionsJson = "[]";
+
+        var current = _session.CurrentUser;
+        if (current is null)
+            return;
+
+        var plannerUserId = ResolvePlannerUserIdForPaymentAccounts(current);
+        if (plannerUserId is null)
+        {
+            OrganizerPaymentAccountWarning = "برای نمایش حساب‌های دریافت وجه، ابتدا برگزارکننده را انتخاب کنید.";
+            return;
+        }
+
+        OrganizerPaymentAccounts = await _financeApi.GetPlannerBankAccountsAsync(current, plannerUserId.Value);
+        var eventCurrencyCode = NormalizeCurrencyCodeForForm(Input.MaleTicketCurrencyCode);
+        var matchingAccounts = OrganizerPaymentAccounts
+            .Where(account => account.IsActive && string.Equals(account.CurrencyCode, eventCurrencyCode, StringComparison.OrdinalIgnoreCase))
+            .Select(account => new
+            {
+                Value = account.Id,
+                Text = FormatPlannerBankAccountOption(account)
+            })
+            .ToList();
+
+        OrganizerPaymentAccountOptions = new SelectList(matchingAccounts, "Value", "Text", Input.OrganizerPaymentAccountId);
+        OrganizerPaymentAccountOptionsJson = JsonSerializer.Serialize(OrganizerPaymentAccounts.Select(account => new
+        {
+            account.Id,
+            account.CurrencyCode,
+            account.IsActive,
+            Label = FormatPlannerBankAccountOption(account)
+        }));
+
+        if (matchingAccounts.Count == 0)
+        {
+            OrganizerPaymentAccountWarning = $"حساب فعال {eventCurrencyCode} برای این برگزارکننده ثبت نشده است. ابتدا حساب را در پروفایل برگزارکننده ثبت و فعال کنید.";
+        }
+    }
+
+    private long? ResolveExistingEventId(long? handlerId)
+    {
+        if (handlerId is > 0)
+            return handlerId;
+
+        if (ExistingEventId is > 0)
+            return ExistingEventId;
+
+        if (TryReadEventId(RouteData.Values["id"], out var routeId))
+            return routeId;
+
+        if (TryReadEventId(Request.Query["id"].ToString(), out var queryId))
+            return queryId;
+
+        if (Request.HasFormContentType
+            && TryReadEventId(Request.Form[nameof(ExistingEventId)].ToString(), out var formId))
+        {
+            return formId;
+        }
+
+        return null;
+    }
+
+    private static bool TryReadEventId(object? value, out long eventId)
+    {
+        eventId = 0;
+        var text = NormalizeNumericText(Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty);
+        return long.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out eventId) && eventId > 0;
     }
 
     private long? GetDefaultPlannerId() => PlannerIds.Count == 0 ? null : PlannerIds[0];
 
-    private async Task ApplyPlannerCurrencyDefaultAsync()
+    private long? ResolvePlannerUserIdForPaymentAccounts(MockUser current)
     {
-        var plannerUserId = IsPlanner
-            ? _session.CurrentUser?.Id
-            : AssignedPlannerId;
-        if (plannerUserId is not long userId)
+        if (current.Role == AdminRole.EventPlanner)
+            return current.Id;
+
+        return AssignedPlannerId;
+    }
+
+    private static string FormatPlannerBankAccountOption(PlannerBankAccountItem account)
+    {
+        var method = DisplayFormatter.PayoutMethod(account.PayoutMethod);
+        var identity = account.CurrencyCode == "IRR"
+            ? FirstNonEmpty(account.BankName, account.Iban, account.CardNumber, account.AccountNumber)
+            : FirstNonEmpty(account.BankName, account.Iban, account.SwiftCode, account.AccountIdentifier, account.PublicPaymentInstructions);
+        return string.Join(" - ", new[] { account.CurrencyCode, method, identity }.Where(item => !string.IsNullOrWhiteSpace(item)));
+    }
+
+    private static string? FirstNonEmpty(params string?[] values)
+        => values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
+
+    private async Task ApplyExistingCurrencyLockAsync()
+    {
+        if (ExistingEventId is not long eventId)
             return;
 
-        var profile = await _profilesApi.GetByUserIdAsync(userId);
-        var settlementCurrencyCode = NormalizeCurrencyCodeForForm(profile?.SettlementCurrencyCode ?? "IRR");
-        Input.MaleTicketCurrencyCode = settlementCurrencyCode;
-        Input.FemaleTicketCurrencyCode = settlementCurrencyCode;
+        var existing = await _eventsApi.GetEventAsync(eventId);
+        if (existing?.IsCurrencyLocked != true)
+            return;
+
+        IsEventCurrencyLocked = true;
+        Input.MaleTicketCurrencyCode = NormalizeCurrencyCodeForForm(existing.ActiveDraft.MaleTicketCurrencyCode);
+        Input.FemaleTicketCurrencyCode = Input.MaleTicketCurrencyCode;
         ModelState.Remove($"{nameof(Input)}.{nameof(EventDraftInput.MaleTicketCurrencyCode)}");
         ModelState.Remove($"{nameof(Input)}.{nameof(EventDraftInput.FemaleTicketCurrencyCode)}");
     }
@@ -370,11 +517,11 @@ public class EditModel : PageModel
 
     private void ApplyEventContextDefaults()
     {
-        StatusText = IsNew ? AdminEventOperationalStatus.Draft.ToString() : StatusText;
-        StatusValue = IsNew ? AdminEventOperationalStatus.Draft : StatusValue;
+        StatusText = IsNew ? AdminEventOperationalStatus.SaleClosed.ToString() : StatusText;
+        StatusValue = IsNew ? AdminEventOperationalStatus.SaleClosed : StatusValue;
         StatusClass = GetOperationalStatusClass(StatusValue);
-        ReviewStatusValue = IsNew ? AdminEventReviewStatus.NotSubmitted : ReviewStatusValue;
-        ReviewStatusClass = GetReviewStatusClass(ReviewStatusValue);
+        ProfileStatusValue = IsNew ? DomainEventApprovalStatus.Draft : ProfileStatusValue;
+        ProfileStatusClass = GetProfileStatusClass(ProfileStatusValue);
         ReviewNote ??= null;
     }
 
@@ -382,11 +529,11 @@ public class EditModel : PageModel
     {
         if (ExistingEventId is not long id)
         {
-            StatusText = AdminEventOperationalStatus.Draft.ToString();
-            StatusValue = AdminEventOperationalStatus.Draft;
+            StatusText = AdminEventOperationalStatus.SaleClosed.ToString();
+            StatusValue = AdminEventOperationalStatus.SaleClosed;
             StatusClass = GetOperationalStatusClass(StatusValue);
-            ReviewStatusValue = AdminEventReviewStatus.NotSubmitted;
-            ReviewStatusClass = GetReviewStatusClass(ReviewStatusValue);
+            ProfileStatusValue = DomainEventApprovalStatus.Draft;
+            ProfileStatusClass = GetProfileStatusClass(ProfileStatusValue);
             return;
         }
 
@@ -398,46 +545,56 @@ public class EditModel : PageModel
         StatusText = existing.OperationalStatus.ToString();
         StatusValue = existing.OperationalStatus;
         StatusClass = GetOperationalStatusClass(existing.OperationalStatus);
-        ReviewStatusValue = existing.ReviewStatus;
-        ReviewStatusClass = GetReviewStatusClass(existing.ReviewStatus);
+        ProfileStatusValue = existing.ApprovalStatus;
+        ProfileStatusClass = GetProfileStatusClass(existing.ApprovalStatus);
+        ProfileReviewHistoryEntries = ExtractProfileReviewHistory(existing);
+        IsEventCurrencyLocked = existing.IsCurrencyLocked;
+    }
+
+    private static IReadOnlyList<EventChangeLogEntry> ExtractProfileReviewHistory(DatingEvent datingEvent)
+    {
+        return datingEvent.ChangeLog
+            .Where(item => string.Equals(item.Category, "review", StringComparison.OrdinalIgnoreCase))
+            .OrderByDescending(item => item.CreatedAtUtc)
+            .ToList();
     }
 
     private void ValidateEventInput()
     {
-        ValidateRequiredText(nameof(Input.Title), Input.Title, "عنوان رویداد", 2, 150);
-        ValidateRequiredText(nameof(Input.DescriptionHtml), StripHtml(Input.DescriptionHtml), "توضیحات رویداد", 10, 10000);
+        ValidateRequiredText(InputKey(nameof(EventDraftInput.Title)), Input.Title, "عنوان رویداد", 2, 150);
+        ValidateRequiredText(InputKey(nameof(EventDraftInput.DescriptionHtml)), StripHtml(Input.DescriptionHtml), "توضیحات رویداد", 10, 10000);
 
         if (Input.EventTypeId <= 0)
-            ModelState.AddModelError(nameof(Input.EventTypeId), "نوع رویداد را انتخاب کنید.");
+            ModelState.AddModelError(InputKey(nameof(EventDraftInput.EventTypeId)), "نوع رویداد را انتخاب کنید.");
 
         if (Input.EventModeId <= 0)
-            ModelState.AddModelError(nameof(Input.EventModeId), "نحوه برگزاری را انتخاب کنید.");
+            ModelState.AddModelError(InputKey(nameof(EventDraftInput.EventModeId)), "نحوه برگزاری را انتخاب کنید.");
 
         if (Input.IsOnline)
         {
             if (Input.OnlineEventPlatformId is null or <= 0)
-                ModelState.AddModelError(nameof(Input.OnlineEventPlatformId), "پلتفرم آنلاین را انتخاب کنید.");
+                ModelState.AddModelError(InputKey(nameof(EventDraftInput.OnlineEventPlatformId)), "پلتفرم آنلاین را انتخاب کنید.");
 
             if (string.IsNullOrWhiteSpace(Input.OnlineJoinUrl))
-                ModelState.AddModelError(nameof(Input.OnlineJoinUrl), "لینک ورود رویداد آنلاین را وارد کنید.");
+                ModelState.AddModelError(InputKey(nameof(EventDraftInput.OnlineJoinUrl)), "لینک ورود رویداد آنلاین را وارد کنید.");
         }
         else
         {
-            ValidateRequiredText(nameof(Input.Address), Input.Address, "آدرس", 5, 300);
+            ValidateRequiredText(InputKey(nameof(EventDraftInput.Address)), Input.Address, "آدرس", 5, 300);
         }
 
         Input.EducationLevelRestriction = MapEducationLevelIdToRestriction(Input.MinimumEducationLevelId);
 
         if (Input.MinimumEducationLevelId is long educationLevelId && EducationLevels.All(level => level.Id != educationLevelId || level.Rank <= 0))
-            ModelState.AddModelError(nameof(Input.MinimumEducationLevelId), "حداقل سطح تحصیل معتبر نیست.");
+            ModelState.AddModelError(InputKey(nameof(EventDraftInput.MinimumEducationLevelId)), "حداقل سطح تحصیل معتبر نیست.");
 
         if (!Input.IsOnline)
         {
             if (Countries.All(country => country.Name != Input.Country))
-                ModelState.AddModelError(nameof(Input.Country), "کشور انتخاب شده معتبر نیست.");
+                ModelState.AddModelError(InputKey(nameof(EventDraftInput.Country)), "کشور انتخاب شده معتبر نیست.");
 
             if (Cities.All(city => city.CountryName != Input.Country || city.Name != Input.City))
-                ModelState.AddModelError(nameof(Input.City), "شهر انتخاب شده برای این کشور معتبر نیست.");
+                ModelState.AddModelError(InputKey(nameof(EventDraftInput.City)), "شهر انتخاب شده برای این کشور معتبر نیست.");
         }
 
         if (Input.StartAtUtc != default
@@ -452,62 +609,82 @@ public class EditModel : PageModel
         SyncSharedTicketCurrency();
 
         if (Input.MaleTicketPrice is < 0.01m or > 1_000_000_000m)
-            ModelState.AddModelError(nameof(Input.MaleTicketPrice), "مبلغ بلیت آقایان باید بیشتر از صفر و کمتر از ۱,۰۰۰,۰۰۰,۰۰۰ باشد.");
+            ModelState.AddModelError(InputKey(nameof(EventDraftInput.MaleTicketPrice)), "مبلغ بلیت آقایان باید بیشتر از صفر و کمتر از ۱,۰۰۰,۰۰۰,۰۰۰ باشد.");
 
         if (Input.FemaleTicketPrice is < 0.01m or > 1_000_000_000m)
-            ModelState.AddModelError(nameof(Input.FemaleTicketPrice), "مبلغ بلیت خانم‌ها باید بیشتر از صفر و کمتر از ۱,۰۰۰,۰۰۰,۰۰۰ باشد.");
+            ModelState.AddModelError(InputKey(nameof(EventDraftInput.FemaleTicketPrice)), "مبلغ بلیت خانم‌ها باید بیشتر از صفر و کمتر از ۱,۰۰۰,۰۰۰,۰۰۰ باشد.");
 
         if (CurrencyLookupOptions.All(item => item.Name != Input.MaleTicketCurrencyCode))
-            ModelState.AddModelError(nameof(Input.MaleTicketCurrencyCode), "واحد پول بلیت آقایان معتبر نیست.");
+            ModelState.AddModelError(InputKey(nameof(EventDraftInput.MaleTicketCurrencyCode)), "واحد پول بلیت آقایان معتبر نیست.");
 
         if (CurrencyLookupOptions.All(item => item.Name != Input.FemaleTicketCurrencyCode))
-            ModelState.AddModelError(nameof(Input.FemaleTicketCurrencyCode), "واحد پول بلیت خانم‌ها معتبر نیست.");
+            ModelState.AddModelError(InputKey(nameof(EventDraftInput.FemaleTicketCurrencyCode)), "واحد پول بلیت خانم‌ها معتبر نیست.");
 
         if (Input.OrganizerCommissionPercent is < 0 or > 100)
-            ModelState.AddModelError(nameof(Input.OrganizerCommissionPercent), "درصد کمیسیون باید بین 0 تا 100 باشد.");
+            ModelState.AddModelError(InputKey(nameof(EventDraftInput.OrganizerCommissionPercent)), "درصد کمیسیون باید بین 0 تا 100 باشد.");
 
         if (!Enum.IsDefined(Input.PaymentCollectionMethod))
             ModelState.AddModelError($"{nameof(Input)}.{nameof(EventDraftInput.PaymentCollectionMethod)}", "روش دریافت هزینه رویداد معتبر نیست.");
 
         if (Input.PaymentCollectionMethod == EventPaymentCollectionMethod.OrganizerManualTransfer)
         {
-            var instructions = (Input.OrganizerPaymentInstructions ?? string.Empty).Trim();
-            if (string.IsNullOrWhiteSpace(instructions))
-            {
-                ModelState.AddModelError($"{nameof(Input)}.{nameof(EventDraftInput.OrganizerPaymentInstructions)}", "اطلاعات پرداخت برگزارکننده را وارد کنید.");
-            }
-            else if (instructions.Length is < 10 or > 1200)
-            {
-                ModelState.AddModelError($"{nameof(Input)}.{nameof(EventDraftInput.OrganizerPaymentInstructions)}", "اطلاعات پرداخت برگزارکننده باید بین 10 تا 1200 کاراکتر باشد.");
-            }
-            else
-            {
-                Input.OrganizerPaymentInstructions = instructions;
-            }
+            ValidateOrganizerPaymentAccount();
         }
         else
         {
             Input.OrganizerPaymentInstructions = null;
+            Input.OrganizerPaymentAccountId = null;
             ModelState.Remove($"{nameof(Input)}.{nameof(EventDraftInput.OrganizerPaymentInstructions)}");
+            ModelState.Remove($"{nameof(Input)}.{nameof(EventDraftInput.OrganizerPaymentAccountId)}");
         }
 
         if (Input.CapacityMale <= 0)
-            ModelState.AddModelError(nameof(Input.CapacityMale), "ظرفیت آقایان باید بیشتر از صفر باشد.");
+            ModelState.AddModelError(InputKey(nameof(EventDraftInput.CapacityMale)), "ظرفیت آقایان باید بیشتر از صفر باشد.");
 
         if (Input.CapacityFemale <= 0)
-            ModelState.AddModelError(nameof(Input.CapacityFemale), "ظرفیت بانوان باید بیشتر از صفر باشد.");
+            ModelState.AddModelError(InputKey(nameof(EventDraftInput.CapacityFemale)), "ظرفیت بانوان باید بیشتر از صفر باشد.");
 
         if (Input.LikeLimit is < 0 or > 10)
-            ModelState.AddModelError(nameof(Input.LikeLimit), "تعداد لایک مجاز باید بین 0 تا 10 باشد.");
+            ModelState.AddModelError(InputKey(nameof(EventDraftInput.LikeLimit)), "تعداد لایک مجاز باید بین 0 تا 10 باشد.");
 
-        ValidateAgeRange(nameof(Input.AgeRangeForMale), Input.AgeRangeForMale, "بازه سنی آقایان");
-        ValidateAgeRange(nameof(Input.AgeRangeForFemale), Input.AgeRangeForFemale, "بازه سنی بانوان");
+        ValidateAgeRange(InputKey(nameof(EventDraftInput.AgeRangeForMale)), Input.AgeRangeForMale, "بازه سنی آقایان");
+        ValidateAgeRange(InputKey(nameof(EventDraftInput.AgeRangeForFemale)), Input.AgeRangeForFemale, "بازه سنی بانوان");
 
         if (Input.TagIds.Count > 10)
-            ModelState.AddModelError(nameof(Input.TagIds), "برای هر رویداد حداکثر 10 تگ می توانید انتخاب کنید.");
+            ModelState.AddModelError(InputKey(nameof(EventDraftInput.TagIds)), "برای هر رویداد حداکثر 10 تگ می توانید انتخاب کنید.");
 
         Input.TagIds = Input.TagIds.Distinct().ToList();
         ValidateFaqs();
+    }
+
+    private void ValidateOrganizerPaymentAccount()
+    {
+        if (Input.OrganizerPaymentAccountId is null or <= 0)
+        {
+            ModelState.AddModelError(InputKey(nameof(EventDraftInput.OrganizerPaymentAccountId)), "حساب دریافت وجه برگزارکننده را انتخاب کنید.");
+            return;
+        }
+
+        var current = _session.CurrentUser;
+        var plannerUserId = current is null ? null : ResolvePlannerUserIdForPaymentAccounts(current);
+        var account = OrganizerPaymentAccounts.FirstOrDefault(item => item.Id == Input.OrganizerPaymentAccountId.Value);
+        if (account is null)
+        {
+            ModelState.AddModelError(InputKey(nameof(EventDraftInput.OrganizerPaymentAccountId)), "حساب دریافت وجه انتخاب‌شده پیدا نشد.");
+            return;
+        }
+
+        if (plannerUserId is long expectedPlannerUserId && account.UserId != expectedPlannerUserId)
+            ModelState.AddModelError(InputKey(nameof(EventDraftInput.OrganizerPaymentAccountId)), "حساب دریافت وجه انتخاب‌شده متعلق به برگزارکننده این رویداد نیست.");
+
+        if (!account.IsActive)
+            ModelState.AddModelError(InputKey(nameof(EventDraftInput.OrganizerPaymentAccountId)), "حساب دریافت وجه انتخاب‌شده فعال نیست.");
+
+        if (!string.Equals(account.CurrencyCode, Input.MaleTicketCurrencyCode, StringComparison.OrdinalIgnoreCase))
+            ModelState.AddModelError(InputKey(nameof(EventDraftInput.OrganizerPaymentAccountId)), "ارز حساب دریافت وجه با ارز رویداد هماهنگ نیست.");
+
+        Input.OrganizerPaymentInstructions = account.PublicPaymentInstructions;
+        ModelState.Remove($"{nameof(Input)}.{nameof(EventDraftInput.OrganizerPaymentInstructions)}");
     }
 
     private void ValidateFaqs()
@@ -557,6 +734,8 @@ public class EditModel : PageModel
         }
     }
 
+    private static string InputKey(string propertyName) => $"{nameof(Input)}.{propertyName}";
+
     private void ValidateAgeRange(string key, string? ageRange, string label)
     {
         var normalized = (ageRange ?? string.Empty).Trim();
@@ -573,7 +752,7 @@ public class EditModel : PageModel
 
     public static string GetOperationalStatusClass(AdminEventOperationalStatus status) => DisplayFormatter.OperationalStatusClass(status);
 
-    public static string GetReviewStatusClass(AdminEventReviewStatus status) => DisplayFormatter.ReviewStatusClass(status);
+    public static string GetProfileStatusClass(DomainEventApprovalStatus status) => DisplayFormatter.ApprovalStatusClass(status);
 
     private static async Task<string> ToDataUrlAsync(IFormFile file)
     {

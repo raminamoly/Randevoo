@@ -28,9 +28,12 @@
             <a asp-page="/Events/Edit" asp-route-id="@Model.Event.Id" class="dropdown-item">
                 <i class="bi bi-pencil-square"></i>ویرایش رویداد
             </a>
-            <a asp-page="/Events/Buyers" asp-route-eventId="@Model.Event.Id" class="dropdown-item">
-                <i class="bi bi-ticket-perforated"></i>خریداران بلیت
+            <a asp-page="/Participants/Index" asp-route-EventId="@Model.Event.Id" class="dropdown-item">
+                <i class="bi bi-people"></i>فهرست شرکت‌کنندگان
             </a>
+            <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#eventStatusTransitionModal-@Model.Event.Id">
+                <i class="bi bi-arrow-repeat"></i>تغییر وضعیت رویداد
+            </button>
             <a asp-page="/Events/My" class="dropdown-item">
                 <i class="bi bi-arrow-right"></i>بازگشت به لیست
             </a>
@@ -43,10 +46,15 @@
     <div class="alert alert-success border-0 mb-4">@Model.StatusMessage</div>
 }
 
+@if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+{
+    <div class="alert alert-danger border-0 mb-4">@Model.ErrorMessage</div>
+}
+
 <section class="event-details-actionbar glass-panel">
     <div class="event-details-status">
         <span class="status-badge @Model.OperationalStatusClass">@DisplayFormatter.OperationalStatus(Model.Event.OperationalStatus)</span>
-        <span class="status-badge @Model.ReviewStatusClass">@DisplayFormatter.ReviewStatus(Model.Event.ReviewStatus)</span>
+        <span class="status-badge @Model.ProfileStatusClass">@DisplayFormatter.ProfileStatus(Model.Event.ApprovalStatus)</span>
         <div>
             <div class="fw-semibold">@Model.Event.PlannerName</div>
             <div class="text-muted small">آخرین به روزرسانی: @PersianDateFormatter.Format(Model.Event.UpdatedAtUtc, Model.IsRtl)</div>
@@ -58,73 +66,43 @@
     </div>
 
     <div class="event-details-actions">
-        @if (Model.IsAdmin)
-        {
-            @if (Model.Event.ReviewStatus == EventReviewStatus.Approved
-                && Model.Event.OperationalStatus is not EventOperationalStatus.Selling
-                && Model.Event.OperationalStatus is not EventOperationalStatus.Closed
-                && Model.Event.OperationalStatus is not EventOperationalStatus.Cancelled)
-            {
-                <form method="post" asp-page-handler="OpenSale">
-                    <input type="hidden" name="id" value="@Model.Event.Id" />
-                    <button class="btn btn-outline-primary" type="submit"><i class="bi bi-play-circle"></i>باز کردن فروش</button>
-                </form>
-            }
-            @if (Model.Event.OperationalStatus == EventOperationalStatus.Selling)
-            {
-                <form method="post" asp-page-handler="CloseSale">
-                    <input type="hidden" name="id" value="@Model.Event.Id" />
-                    <button class="btn btn-outline-secondary" type="submit"><i class="bi bi-pause-circle"></i>بستن فروش</button>
-                </form>
-            }
-            @if (Model.Event.OperationalStatus is not EventOperationalStatus.Cancelled)
-            {
-                <form method="post" asp-page-handler="Cancel">
-                    <input type="hidden" name="id" value="@Model.Event.Id" />
-                    <button class="btn btn-outline-danger" type="submit"><i class="bi bi-x-circle"></i>لغو رویداد</button>
-                </form>
-            }
-        }
-        else
-        {
-            <a asp-page="/Events/Edit" asp-route-id="@Model.Event.Id" class="btn btn-primary"><i class="bi bi-pencil-square"></i>ویرایش پیش نویس</a>
-            <a asp-page="/Public/Event" asp-route-id="@Model.Event.Id" class="btn btn-outline-secondary"><i class="bi bi-box-arrow-up-left"></i>نمایش عمومی</a>
-        }
+        <button class="btn btn-outline-primary" type="button" data-bs-toggle="modal" data-bs-target="#eventProfileReviewHistoryModal-@Model.Event.Id">
+            <i class="bi bi-clock-history"></i>بررسی‌های مدیر
+        </button>
+        <button class="btn btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#eventStatusTransitionModal-@Model.Event.Id">
+            <i class="bi bi-arrow-repeat"></i>تغییر وضعیت رویداد
+        </button>
+        <a asp-page="/Events/Edit" asp-route-id="@Model.Event.Id" class="btn btn-outline-secondary"><i class="bi bi-pencil-square"></i>ویرایش رویداد</a>
+        <a asp-page="/Public/Event" asp-route-id="@Model.Event.Id" class="btn btn-outline-secondary"><i class="bi bi-box-arrow-up-left"></i>نمایش عمومی</a>
     </div>
 </section>
 
-@if (Model.IsAdmin)
+@if (Model.IsAdmin && Model.Event.ApprovalStatus == Randevoo.Domain.Enums.EventApprovalStatus.PendingReview)
 {
     <section class="glass-panel p-4 mb-4">
         <div class="form-section-head">
-            <h2 class="section-title mb-0">مدیریت بررسی مدیر</h2>
+            <h2 class="section-title mb-0">بررسی پروفایل رویداد</h2>
+            <p class="text-muted small mb-0">این بخش فقط برای تایید یا بازگرداندن اطلاعات پروفایل رویداد است و فروش را باز نمی‌کند.</p>
         </div>
         <div class="row g-3">
             <div class="col-lg-6">
-                <form method="post" asp-page-handler="Approve" class="admin-action-card h-100">
+                <form method="post" asp-page-handler="ApproveProfile" class="admin-action-card h-100">
                     <input type="hidden" name="id" value="@Model.Event.Id" />
-                    <div class="fw-semibold mb-2">تایید بررسی رویداد</div>
-                    <div class="row g-2">
-                        <div class="col-md-4">
-                            <label class="form-label">درصد کمیسیون</label>
-                            <input name="commissionPercent" class="form-control" value="@Model.Event.ActiveDraft.OrganizerCommissionPercent" />
-                        </div>
-                        <div class="col-md-8">
-                            <label class="form-label">یادداشت مدیر</label>
-                            <textarea name="note" class="form-control" rows="2"></textarea>
-                        </div>
-                    </div>
-                    <button class="btn btn-success mt-3" type="submit">تایید بررسی</button>
-                    <button class="btn btn-primary mt-3" type="submit" formaction="?handler=ApproveAndOpen">تایید و باز کردن فروش</button>
+                    <div class="fw-semibold mb-2">تایید پروفایل رویداد</div>
+                    <p class="text-muted small mb-3">با تایید، پروفایل رویداد آماده مدیریت عملیاتی می‌شود. فروش همچنان بسته می‌ماند.</p>
+                    <label class="form-label">یادداشت مدیر</label>
+                    <textarea name="note" class="form-control" rows="2" placeholder="اختیاری"></textarea>
+                    <button class="btn btn-success mt-3" type="submit">تایید پروفایل</button>
                 </form>
             </div>
             <div class="col-lg-6">
-                <form method="post" asp-page-handler="Reject" class="admin-action-card h-100">
+                <form method="post" asp-page-handler="RejectProfile" class="admin-action-card h-100">
                     <input type="hidden" name="id" value="@Model.Event.Id" />
-                    <div class="fw-semibold mb-2">رد یا بازگردانی برای اصلاح</div>
-                    <label class="form-label">علت رد</label>
-                    <textarea name="note" class="form-control" rows="2"></textarea>
-                    <button class="btn btn-outline-danger mt-3" type="submit">ثبت بازخورد و بستن فروش</button>
+                    <div class="fw-semibold mb-2">رد و بازگردانی برای اصلاح</div>
+                    <p class="text-muted small mb-3">توضیح مدیر برای برگزارکننده نمایش داده می‌شود و پروفایل به پیش‌نویس برمی‌گردد.</p>
+                    <label class="form-label">توضیح مدیر</label>
+                    <textarea name="note" class="form-control" rows="2" required></textarea>
+                    <button class="btn btn-outline-danger mt-3" type="submit">رد پروفایل</button>
                 </form>
             </div>
         </div>
@@ -240,6 +218,9 @@
         <a asp-page="/Planner/Details" asp-route-id="@Model.PlannerProfile.UserId" class="btn btn-outline-primary mt-3">مشاهده پروفایل کامل برگزارکننده</a>
     </section>
 }
+
+<partial name="_StatusTransitionModal" model="Model.CreateStatusTransitionModal()" />
+<partial name="_ProfileReviewHistoryModal" model="Model.ProfileReviewHistoryModal" />
 
 @if (Model.Event.ActiveDraft.Faqs.Any(item => !string.IsNullOrWhiteSpace(item.Question) && !string.IsNullOrWhiteSpace(item.Answer)))
 {

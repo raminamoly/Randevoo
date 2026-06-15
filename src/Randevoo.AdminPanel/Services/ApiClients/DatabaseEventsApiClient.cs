@@ -78,7 +78,8 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
                 Id = item.Id,
                 Name = item.Code,
                 DisplayNameFa = item.DisplayNameFa,
-                Symbol = item.Symbol
+                Symbol = item.Symbol,
+                DecimalPlaces = item.DecimalPlaces
             })
             .ToListAsync(cancellationToken);
 
@@ -109,6 +110,8 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
         var query = _db.DatingEvents
             .Include(item => item.EventPlannerUser)
             .ThenInclude(user => user.Profile)
+            .Include(item => item.ApprovedByUser)
+            .ThenInclude(user => user!.Profile)
             .Include(item => item.EventType)
             .Include(item => item.EventMode)
             .Include(item => item.OnlineEventPlatform)
@@ -152,7 +155,12 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
         {
             var search = filter.Search.Trim();
             var like = $"%{search}%";
+            var normalizedCode = search.Trim().TrimStart('#');
+            var hasEventCode = int.TryParse(normalizedCode, out var eventCode);
             query = query.Where(item =>
+                (hasEventCode && item.EventCode == eventCode)
+                || EF.Functions.Like(item.EventCode.ToString(), like)
+                ||
                 EF.Functions.Like(item.Title, like)
                 || EF.Functions.Like(item.EventPlannerUser.MobileNumber, like)
                 || (item.EventPlannerUser.Email != null && EF.Functions.Like(item.EventPlannerUser.Email, like))
@@ -181,23 +189,15 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
             query = operationalStatus switch
             {
                 Models.Events.EventOperationalStatus.Cancelled => query.Where(item => item.IsCancelled),
-                Models.Events.EventOperationalStatus.Closed => query.Where(item => !item.IsCancelled && item.DateTimeEnd <= nowUtc),
-                Models.Events.EventOperationalStatus.Selling => query.Where(item => !item.IsCancelled && item.DateTimeEnd > nowUtc && item.IsOpenForSell),
+                Models.Events.EventOperationalStatus.Completed => query.Where(item => !item.IsCancelled && item.DateTimeEnd <= nowUtc),
+                Models.Events.EventOperationalStatus.SaleOpen => query.Where(item => !item.IsCancelled && item.DateTimeEnd > nowUtc && item.IsOpenForSell),
+                Models.Events.EventOperationalStatus.SaleClosed => query.Where(item => !item.IsCancelled && item.DateTimeEnd > nowUtc && !item.IsOpenForSell),
                 _ => query.Where(item => !item.IsCancelled && item.DateTimeEnd > nowUtc && !item.IsOpenForSell)
             };
         }
 
-        if (filter.ReviewStatus is Models.Events.EventReviewStatus reviewStatus)
-        {
-            var domainReviewStatus = reviewStatus switch
-            {
-                Models.Events.EventReviewStatus.PendingReview => Randevoo.Domain.Enums.EventReviewStatus.PendingReview,
-                Models.Events.EventReviewStatus.Approved => Randevoo.Domain.Enums.EventReviewStatus.Approved,
-                Models.Events.EventReviewStatus.Rejected => Randevoo.Domain.Enums.EventReviewStatus.Rejected,
-                _ => Randevoo.Domain.Enums.EventReviewStatus.NotSubmitted
-            };
-            query = query.Where(item => item.ReviewStatus == domainReviewStatus);
-        }
+        if (filter.ApprovalStatus is EventApprovalStatus approvalStatus)
+            query = query.Where(item => item.ApprovalStatus == approvalStatus);
 
         if (filter.FromDateUtc is DateTimeOffset fromDate)
         {
@@ -229,6 +229,8 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
             .Take(pageSize)
             .Include(item => item.EventPlannerUser)
             .ThenInclude(user => user.Profile)
+            .Include(item => item.ApprovedByUser)
+            .ThenInclude(user => user!.Profile)
             .Include(item => item.EventType)
             .Include(item => item.EventMode)
             .Include(item => item.OnlineEventPlatform)
@@ -252,6 +254,8 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
         var datingEvent = await _db.DatingEvents
             .Include(item => item.EventPlannerUser)
             .ThenInclude(user => user.Profile)
+            .Include(item => item.ApprovedByUser)
+            .ThenInclude(user => user!.Profile)
             .Include(item => item.EventType)
             .Include(item => item.EventMode)
             .Include(item => item.OnlineEventPlatform)
@@ -266,6 +270,7 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
             return null;
 
         var model = DatabaseModelMapper.ToAdminDatingEvent(datingEvent);
+        model.IsCurrencyLocked = await HasEventFinancialActivityAsync(datingEvent.Id, cancellationToken);
         var smsRequests = await _db.EventParticipantSmsRequests
             .Include(item => item.RequestedByUser)
             .ThenInclude(user => user.Profile)
@@ -299,7 +304,7 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
             .ToList();
 
         var latestReviewLog = logs.FirstOrDefault(item =>
-            item.Action is "EventReviewApproved" or "EventReviewRejected" or "EventReviewSubmitted");
+            item.Action is "EventReviewApproved" or "EventReviewRejected" or "EventReviewSubmitted" or "EventSubmittedForReview");
 
         if (latestReviewLog is not null)
         {
@@ -314,12 +319,10 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
         return model;
     }
 
-    public async Task<Models.Events.DatingEvent> SaveEventAsync(EventDraftInput input, MockUser actor, long? existingEventId = null, long? assignedPlannerId = null, CancellationToken cancellationToken = default)
+    public async Task<Models.Events.DatingEvent> SaveEventAsync(EventDraftInput input, MockUser actor, long? existingEventId = null, long? assignedPlannerId = null, bool submitForReview = false, CancellationToken cancellationToken = default)
     {
         var actorUser = await RequireUserAsync(actor.Id, cancellationToken);
         var plannerUser = await ResolvePlannerAsync(actor, assignedPlannerId, cancellationToken);
-        var plannerProfile = await _db.EventPlannerProfiles.FirstOrDefaultAsync(item => item.UserId == plannerUser.Id, cancellationToken);
-        var plannerCurrencyCode = plannerProfile?.SettlementCurrencyCode ?? "IRR";
         var eventType = await _db.EventTypes.FirstOrDefaultAsync(item => item.Id == input.EventTypeId && item.IsActive, cancellationToken)
             ?? throw new InvalidOperationException("نوع رویداد انتخاب شده معتبر نیست.");
         var eventMode = await ResolveEventModeAsync(input.EventModeId, cancellationToken);
@@ -327,10 +330,10 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
         var normalizedDelivery = NormalizeDeliveryInput(input, eventMode.IsOnline);
         var locationLookup = await ResolveLocationLookupAsync(normalizedDelivery.Country, normalizedDelivery.City, cancellationToken);
         var minimumEducationLevelId = await ResolveMinimumEducationLevelIdAsync(input.MinimumEducationLevelId, cancellationToken);
-        input.MaleTicketCurrencyCode = await ResolveCurrencyCodeAsync(plannerCurrencyCode, cancellationToken);
+        input.MaleTicketCurrencyCode = await ResolveCurrencyCodeAsync(input.MaleTicketCurrencyCode, cancellationToken);
         input.FemaleTicketCurrencyCode = input.MaleTicketCurrencyCode;
+        input.OrganizerPaymentAccountId = await ResolveOrganizerPaymentAccountIdAsync(input, plannerUser.Id, cancellationToken);
         var normalizedFaqs = NormalizeFaqs(input.Faqs);
-        plannerProfile?.LockSettlementCurrency("Locked after organizer event activity.");
 
         var maleRange = DatabaseModelMapper.ParseAgeRange(input.AgeRangeForMale);
         var femaleRange = DatabaseModelMapper.ParseAgeRange(input.AgeRangeForFemale);
@@ -353,6 +356,12 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
 
             EnsureEventWriteAccess(actorUser, datingEvent);
             beforeSnapshot = CreateEventSnapshot(datingEvent);
+            var hasFinancialActivity = await HasEventFinancialActivityAsync(datingEvent.Id, cancellationToken);
+            if (hasFinancialActivity
+                && !string.Equals(datingEvent.CurrencyCode, input.MaleTicketCurrencyCode, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException("واحد پول رویداد بعد از ثبت خرید، رسید یا تراکنش قابل تغییر نیست.");
+            }
 
             if (datingEvent.EventPlannerUserId != plannerUser.Id && actor.Role != AdminRole.EventPlanner)
             {
@@ -382,7 +391,8 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
                 input.MaleTicketCurrencyCode,
                 input.FemaleTicketCurrencyCode,
                 input.PaymentCollectionMethod,
-                input.OrganizerPaymentInstructions);
+                input.OrganizerPaymentInstructions,
+                input.OrganizerPaymentAccountId);
 
             datingEvent.SetLocationLookup(locationLookup.CountryId, locationLookup.CityId);
             datingEvent.SetMinimumEducationLevel(minimumEducationLevelId);
@@ -390,23 +400,21 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
             datingEvent.ReplaceFaqs(normalizedFaqs);
             datingEvent.ReplaceTags(await ResolveEventTagsAsync(input.TagIds, cancellationToken));
             datingEvent.SetCommissionPercent(input.OrganizerCommissionPercent);
-            await _auditLogger.LogAsync(new AuditLogEntry(
-                actorUser.Id,
-                "ویرایش رویداد",
-                "DatingEvent",
-                datingEvent.Id.ToString(),
-                JsonSerializer.Serialize(beforeSnapshot),
-                JsonSerializer.Serialize(CreateEventSnapshot(datingEvent)),
-                $"رویداد «{datingEvent.Title}» به روز شد."), cancellationToken);
+            if (submitForReview)
+            {
+                datingEvent.SubmitForReview();
+            }
 
             await _auditLogger.LogAsync(new AuditLogEntry(
                 actorUser.Id,
-                "EventReviewSubmitted",
+                submitForReview ? "EventSubmittedForReview" : "EventDraftSaved",
                 "DatingEvent",
                 datingEvent.Id.ToString(),
                 JsonSerializer.Serialize(beforeSnapshot),
                 JsonSerializer.Serialize(CreateEventSnapshot(datingEvent)),
-                "رویداد برای بررسی مدیر ارسال شد."), cancellationToken);
+                submitForReview ? "رویداد برای بررسی مدیر ارسال شد." : $"پیش‌نویس رویداد «{datingEvent.Title}» ذخیره شد."), cancellationToken);
+
+            AddWorkflowLog(datingEvent, actorUser.Id, submitForReview ? EventWorkflowActionType.SubmittedForReview : EventWorkflowActionType.DraftSaved, beforeSnapshot, CreateEventSnapshot(datingEvent));
         }
         else
         {
@@ -435,9 +443,14 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
                 input.MaleTicketCurrencyCode,
                 input.FemaleTicketCurrencyCode,
                 input.PaymentCollectionMethod,
-                input.OrganizerPaymentInstructions);
+                input.OrganizerPaymentInstructions,
+                input.OrganizerPaymentAccountId);
 
-            datingEvent.SubmitForReview();
+            if (submitForReview)
+            {
+                datingEvent.SubmitForReview();
+            }
+
             datingEvent.SetLocationLookup(locationLookup.CountryId, locationLookup.CityId);
             datingEvent.SetMinimumEducationLevel(minimumEducationLevelId);
             datingEvent.SetEventDelivery(eventMode, onlineEventPlatform, input.OnlineJoinUrl, input.OnlineAccessInstructions);
@@ -448,21 +461,16 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
 
             await _auditLogger.LogAsync(new AuditLogEntry(
                 actorUser.Id,
-                "ایجاد رویداد",
+                submitForReview ? "EventSubmittedForReview" : "EventDraftSaved",
                 "DatingEvent",
                 datingEvent.Id.ToString(),
                 null,
                 JsonSerializer.Serialize(CreateEventSnapshot(datingEvent)),
-                $"رویداد «{datingEvent.Title}» برای {DatabaseModelMapper.ResolveUserDisplayName(plannerUser)} ساخته شد."), cancellationToken);
+                submitForReview
+                    ? "رویداد برای بررسی مدیر ارسال شد."
+                    : $"پیش‌نویس رویداد «{datingEvent.Title}» برای {DatabaseModelMapper.ResolveUserDisplayName(plannerUser)} ساخته شد."), cancellationToken);
 
-            await _auditLogger.LogAsync(new AuditLogEntry(
-                actorUser.Id,
-                "EventReviewSubmitted",
-                "DatingEvent",
-                datingEvent.Id.ToString(),
-                null,
-                JsonSerializer.Serialize(CreateEventSnapshot(datingEvent)),
-                "رویداد برای بررسی مدیر ارسال شد."), cancellationToken);
+            AddWorkflowLog(datingEvent, actorUser.Id, submitForReview ? EventWorkflowActionType.SubmittedForReview : EventWorkflowActionType.DraftSaved, null, CreateEventSnapshot(datingEvent));
         }
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -480,7 +488,7 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
         }
 
         var beforeSnapshot = CreateEventSnapshot(datingEvent);
-        datingEvent.ApproveByAdmin();
+        datingEvent.ApproveByAdmin(actor.Id, note);
 
         await _auditLogger.LogAsync(new AuditLogEntry(
             actor.Id,
@@ -491,6 +499,8 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
             JsonSerializer.Serialize(CreateEventSnapshot(datingEvent)),
             string.IsNullOrWhiteSpace(note) ? "بررسی رویداد توسط مدیر تایید شد." : note.Trim()), cancellationToken);
 
+        AddWorkflowLog(datingEvent, actor.Id, EventWorkflowActionType.Approved, beforeSnapshot, CreateEventSnapshot(datingEvent), note);
+
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         return (await GetEventAsync(datingEvent.Id, cancellationToken))!;
     }
@@ -500,7 +510,7 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
         var actor = await RequireAdminAsync(admin.Id, cancellationToken);
         var datingEvent = await RequireEventAsync(eventId, cancellationToken);
         var beforeSnapshot = CreateEventSnapshot(datingEvent);
-        datingEvent.RejectByAdmin();
+        datingEvent.RejectByAdmin(note);
 
         await _auditLogger.LogAsync(new AuditLogEntry(
             actor.Id,
@@ -510,6 +520,8 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
             JsonSerializer.Serialize(beforeSnapshot),
             JsonSerializer.Serialize(CreateEventSnapshot(datingEvent)),
             string.IsNullOrWhiteSpace(note) ? "بررسی رویداد توسط مدیر رد شد." : note.Trim()), cancellationToken);
+
+        AddWorkflowLog(datingEvent, actor.Id, EventWorkflowActionType.ReturnedToDraft, beforeSnapshot, CreateEventSnapshot(datingEvent), note);
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         return (await GetEventAsync(datingEvent.Id, cancellationToken))!;
@@ -552,66 +564,343 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
             JsonSerializer.Serialize(CreateEventSnapshot(datingEvent)),
             isOpen ? "فروش رویداد باز شد." : "فروش رویداد بسته شد."), cancellationToken);
 
+        AddWorkflowLog(datingEvent, actor.Id, isOpen ? EventWorkflowActionType.SaleOpened : EventWorkflowActionType.SaleClosed, beforeSnapshot, CreateEventSnapshot(datingEvent));
+
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         return (await GetEventAsync(datingEvent.Id, cancellationToken))!;
     }
 
-    public async Task<Models.Events.DatingEvent> CancelAsync(long eventId, MockUser admin, CancellationToken cancellationToken = default)
+    public async Task<Models.Events.DatingEvent> ApplyStatusTransitionAsync(long eventId, MockUser actor, EventStatusTransitionAction action, string? note = null, CancellationToken cancellationToken = default)
     {
-        var actor = await RequireUserAsync(admin.Id, cancellationToken);
+        var currentEvent = await GetEventAsync(eventId, cancellationToken)
+            ?? throw new InvalidOperationException("رویداد مورد نظر پیدا نشد.");
+
+        var allowedActions = EventStatusTransitionCatalog
+            .GetOptions(currentEvent, actor.Role)
+            .Select(option => option.Action)
+            .ToHashSet();
+
+        if (!allowedActions.Contains(action))
+            throw new InvalidOperationException("این تغییر وضعیت برای وضعیت فعلی رویداد یا نقش شما مجاز نیست.");
+
+        return action switch
+        {
+            EventStatusTransitionAction.OpenSale => await ToggleSaleAsync(eventId, actor, true, cancellationToken),
+            EventStatusTransitionAction.CloseSale => await ToggleSaleAsync(eventId, actor, false, cancellationToken),
+            EventStatusTransitionAction.CancelEvent => (await CancelEventWithChecklistAsync(
+                eventId,
+                actor,
+                RequireNote(note, "برای لغو رویداد دلیل یا توضیح لازم است."),
+                "رویداد لغو شد. پیگیری‌های مالی و اطلاع‌رسانی مطابق قوانین پلتفرم انجام می‌شود.",
+                confirmed: true,
+                cancellationToken)).Event,
+            _ => throw new InvalidOperationException("عملیات تغییر وضعیت پشتیبانی نمی‌شود.")
+        };
+    }
+
+    public async Task<Models.Events.DatingEvent> CancelAsync(long eventId, MockUser admin, string? note = null, CancellationToken cancellationToken = default)
+        => (await CancelEventWithChecklistAsync(
+            eventId,
+            admin,
+            RequireNote(note, "برای لغو رویداد دلیل یا توضیح لازم است."),
+            "رویداد لغو شد. پیگیری‌های مالی و اطلاع‌رسانی مطابق قوانین پلتفرم انجام می‌شود.",
+            confirmed: true,
+            cancellationToken)).Event;
+
+    public async Task<EventCancellationPreview> PreviewCancellationAsync(long eventId, MockUser actor, CancellationToken cancellationToken = default)
+    {
+        var actorUser = await RequireUserAsync(actor.Id, cancellationToken);
+        var datingEvent = await RequireEventAsync(eventId, cancellationToken);
+        EnsureEventWriteAccess(actorUser, datingEvent);
+
+        return await BuildCancellationPreviewAsync(datingEvent, cancellationToken);
+    }
+
+    public async Task<EventCancellationResult> CancelEventWithChecklistAsync(long eventId, MockUser actor, string reason, string publicMessage, bool confirmed, CancellationToken cancellationToken = default)
+    {
+        if (!confirmed)
+            throw new InvalidOperationException("برای لغو رویداد باید چک‌لیست اثرات لغو را تایید کنید.");
+
+        var actorUser = await RequireUserAsync(actor.Id, cancellationToken);
+        var cancellationReason = RequireNote(reason, "برای لغو رویداد دلیل یا توضیح لازم است.");
+        var cancellationPublicMessage = RequireNote(publicMessage, "برای لغو رویداد پیام اطلاع‌رسانی لازم است.");
+        if (cancellationReason.Length > 1000)
+            throw new InvalidOperationException("دلیل لغو حداکثر می‌تواند ۱۰۰۰ کاراکتر باشد.");
+
+        if (cancellationPublicMessage.Length > 480)
+            throw new InvalidOperationException("پیام اطلاع‌رسانی لغو حداکثر می‌تواند ۴۸۰ کاراکتر باشد.");
+
+        await using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
+
         var datingEvent = await _db.DatingEvents
             .Include(item => item.Tickets)
+            .ThenInclude(ticket => ticket.User)
             .Include(item => item.EventPlannerUser)
             .ThenInclude(user => user.Profile)
             .Include(item => item.EventType)
+            .Include(item => item.EventMode)
+            .Include(item => item.OnlineEventPlatform)
+            .Include(item => item.Country)
+            .Include(item => item.City)
             .Include(item => item.EventTags)
             .ThenInclude(eventTag => eventTag.Tag)
             .FirstOrDefaultAsync(item => item.Id == eventId, cancellationToken)
             ?? throw new InvalidOperationException("رویداد مورد نظر پیدا نشد.");
 
-        EnsureEventWriteAccess(actor, datingEvent);
+        EnsureEventWriteAccess(actorUser, datingEvent);
 
         var beforeSnapshot = CreateEventSnapshot(datingEvent);
-        var tickets = datingEvent.Cancel();
-        var refundCount = 0;
-        var refundTotal = 0m;
-        var refundTotalIrr = 0m;
+        var preview = await BuildCancellationPreviewAsync(datingEvent, cancellationToken);
+        if (!preview.CanCancel)
+            throw new InvalidOperationException(preview.BlockingReasons.FirstOrDefault() ?? "لغو این رویداد در وضعیت فعلی مجاز نیست.");
 
-        foreach (var ticket in tickets.Where(item => item.IsRefunded))
+        var activeTickets = datingEvent.Tickets
+            .Where(ticket => !ticket.IsRefunded && !ticket.IsRemoved)
+            .ToList();
+        var paidOrders = await _db.TicketOrders
+            .Include(order => order.BuyerUser)
+            .ThenInclude(user => user.Profile)
+            .Where(order => order.DatingEventId == eventId && order.PaymentStatus == TicketOrderPaymentStatus.Paid)
+            .ToListAsync(cancellationToken);
+        var pendingManualReceiptCount = await _db.ManualPaymentReceipts
+            .CountAsync(receipt => receipt.DatingEventId == eventId && receipt.Status == ManualPaymentReceiptStatus.Submitted, cancellationToken);
+
+        var smsRecipients = activeTickets
+            .Select(ticket => ticket.User)
+            .Concat(paidOrders.Select(order => order.BuyerUser))
+            .Where(user => !string.IsNullOrWhiteSpace(user.MobileNumber))
+            .GroupBy(user => user.Id)
+            .Select(group => group.First())
+            .ToList();
+
+        datingEvent.Cancel(actorUser.Id, cancellationReason);
+
+        var walletCreditCount = 0;
+        var walletCreditTotal = 0m;
+        var walletCreditTotalIrr = 0m;
+        var organizerManualRefundCount = 0;
+        var organizerManualRefundTotalIrr = 0m;
+
+        foreach (var order in paidOrders)
         {
-            var balance = await _db.BalanceAccounts.FirstOrDefaultAsync(item => item.UserId == ticket.UserId, cancellationToken);
-            if (balance is null)
-                continue;
+            order.MarkRefunded();
 
-            balance.Credit(
-                ticket.Price,
+            var buyerBalance = await GetOrCreateBalanceAccountAsync(order.BuyerUser, cancellationToken);
+            buyerBalance.Credit(
+                order.NetAmount,
                 BalanceTransactionType.TicketRefund,
-                $"Refund for {datingEvent.Title}",
+                $"بازگشت وجه سفارش رویداد {datingEvent.Title}",
                 datingEvent.Id,
-                nameof(EventTicket),
-                ticket.Id,
-                actor.Id,
-                ticket.CurrencyCode,
-                ticket.ReportingPriceIrr,
-                ticket.ExchangeRateToIrr,
-                ticket.ExchangeRateCapturedAtUtc,
-                ticket.ExchangeRateId);
-            refundCount++;
-            refundTotal += ticket.Price;
-            refundTotalIrr += ticket.ReportingPriceIrr;
+                nameof(TicketOrder),
+                order.Id,
+                actorUser.Id,
+                order.CurrencyCode,
+                order.ReportingNetAmountIrr,
+                order.ExchangeRateToIrr,
+                order.ExchangeRateCapturedAtUtc,
+                order.ExchangeRateId,
+                order);
+            walletCreditCount++;
+            walletCreditTotal += order.NetAmount;
+            walletCreditTotalIrr += order.ReportingNetAmountIrr;
+
+            if (order.PaymentCollectionMethod == EventPaymentCollectionMethod.OrganizerManualTransfer)
+            {
+                var plannerBalance = await GetOrCreateBalanceAccountAsync(datingEvent.EventPlannerUser, cancellationToken);
+                plannerBalance.DebitAllowNegative(
+                    order.NetAmount,
+                    BalanceTransactionType.OrganizerManualReceiptLiability,
+                    $"بدهی برگزارکننده بابت اعتبار کیف پول سفارش رویداد لغوشده {datingEvent.Title}",
+                    datingEvent.Id,
+                    nameof(TicketOrder),
+                    order.Id,
+                    actorUser.Id,
+                    order.CurrencyCode,
+                    order.ReportingNetAmountIrr,
+                    order.ExchangeRateToIrr,
+                    order.ExchangeRateCapturedAtUtc,
+                    order.ExchangeRateId,
+                    order);
+                organizerManualRefundCount++;
+                organizerManualRefundTotalIrr += order.ReportingNetAmountIrr;
+            }
         }
 
+        var request = new EventCancellationRequest(datingEvent, actorUser, cancellationReason);
+        var previewJson = JsonSerializer.Serialize(preview);
+        request.Approve(actorUser, cancellationReason, cancellationPublicMessage, previewJson);
+        _db.EventCancellationRequests.Add(request);
+
+        foreach (var recipient in smsRecipients)
+        {
+            _db.SmsQueueItems.Add(new SmsQueueItem(recipient, datingEvent, cancellationPublicMessage));
+        }
+
+        if (smsRecipients.Count > 0)
+        {
+            var cancellationNotification = new Notification(
+                actorUser,
+                NotificationType.EventUpdate,
+                "لغو رویداد",
+                cancellationPublicMessage,
+                NotificationPriority.Critical,
+                requiresApproval: false,
+                datingEvent,
+                nameof(EventCancellationRequest),
+                null);
+            foreach (var recipient in smsRecipients)
+                cancellationNotification.AddRecipient(recipient, NotificationDeliveryChannel.InApp);
+            _db.Notifications.Add(cancellationNotification);
+        }
+
+        var afterPayload = new
+        {
+            Event = CreateEventSnapshot(datingEvent),
+            activeTicketRefundCount = activeTickets.Count,
+            paidOrderRefundCount = paidOrders.Count,
+            walletCreditCount,
+            walletCreditTotal,
+            walletCreditTotalIrr,
+            organizerManualRefundCount,
+            organizerManualRefundTotalIrr,
+            pendingManualReceiptReviewCount = pendingManualReceiptCount,
+            smsRecipientCount = smsRecipients.Count
+        };
+
         await _auditLogger.LogAsync(new AuditLogEntry(
-            actor.Id,
+            actorUser.Id,
             "EventCancelled",
             "DatingEvent",
             datingEvent.Id.ToString(),
             JsonSerializer.Serialize(beforeSnapshot),
-            JsonSerializer.Serialize(new { Event = CreateEventSnapshot(datingEvent), refundCount, refundTotal, refundTotalIrr }),
-            "رویداد لغو شد و بلیت‌های معتبر برگشت خوردند."), cancellationToken);
+            JsonSerializer.Serialize(afterPayload),
+            cancellationReason), cancellationToken);
+
+        AddWorkflowLog(
+            datingEvent,
+            actorUser.Id,
+            EventWorkflowActionType.Cancelled,
+            beforeSnapshot,
+            afterPayload,
+            cancellationReason,
+            metadataJson: Truncate(previewJson, 3900));
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
-        return (await GetEventAsync(datingEvent.Id, cancellationToken))!;
+        await transaction.CommitAsync(cancellationToken);
+
+        return new EventCancellationResult
+        {
+            Event = (await GetEventAsync(datingEvent.Id, cancellationToken))!,
+            Preview = preview
+        };
+    }
+
+    private async Task<EventCancellationPreview> BuildCancellationPreviewAsync(DomainDatingEvent datingEvent, CancellationToken cancellationToken)
+    {
+        var operationalStatus = DatabaseModelMapper.ToEventOperationalStatus(datingEvent);
+        var paidOrderQuery = _db.TicketOrders
+            .AsNoTracking()
+            .Where(order => order.DatingEventId == datingEvent.Id && order.PaymentStatus == TicketOrderPaymentStatus.Paid);
+        var activeTicketQuery = _db.EventTickets
+            .AsNoTracking()
+            .Where(ticket => ticket.DatingEventId == datingEvent.Id && !ticket.IsRefunded && !ticket.IsRemoved);
+        var manualReceiptQuery = _db.ManualPaymentReceipts
+            .AsNoTracking()
+            .Where(receipt => receipt.DatingEventId == datingEvent.Id);
+        var settlementQuery = _db.EventSettlementRequests
+            .AsNoTracking()
+            .Where(request => request.DatingEventId == datingEvent.Id);
+
+        var paidOrderCount = await paidOrderQuery.CountAsync(cancellationToken);
+        var buyerCount = await paidOrderQuery.Select(order => order.BuyerUserId).Distinct().CountAsync(cancellationToken);
+        var activeTicketCount = await activeTicketQuery.CountAsync(cancellationToken);
+        var participantCount = await activeTicketQuery.Select(ticket => ticket.UserId).Distinct().CountAsync(cancellationToken);
+        var pendingManualReceiptCount = await manualReceiptQuery.CountAsync(receipt => receipt.Status == ManualPaymentReceiptStatus.Submitted, cancellationToken);
+        var approvedManualReceiptCount = await manualReceiptQuery.CountAsync(receipt => receipt.Status == ManualPaymentReceiptStatus.Approved, cancellationToken);
+        var pendingSettlementRequestCount = await settlementQuery.CountAsync(request => request.Status == EventSettlementRequestStatus.Pending, cancellationToken);
+        var approvedSettlementRequestCount = await settlementQuery.CountAsync(request => request.Status == EventSettlementRequestStatus.Approved, cancellationToken);
+        var platformRefundAmountIrr = await paidOrderQuery.SumAsync(order => order.ReportingNetAmountIrr, cancellationToken);
+        var organizerManualRefundAmountIrr = await paidOrderQuery
+            .Where(order => order.PaymentCollectionMethod == EventPaymentCollectionMethod.OrganizerManualTransfer)
+            .SumAsync(order => order.ReportingNetAmountIrr, cancellationToken);
+
+        var blockingReasons = new List<string>();
+        if (datingEvent.ApprovalStatus != EventApprovalStatus.Approved)
+            blockingReasons.Add("پروفایل رویداد هنوز تایید نشده است؛ تغییر وضعیت عملیاتی فقط بعد از تایید پروفایل مجاز است.");
+        if (operationalStatus == Models.Events.EventOperationalStatus.Cancelled)
+            blockingReasons.Add("این رویداد قبلا لغو شده است.");
+        if (operationalStatus == Models.Events.EventOperationalStatus.Completed)
+            blockingReasons.Add("این رویداد تمام شده است و برای تغییر مالی باید از مسیر تسویه یا اصلاح مالی اقدام شود.");
+        if (pendingSettlementRequestCount > 0)
+            blockingReasons.Add("برای این رویداد درخواست تسویه در انتظار بررسی وجود دارد؛ قبل از لغو باید تکلیف تسویه مشخص شود.");
+        if (approvedSettlementRequestCount > 0)
+            blockingReasons.Add("برای این رویداد تسویه تایید شده وجود دارد؛ لغو بعد از تسویه نیازمند فرایند برگشت مالی جداگانه است.");
+
+        var consequences = new List<string>
+        {
+            "فروش رویداد بسته می‌شود و وضعیت عملیاتی رویداد به «لغو شده» تغییر می‌کند.",
+            "همه بلیت‌های فعال این رویداد از حالت معتبر خارج و به عنوان برگشت‌خورده ثبت می‌شوند.",
+            "سفارش‌های پرداخت‌شده به وضعیت «بازگشت وجه» منتقل می‌شوند.",
+            "درخواست لغو، لاگ تغییر وضعیت و audit مالی/عملیاتی در دیتابیس ثبت می‌شود."
+        };
+
+        if (platformRefundAmountIrr > 0)
+            consequences.Add("برای همه سفارش‌های پرداخت‌شده، مبلغ به عنوان اعتبار کیف پول در حساب خریدار سفارش ثبت می‌شود تا بتواند در خریدهای بعدی استفاده کند.");
+        if (organizerManualRefundAmountIrr > 0)
+            consequences.Add("برای پرداخت‌های مستقیم به برگزارکننده، هم کیف پول خریدار شارژ می‌شود و هم بدهی برگزارکننده به همان مبلغ در حساب مالی برگزارکننده ثبت می‌شود.");
+        if (pendingManualReceiptCount > 0)
+            consequences.Add("رسیدهای دستیِ در انتظار بررسی رد نمی‌شوند؛ اگر بعداً تایید شوند، مبلغشان به کیف پول کاربر اضافه می‌شود نه اینکه برای رویداد لغوشده بلیت صادر شود.");
+        if (buyerCount + participantCount > 0)
+            consequences.Add("برای خریداران و شرکت‌کنندگان مرتبط، پیام اطلاع‌رسانی لغو در صف پیامک ثبت می‌شود.");
+
+        var warnings = new List<string>();
+        if (paidOrderCount == 0 && activeTicketCount == 0)
+            warnings.Add("برای این رویداد هنوز خرید یا بلیت فعالی ثبت نشده است؛ لغو اثر مالی مستقیم ندارد.");
+        if (organizerManualRefundAmountIrr > 0)
+            warnings.Add("بخشی از پرداخت‌ها مستقیم به برگزارکننده انجام شده؛ اعتبار کاربر داخل سایت شارژ می‌شود و بدهی برگزارکننده باید در تسویه‌های بعدی کنترل شود.");
+        if (approvedManualReceiptCount > 0)
+            warnings.Add("برای این رویداد رسید دستی تایید شده وجود دارد؛ سفارش‌های مرتبط refund می‌شوند اما بررسی مالی آن باید در گزارش‌ها پیگیری شود.");
+
+        var summary = paidOrderCount == 0 && activeTicketCount == 0
+            ? "لغو این رویداد فروش را می‌بندد و رکورد لغو را ثبت می‌کند؛ اثر مالی مستقیمی پیدا نشد."
+            : $"لغو این رویداد روی {paidOrderCount:N0} سفارش پرداخت‌شده، {activeTicketCount:N0} بلیت فعال، {buyerCount:N0} خریدار و {participantCount:N0} شرکت‌کننده اثر می‌گذارد.";
+        var suggestedMessage = $"رویداد «{datingEvent.Title}» لغو شد. وضعیت پرداخت و پیگیری‌های لازم از طریق حساب کاربری شما اطلاع‌رسانی می‌شود.";
+
+        return new EventCancellationPreview
+        {
+            EventId = datingEvent.Id,
+            EventTitle = datingEvent.Title,
+            CurrentOperationalStatus = DisplayFormatter.OperationalStatus(operationalStatus),
+            CanCancel = blockingReasons.Count == 0,
+            Summary = summary,
+            RequiresManualRefundFollowUp = organizerManualRefundAmountIrr > 0,
+            CreatesBuyerRefundCredits = paidOrderCount > 0,
+            ActiveTicketCount = activeTicketCount,
+            PaidOrderCount = paidOrderCount,
+            BuyerCount = buyerCount,
+            ParticipantCount = participantCount,
+            PendingManualReceiptCount = pendingManualReceiptCount,
+            ApprovedManualReceiptCount = approvedManualReceiptCount,
+            PendingSettlementRequestCount = pendingSettlementRequestCount,
+            ApprovedSettlementRequestCount = approvedSettlementRequestCount,
+            PlatformRefundAmountIrr = platformRefundAmountIrr,
+            OrganizerManualRefundAmountIrr = organizerManualRefundAmountIrr,
+            SuggestedPublicMessage = suggestedMessage,
+            Metrics = new[]
+            {
+                new EventCancellationPreviewMetric { Label = "سفارش پرداخت‌شده", Value = paidOrderCount.ToString("N0") },
+                new EventCancellationPreviewMetric { Label = "بلیت فعال", Value = activeTicketCount.ToString("N0") },
+                new EventCancellationPreviewMetric { Label = "خریدار", Value = buyerCount.ToString("N0") },
+                new EventCancellationPreviewMetric { Label = "شرکت‌کننده", Value = participantCount.ToString("N0") },
+                new EventCancellationPreviewMetric { Label = "اعتبار کیف پول خریداران", Value = FormatIrr(platformRefundAmountIrr), Hint = "برای استفاده در خریدهای بعدی." },
+                new EventCancellationPreviewMetric { Label = "بدهی برگزارکننده", Value = FormatIrr(organizerManualRefundAmountIrr), Hint = "برای پرداخت مستقیم به برگزارکننده." },
+                new EventCancellationPreviewMetric { Label = "رسید دستی در انتظار", Value = pendingManualReceiptCount.ToString("N0") },
+                new EventCancellationPreviewMetric { Label = "تسویه درگیر", Value = (pendingSettlementRequestCount + approvedSettlementRequestCount).ToString("N0") }
+            },
+            Consequences = consequences,
+            Warnings = warnings,
+            BlockingReasons = blockingReasons
+        };
     }
 
     public async Task<IReadOnlyList<EventTicketBuyerItem>> GetEventTicketBuyersAsync(long eventId, MockUser actor, CancellationToken cancellationToken = default)
@@ -711,14 +1000,21 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
             ticket.ExchangeRateCapturedAtUtc,
             ticket.ExchangeRateId);
 
-        var plannerBalance = await GetOrCreateBalanceAccountAsync(ticket.DatingEvent.EventPlannerUser, cancellationToken);
         var plannerIncome = ticket.Price * (100 - ticket.DatingEvent.EventPlannerCommissionPercent) / 100;
-        if (plannerIncome > 0)
+        var hasSettlementCredit = await _db.BalanceTransactions.AnyAsync(
+            transaction =>
+                transaction.UserId == ticket.DatingEvent.EventPlannerUserId
+                && transaction.DatingEventId == ticket.DatingEventId
+                && transaction.Type == BalanceTransactionType.EventSettlementCredit,
+            cancellationToken);
+
+        if (plannerIncome > 0 && hasSettlementCredit)
         {
+            var plannerBalance = await GetOrCreateBalanceAccountAsync(ticket.DatingEvent.EventPlannerUser, cancellationToken);
             plannerBalance.DebitAllowNegative(
                 plannerIncome,
-                BalanceTransactionType.EventPlannerIncomeReversal,
-                $"برگشت سهم برگزارکننده بابت بازگشت اضطراری بلیت {ticket.DatingEvent.Title}",
+                BalanceTransactionType.EventSettlementReversal,
+                $"برگشت بستانکاری برگزارکننده بابت بازگشت اضطراری بلیت {ticket.DatingEvent.Title}",
                 ticket.DatingEventId,
                 nameof(EventTicket),
                 ticket.Id,
@@ -863,6 +1159,19 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
         await _unitOfWork.SaveChangesAsync(cancellationToken);
     }
 
+    private static string RequireNote(string? note, string message)
+    {
+        if (string.IsNullOrWhiteSpace(note))
+            throw new InvalidOperationException(message);
+
+        return note.Trim();
+    }
+
+    private static string FormatIrr(decimal amount) => $"{amount:N0} ریال";
+
+    private static string Truncate(string value, int maxLength)
+        => value.Length <= maxLength ? value : value[..maxLength];
+
     private async Task<User> RequireUserAsync(long userId, CancellationToken cancellationToken)
     {
         return await _db.Users
@@ -960,6 +1269,44 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
         return normalized;
     }
 
+    private async Task<long?> ResolveOrganizerPaymentAccountIdAsync(EventDraftInput input, long plannerUserId, CancellationToken cancellationToken)
+    {
+        if (input.PaymentCollectionMethod != EventPaymentCollectionMethod.OrganizerManualTransfer)
+        {
+            input.OrganizerPaymentInstructions = null;
+            return null;
+        }
+
+        if (input.OrganizerPaymentAccountId is null or <= 0)
+            throw new InvalidOperationException("برای واریز مستقیم، حساب دریافت وجه برگزارکننده را انتخاب کنید.");
+
+        var normalizedCurrency = CurrencyLookup.NormalizeCode(input.MaleTicketCurrencyCode);
+        var account = await _db.PlannerBankAccounts
+            .AsNoTracking()
+            .FirstOrDefaultAsync(item => item.Id == input.OrganizerPaymentAccountId.Value, cancellationToken)
+            ?? throw new InvalidOperationException("حساب دریافت وجه برگزارکننده پیدا نشد.");
+
+        if (account.UserId != plannerUserId)
+            throw new InvalidOperationException("حساب دریافت وجه انتخاب‌شده متعلق به برگزارکننده این رویداد نیست.");
+
+        if (!account.IsActive)
+            throw new InvalidOperationException("حساب دریافت وجه انتخاب‌شده فعال نیست.");
+
+        if (!string.Equals(account.CurrencyCode, normalizedCurrency, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("ارز حساب دریافت وجه با ارز رویداد هماهنگ نیست.");
+
+        input.OrganizerPaymentInstructions = account.PublicPaymentInstructions;
+        return account.Id;
+    }
+
+    private async Task<bool> HasEventFinancialActivityAsync(long eventId, CancellationToken cancellationToken)
+    {
+        return await _db.EventTickets.AnyAsync(item => item.DatingEventId == eventId, cancellationToken)
+            || await _db.OnlinePayments.AnyAsync(item => item.DatingEventId == eventId, cancellationToken)
+            || await _db.BalanceTransactions.AnyAsync(item => item.DatingEventId == eventId, cancellationToken)
+            || await _db.ManualPaymentReceipts.AnyAsync(item => item.DatingEventId == eventId, cancellationToken);
+    }
+
     private async Task<EventModeLookup> ResolveEventModeAsync(long eventModeId, CancellationToken cancellationToken)
     {
         var normalizedEventModeId = eventModeId <= 0 ? 2L : eventModeId;
@@ -1044,10 +1391,25 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
         if (datingEvent.IsCancelled)
             return;
 
-        if (isOpen && !datingEvent.IsOpenForSell)
+        if (isOpen && datingEvent.SaleStatus != EventSaleStatus.Open)
             datingEvent.OpenForSell();
-        else if (!isOpen && datingEvent.IsOpenForSell)
+        else if (!isOpen && datingEvent.SaleStatus != EventSaleStatus.Closed)
             datingEvent.CloseForSell();
+    }
+
+    private void AddWorkflowLog(DomainDatingEvent datingEvent, long? actorUserId, EventWorkflowActionType actionType, object? beforeSnapshot, object? afterSnapshot, string? reason = null, string? metadataJson = null)
+    {
+        _db.EventWorkflowLogs.Add(new EventWorkflowLog(
+            datingEvent,
+            actionType,
+            actorUserId,
+            toApprovalStatus: datingEvent.ApprovalStatus,
+            toSaleStatus: datingEvent.SaleStatus,
+            toLifecycleStatus: datingEvent.LifecycleStatus,
+            reason: reason,
+            beforeJson: beforeSnapshot is null ? null : JsonSerializer.Serialize(beforeSnapshot),
+            afterJson: afterSnapshot is null ? null : JsonSerializer.Serialize(afterSnapshot),
+            metadataJson: metadataJson));
     }
 
     private static object CreateEventSnapshot(DomainDatingEvent datingEvent)
@@ -1072,12 +1434,14 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
             datingEvent.EventPlannerCommissionPercent,
             datingEvent.PaymentCollectionMethod,
             datingEvent.OrganizerPaymentInstructions,
+            datingEvent.OrganizerPaymentAccountId,
             datingEvent.MaleCapacity,
             datingEvent.FemaleCapacity,
             datingEvent.NumberOfLikesAllowed,
             datingEvent.MaleTicketPrice,
             datingEvent.MaleTicketCurrencyCode,
             datingEvent.FemaleTicketPrice,
+            datingEvent.CurrencyCode,
             datingEvent.FemaleTicketCurrencyCode,
             datingEvent.EducationLevelRestriction,
             Tags = datingEvent.Tags.ToArray(),
@@ -1092,6 +1456,16 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
             datingEvent.IsOpenForSell,
             datingEvent.IsCancelled,
             datingEvent.ReviewStatus,
+            datingEvent.ApprovalStatus,
+            datingEvent.SaleStatus,
+            datingEvent.LifecycleStatus,
+            datingEvent.AdminReviewNote,
+            datingEvent.ApprovedAtUtc,
+            datingEvent.ApprovedByUserId,
+            datingEvent.CancelledAtUtc,
+            datingEvent.CancelledByUserId,
+            datingEvent.CancellationReason,
+            datingEvent.CompletedAtUtc,
             OperationalStatus = datingEvent.ResolveOperationalStatus(DateTime.UtcNow)
         };
     }

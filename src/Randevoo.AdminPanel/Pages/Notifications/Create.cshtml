@@ -1,0 +1,146 @@
+@page
+@model Randevoo.AdminPanel.Pages.Notifications.CreateModel
+@using Randevoo.Domain.Enums
+@{
+    ViewData["Title"] = "ارسال پیام";
+}
+
+<div class="page-heading">
+    <div>
+        <h1>ارسال پیام</h1>
+        <p>پیام‌ها از تیکت‌ها جدا هستند و برای اطلاع‌رسانی سیستمی، مالی یا رویدادی استفاده می‌شوند.</p>
+    </div>
+</div>
+
+<form method="post" class="content-card form-grid notification-compose" id="notificationComposeForm">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+    <div class="row g-3">
+        <div class="col-md-6">
+            <label asp-for="Input.Title" class="form-label">عنوان</label>
+            <input asp-for="Input.Title" class="form-control" />
+            <span asp-validation-for="Input.Title" class="text-danger"></span>
+        </div>
+        <div class="col-md-3">
+            <label asp-for="Input.Type" class="form-label">نوع پیام</label>
+            <select asp-for="Input.Type" class="form-select" id="messageTypeSelect">
+                @foreach (var item in Model.MessageTypes)
+                {
+                    <option value="@item.Type"
+                            data-description="@item.Description"
+                            data-targets="@string.Join(",", item.AllowedTargets)"
+                            data-sms="@item.SupportsSms.ToString().ToLowerInvariant()"
+                            data-approval="@item.RequiresApproval.ToString().ToLowerInvariant()"
+                            data-priority="@item.DefaultPriority">
+                        @item.Label
+                    </option>
+                }
+            </select>
+            <div class="form-text" id="messageTypeHint">نوع پیام بر اساس نقش شما فیلتر شده است.</div>
+        </div>
+        <div class="col-md-3">
+            <label asp-for="Input.Priority" class="form-label">اهمیت</label>
+            <select asp-for="Input.Priority" class="form-select" asp-items="Model.PriorityItems"></select>
+        </div>
+        <div class="col-md-4">
+            <label asp-for="Input.Target" class="form-label">گیرندگان</label>
+            <select asp-for="Input.Target" class="form-select" asp-items="Model.TargetItems" id="targetSelect"></select>
+            <div class="form-text" id="targetHint">گیرندگان مجاز با توجه به نقش و نوع پیام مشخص می‌شوند.</div>
+        </div>
+        <div class="col-md-4" id="userPickerGroup">
+            <label asp-for="Input.TargetUserId" class="form-label">کاربر گیرنده</label>
+            <select asp-for="Input.TargetUserId" class="form-select searchable-select" asp-items="Model.UserItems">
+                <option value="">انتخاب کاربر</option>
+            </select>
+            <div class="form-text">برای برگزارکننده فقط کاربران مرتبط با رویداد انتخاب‌شده نمایش داده می‌شوند.</div>
+        </div>
+        <div class="col-md-4" id="eventPickerGroup">
+            <label asp-for="Input.EventId" class="form-label">رویداد</label>
+            <select asp-for="Input.EventId" class="form-select searchable-select" asp-items="Model.EventItems">
+                <option value="">انتخاب رویداد</option>
+            </select>
+            <div class="form-text">رویدادهای فعال و اخیر نمایش داده می‌شوند. متن گزینه شامل کد رویداد است.</div>
+        </div>
+        <div class="col-12">
+            <label asp-for="Input.Body" class="form-label">متن پیام</label>
+            <textarea asp-for="Input.Body" class="form-control" rows="6"></textarea>
+            <span asp-validation-for="Input.Body" class="text-danger"></span>
+        </div>
+        <div class="col-12" id="smsGroup">
+            <label class="form-check notification-sms-check">
+                <input asp-for="Input.SendSms" class="form-check-input" />
+                <span class="form-check-label">همزمان در صف پیامک رویداد هم ثبت شود</span>
+            </label>
+            <div class="form-text">پیامک فقط برای پیام‌های رویدادی مجاز است و ممکن است نیازمند تایید مدیر باشد.</div>
+        </div>
+        <div class="col-12">
+            <div class="notification-compose-summary" aria-live="polite">
+                <div>
+                    <span class="summary-label">خلاصه ارسال</span>
+                    <strong id="composeSummaryTitle">نوع پیام و گیرنده را انتخاب کنید.</strong>
+                </div>
+                <span class="summary-badge" id="composeSummaryApproval">وضعیت تایید نامشخص</span>
+            </div>
+        </div>
+    </div>
+    <div class="mt-4 d-flex gap-2">
+        <button class="btn btn-primary" type="submit">ثبت پیام</button>
+        <a asp-page="/Notifications/Index" class="btn btn-outline-secondary">انصراف</a>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        (() => {
+            const typeSelect = document.getElementById('messageTypeSelect');
+            const targetSelect = document.getElementById('targetSelect');
+            const typeHint = document.getElementById('messageTypeHint');
+            const userGroup = document.getElementById('userPickerGroup');
+            const eventGroup = document.getElementById('eventPickerGroup');
+            const smsGroup = document.getElementById('smsGroup');
+            const sendSms = document.getElementById('Input_SendSms');
+            const summaryTitle = document.getElementById('composeSummaryTitle');
+            const summaryApproval = document.getElementById('composeSummaryApproval');
+
+            const eventTargets = new Set(['EventParticipants', 'EventBuyers']);
+            function refreshComposeUi() {
+                const option = typeSelect?.selectedOptions?.[0];
+                const allowedTargets = new Set((option?.dataset.targets || '').split(',').filter(Boolean));
+                const supportsSms = option?.dataset.sms === 'true';
+                const requiresApproval = option?.dataset.approval === 'true';
+
+                if (typeHint && option) {
+                    typeHint.textContent = option.dataset.description || 'نوع پیام بر اساس نقش شما فیلتر شده است.';
+                }
+
+                Array.from(targetSelect.options).forEach(target => {
+                    target.hidden = allowedTargets.size > 0 && !allowedTargets.has(target.value);
+                    target.disabled = target.hidden;
+                });
+
+                if (targetSelect.selectedOptions[0]?.disabled) {
+                    const firstAllowed = Array.from(targetSelect.options).find(item => !item.disabled && item.value);
+                    if (firstAllowed) targetSelect.value = firstAllowed.value;
+                }
+
+                const target = targetSelect.value;
+                userGroup.hidden = target !== 'User';
+                eventGroup.hidden = !(target === 'User' || eventTargets.has(target));
+                smsGroup.hidden = !supportsSms || !eventTargets.has(target);
+                if (sendSms && smsGroup.hidden) sendSms.checked = false;
+
+                const targetText = targetSelect.selectedOptions[0]?.textContent?.trim() || 'گیرنده';
+                const typeText = option?.textContent?.trim() || 'نوع پیام';
+                summaryTitle.textContent = `${typeText} برای ${targetText}`;
+                const needsApproval = requiresApproval || (sendSms?.checked && !smsGroup.hidden);
+                summaryApproval.textContent = needsApproval ? 'نیازمند تایید مدیر' : 'ارسال مستقیم';
+                summaryApproval.classList.toggle('requires-approval', needsApproval);
+            }
+
+            typeSelect?.addEventListener('change', refreshComposeUi);
+            targetSelect?.addEventListener('change', refreshComposeUi);
+            sendSms?.addEventListener('change', refreshComposeUi);
+            refreshComposeUi();
+        })();
+    </script>
+}

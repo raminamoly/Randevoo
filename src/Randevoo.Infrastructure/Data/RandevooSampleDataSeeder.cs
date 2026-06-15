@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Randevoo.Domain.Constants;
 using Randevoo.Domain.Entities;
 using Randevoo.Domain.Enums;
 using Randevoo.Domain.Exceptions;
@@ -9,6 +10,79 @@ namespace Randevoo.Infrastructure.Data;
 
 public static class RandevooSampleDataSeeder
 {
+    private const string SampleUploadsRoot = "/uploads/sample-data";
+
+    private static readonly IReadOnlyDictionary<string, string> SampleParticipantImages = new Dictionary<string, string>(StringComparer.Ordinal)
+    {
+        ["09120001001"] = $"{SampleUploadsRoot}/participants/participant-ramin.png",
+        ["09120001002"] = $"{SampleUploadsRoot}/participants/participant-arian.png",
+        ["09120001003"] = $"{SampleUploadsRoot}/participants/participant-bahareh.png",
+        ["09120001004"] = $"{SampleUploadsRoot}/participants/participant-alireza.png",
+        ["09120001005"] = $"{SampleUploadsRoot}/participants/participant-shayan.png",
+        ["09120001006"] = $"{SampleUploadsRoot}/participants/participant-yasaman.png",
+        ["09123334455"] = $"{SampleUploadsRoot}/participants/participant-arzoo.png",
+        ["09124445566"] = $"{SampleUploadsRoot}/participants/participant-kian.png"
+    };
+
+    private static readonly IReadOnlyDictionary<string, string> SamplePlannerImages = new Dictionary<string, string>(StringComparer.Ordinal)
+    {
+        ["09125550000"] = $"{SampleUploadsRoot}/planners/planner-pouya.png",
+        ["09125550001"] = $"{SampleUploadsRoot}/planners/planner-hanieh.png",
+        ["09125550002"] = $"{SampleUploadsRoot}/planners/planner-sam.png"
+    };
+
+    private static readonly IReadOnlyDictionary<string, string[]> SampleEventImages = new Dictionary<string, string[]>(StringComparer.Ordinal)
+    {
+        ["شب اجتماعی تهران"] =
+        [
+            $"{SampleUploadsRoot}/events/event-01.png",
+            $"{SampleUploadsRoot}/events/event-02.png",
+            $"{SampleUploadsRoot}/events/event-03.png"
+        ],
+        ["پیش نمایش شام روف تاپ"] =
+        [
+            $"{SampleUploadsRoot}/events/event-04.png",
+            $"{SampleUploadsRoot}/events/event-05.png",
+            $"{SampleUploadsRoot}/events/event-06.png"
+        ],
+        ["کافه گفتگوی شیراز"] =
+        [
+            $"{SampleUploadsRoot}/events/event-07.png",
+            $"{SampleUploadsRoot}/events/event-08.png",
+            $"{SampleUploadsRoot}/events/event-09.png"
+        ],
+        ["ورکشاپ آشنایی اصفهان"] =
+        [
+            $"{SampleUploadsRoot}/events/event-10.png",
+            $"{SampleUploadsRoot}/events/event-11.png",
+            $"{SampleUploadsRoot}/events/event-12.png"
+        ],
+        ["گالری عصرانه تهران"] =
+        [
+            $"{SampleUploadsRoot}/events/event-13.png",
+            $"{SampleUploadsRoot}/events/event-01.png",
+            $"{SampleUploadsRoot}/events/event-02.png"
+        ],
+        ["قرار قهوه آنلاین"] =
+        [
+            $"{SampleUploadsRoot}/events/event-03.png",
+            $"{SampleUploadsRoot}/events/event-04.png",
+            $"{SampleUploadsRoot}/events/event-05.png"
+        ],
+        ["روف تاپ تابستانی مشهد"] =
+        [
+            $"{SampleUploadsRoot}/events/event-06.png",
+            $"{SampleUploadsRoot}/events/event-07.png",
+            $"{SampleUploadsRoot}/events/event-08.png"
+        ],
+        ["شب بازی تبریز"] =
+        [
+            $"{SampleUploadsRoot}/events/event-09.png",
+            $"{SampleUploadsRoot}/events/event-10.png",
+            $"{SampleUploadsRoot}/events/event-11.png"
+        ]
+    };
+
     public static async Task MigrateAndSeedSampleDataAsync(this IServiceProvider services, CancellationToken cancellationToken = default)
     {
         using var scope = services.CreateScope();
@@ -64,9 +138,11 @@ public static class RandevooSampleDataSeeder
         var eventTypes = await EnsureEventTypesAsync(db, cancellationToken);
         var tags = await EnsureTagsAsync(db, cancellationToken);
         var sampleUsers = await EnsureSampleEndUsersAsync(db, cancellationToken);
+        await EnsureSampleProfileImagesAsync(db, cancellationToken);
 
         if (!await db.DatingEvents.AnyAsync(item => item.Title == "شب اجتماعی تهران", cancellationToken))
         {
+            var socialEventImages = GetSampleEventImages("شب اجتماعی تهران");
             var socialEvent = new DatingEvent(
                 planner,
                 "شب اجتماعی تهران",
@@ -84,9 +160,9 @@ public static class RandevooSampleDataSeeder
                 850000m,
                 EventEducationLevelRestriction.WithoutLimit,
                 new[] { "اجتماعی", "حضوری", "منتخب", "تهران" },
-                "/images/logo.png",
-                null,
-                null,
+                socialEventImages[0],
+                socialEventImages[1],
+                socialEventImages[2],
                 "<p>یک شب اجتماعی منتخب با مهمان های تایید شده، مدیریت ظرفیت و تجربه حرفه ای برای شروع گفتگوهای باکیفیت.</p>",
                 12m);
 
@@ -94,6 +170,7 @@ public static class RandevooSampleDataSeeder
             socialEvent.ApproveByAdmin();
             socialEvent.OpenForSell();
 
+            var dinnerEventImages = GetSampleEventImages("پیش نمایش شام روف تاپ");
             var dinnerEvent = new DatingEvent(
                 planner,
                 "پیش نمایش شام روف تاپ",
@@ -111,9 +188,9 @@ public static class RandevooSampleDataSeeder
                 880000m,
                 EventEducationLevelRestriction.BachelorOrHigher,
                 new[] { "شام", "روف تاپ", "ویژه", "تهران" },
-                "/images/logo.png",
-                null,
-                null,
+                dinnerEventImages[0],
+                dinnerEventImages[1],
+                dinnerEventImages[2],
                 "<p>این رویداد برای معرفی فضای شام روف تاپ طراحی شده و پیش از باز شدن فروش، توسط مدیر بازبینی می شود.</p>",
                 15m);
 
@@ -124,7 +201,6 @@ public static class RandevooSampleDataSeeder
             socialEvent.ReplaceTags(tags.Values.Where(tag => tag.Name is "شب اجتماعی" or "بازی").ToList());
             dinnerEvent.ReplaceTags(tags.Values.Where(tag => tag.Name is "شام" or "روف تاپ").ToList());
 
-            var plannerBalance = await db.BalanceAccounts.SingleAsync(item => item.UserId == planner.Id, cancellationToken);
             var guestOneBalance = await db.BalanceAccounts.SingleAsync(item => item.UserId == guestOne.Id, cancellationToken);
             var guestTwoBalance = await db.BalanceAccounts.SingleAsync(item => item.UserId == guestTwo.Id, cancellationToken);
 
@@ -133,18 +209,14 @@ public static class RandevooSampleDataSeeder
 
             guestOneBalance.Debit(guestOneTicket.Price, BalanceTransactionType.TicketPurchase, "خرید بلیت شب اجتماعی تهران", socialEvent.Id);
             guestTwoBalance.Debit(guestTwoTicket.Price, BalanceTransactionType.TicketPurchase, "خرید بلیت شب اجتماعی تهران", socialEvent.Id);
-            plannerBalance.Credit(
-                (guestOneTicket.Price + guestTwoTicket.Price) * (100 - socialEvent.EventPlannerCommissionPercent) / 100,
-                BalanceTransactionType.EventPlannerIncome,
-                "فروش نمونه بلیت رویداد",
-                socialEvent.Id);
 
             db.DatingEvents.Update(socialEvent);
-            db.BalanceAccounts.UpdateRange(plannerBalance, guestOneBalance, guestTwoBalance);
+            db.BalanceAccounts.UpdateRange(guestOneBalance, guestTwoBalance);
         }
 
         await EnsureSampleEventTagsAsync(db, tags, cancellationToken);
         await EnsureExpandedSampleEventsAsync(db, new[] { planner, plannerTwo, plannerThree }, eventTypes, tags, cancellationToken);
+        await EnsureSampleEventImagesAsync(db, cancellationToken);
         await EnsureSampleDiscountCodesAsync(db, cancellationToken);
 
         await db.SaveChangesAsync(cancellationToken);
@@ -153,6 +225,8 @@ public static class RandevooSampleDataSeeder
         await EnsureSampleSurveysAndConversationsAsync(db, cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
         await EnsureSampleOnlinePaymentsAsync(db, cancellationToken);
+        await db.SaveChangesAsync(cancellationToken);
+        await EnsureSampleManualPaymentReceiptsAsync(db, cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
         await EnsureSampleSupportTicketsAsync(db, support, planner, plannerTwo, plannerThree, guestOne, guestTwo, sampleUsers, cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
@@ -223,15 +297,15 @@ public static class RandevooSampleDataSeeder
 
     private static async Task EnsureCurrencyLookupAsync(RandevooDbContext db, CancellationToken cancellationToken)
     {
-        var currencies = new (string Code, string DisplayNameFa, string Symbol, int DisplayOrder)[]
+        var currencies = new (string Code, string DisplayNameFa, string Symbol, int DisplayOrder, int DecimalPlaces)[]
         {
-            ("IRR", "ریال ایران", "ریال", 1),
-            ("EUR", "یورو", "€", 2),
-            ("USD", "دلار آمریکا", "$", 3),
-            ("CAD", "دلار کانادا", "C$", 4),
-            ("GBP", "پوند انگلیس", "£", 5),
-            ("AED", "درهم امارات", "AED", 6),
-            ("TRY", "لیر ترکیه", "₺", 7)
+            ("IRR", "ریال ایران", "ریال", 1, 0),
+            ("EUR", "یورو", "€", 2, 2),
+            ("USD", "دلار آمریکا", "$", 3, 2),
+            ("CAD", "دلار کانادا", "C$", 4, 2),
+            ("GBP", "پوند انگلیس", "£", 5, 2),
+            ("AED", "درهم امارات", "AED", 6, 2),
+            ("TRY", "لیر ترکیه", "₺", 7, 2)
         };
 
         foreach (var currency in currencies)
@@ -242,13 +316,14 @@ public static class RandevooSampleDataSeeder
 
             if (existing is null)
             {
-                db.Currencies.Add(new CurrencyLookup(currency.Code, currency.DisplayNameFa, currency.Symbol, currency.DisplayOrder));
+                db.Currencies.Add(new CurrencyLookup(currency.Code, currency.DisplayNameFa, currency.Symbol, currency.DisplayOrder, currency.DecimalPlaces));
                 continue;
             }
 
             var entry = db.Entry(existing);
             entry.Property(nameof(CurrencyLookup.DisplayNameFa)).CurrentValue = currency.DisplayNameFa;
             entry.Property(nameof(CurrencyLookup.Symbol)).CurrentValue = currency.Symbol;
+            entry.Property(nameof(CurrencyLookup.DecimalPlaces)).CurrentValue = currency.DecimalPlaces;
             entry.Property(nameof(CurrencyLookup.IsActive)).CurrentValue = true;
             entry.Property(nameof(CurrencyLookup.DisplayOrder)).CurrentValue = currency.DisplayOrder;
             entry.Property(nameof(CurrencyLookup.IsDeleted)).CurrentValue = false;
@@ -260,12 +335,12 @@ public static class RandevooSampleDataSeeder
     {
         var samples = new[]
         {
-            new SampleUserProfileSeed("09120001001", "رامین", new DateOnly(1992, 5, 21), Gender.Male, EducationLevel.Postgraduate, "تهران", "فرشته", 181, false, "/images/sample-profiles/ramin.jpg", ["کافه", "موسیقی", "سفر", "گفتگو"]),
-            new SampleUserProfileSeed("09120001002", "آرین", new DateOnly(1998, 9, 12), Gender.Male, EducationLevel.Graduated, "تهران", "زعفرانیه", 184, false, "/images/sample-profiles/arian.jpg", ["فیلم", "ورزش", "کافه", "تکنولوژی"]),
-            new SampleUserProfileSeed("09120001003", "بهاره", new DateOnly(1996, 4, 9), Gender.Female, EducationLevel.Postgraduate, "تهران", "جردن", 168, false, "/images/sample-profiles/bahareh.jpg", ["هنر", "گالری", "کتاب", "سفر"]),
-            new SampleUserProfileSeed("09120001004", "علی رضا", new DateOnly(1993, 11, 3), Gender.Male, EducationLevel.Graduated, "تهران", "نیاوران", 178, false, "/images/sample-profiles/alireza.jpg", ["شام", "بازی", "دوچرخه", "موسیقی"]),
-            new SampleUserProfileSeed("09120001005", "شایان", new DateOnly(1999, 2, 17), Gender.Male, EducationLevel.Undergraduate, "تهران", "سعادت آباد", 183, false, "/images/sample-profiles/shayan.jpg", ["فوتبال", "فیلم", "قرار قهوه", "بازی"]),
-            new SampleUserProfileSeed("09120001006", "یاسمن", new DateOnly(1997, 7, 28), Gender.Female, EducationLevel.Graduated, "تهران", "ونک", 166, false, "/images/sample-profiles/yasaman.jpg", ["یوگا", "کتاب", "کافه", "رویداد هنری"])
+            new SampleUserProfileSeed("09120001001", "رامین", new DateOnly(1992, 5, 21), Gender.Male, EducationLevel.Postgraduate, "تهران", "فرشته", 181, false, SampleParticipantImages["09120001001"], ["کافه", "موسیقی", "سفر", "گفتگو"]),
+            new SampleUserProfileSeed("09120001002", "آرین", new DateOnly(1998, 9, 12), Gender.Male, EducationLevel.Graduated, "تهران", "زعفرانیه", 184, false, SampleParticipantImages["09120001002"], ["فیلم", "ورزش", "کافه", "تکنولوژی"]),
+            new SampleUserProfileSeed("09120001003", "بهاره", new DateOnly(1996, 4, 9), Gender.Female, EducationLevel.Postgraduate, "تهران", "جردن", 168, false, SampleParticipantImages["09120001003"], ["هنر", "گالری", "کتاب", "سفر"]),
+            new SampleUserProfileSeed("09120001004", "علی رضا", new DateOnly(1993, 11, 3), Gender.Male, EducationLevel.Graduated, "تهران", "نیاوران", 178, false, SampleParticipantImages["09120001004"], ["شام", "بازی", "دوچرخه", "موسیقی"]),
+            new SampleUserProfileSeed("09120001005", "شایان", new DateOnly(1999, 2, 17), Gender.Male, EducationLevel.Undergraduate, "تهران", "سعادت آباد", 183, false, SampleParticipantImages["09120001005"], ["فوتبال", "فیلم", "قرار قهوه", "بازی"]),
+            new SampleUserProfileSeed("09120001006", "یاسمن", new DateOnly(1997, 7, 28), Gender.Female, EducationLevel.Graduated, "تهران", "ونک", 166, false, SampleParticipantImages["09120001006"], ["یوگا", "کتاب", "کافه", "رویداد هنری"])
         };
 
         var users = new List<User>();
@@ -301,10 +376,7 @@ public static class RandevooSampleDataSeeder
                 }
             }
 
-            if (!profile.Images.Any(item => item.ImageUrl == sample.ImageUrl))
-            {
-                profile.AddImage(sample.ImageUrl, 1, true);
-            }
+            EnsurePrimaryProfileImage(profile, sample.ImageUrl);
 
             db.UserProfiles.Update(profile);
         }
@@ -359,7 +431,6 @@ public static class RandevooSampleDataSeeder
                     continue;
 
                 var buyerBalance = await db.BalanceAccounts.SingleAsync(item => item.UserId == userWithProfile.Id, cancellationToken);
-                var plannerBalance = await db.BalanceAccounts.SingleAsync(item => item.UserId == datingEvent.EventPlannerUserId, cancellationToken);
                 EventTicket ticket;
                 try
                 {
@@ -377,11 +448,9 @@ public static class RandevooSampleDataSeeder
                 }
 
                 buyerBalance.Debit(ticket.Price, BalanceTransactionType.TicketPurchase, $"خرید بلیت {datingEvent.Title}", datingEvent.Id);
-                var plannerIncome = ticket.Price * (100 - datingEvent.EventPlannerCommissionPercent) / 100;
-                plannerBalance.Credit(plannerIncome, BalanceTransactionType.EventPlannerIncome, $"درآمد بلیت {datingEvent.Title}", datingEvent.Id);
 
                 db.DatingEvents.Update(datingEvent);
-                db.BalanceAccounts.UpdateRange(buyerBalance, plannerBalance);
+                db.BalanceAccounts.Update(buyerBalance);
                 var createdAt = DateTime.UtcNow.Date.AddDays(-purchaseOffsets[purchaseIndex % purchaseOffsets.Length]).AddHours(15 + (purchaseIndex % 4));
                 db.Entry(ticket).Property("CreatedAt").CurrentValue = createdAt;
                 db.Entry(ticket).Property("UpdatedAt").CurrentValue = createdAt;
@@ -430,6 +499,84 @@ public static class RandevooSampleDataSeeder
                 ticket,
                 transaction));
         }
+    }
+
+    private static async Task EnsureSampleManualPaymentReceiptsAsync(RandevooDbContext db, CancellationToken cancellationToken)
+    {
+        var platformPayer = await EnsureUserAsync(db, "09127770001", UserRole.EndUser, cancellationToken);
+        var organizerPayer = await EnsureUserAsync(db, "09127770002", UserRole.EndUser, cancellationToken);
+
+        EnsureProfile(platformPayer, "نیکا رسیدی", new DateOnly(1996, 5, 10), Gender.Female, "تهران", "جردن");
+        EnsureProfile(organizerPayer, "آرمان رسیدی", new DateOnly(1994, 8, 18), Gender.Male, "تهران", "سعادت آباد");
+        platformPayer.Profile?.UpdateEducationLevel(EducationLevel.Graduated);
+        organizerPayer.Profile?.UpdateEducationLevel(EducationLevel.Graduated);
+        await db.SaveChangesAsync(cancellationToken);
+
+        var platformEvent = await db.DatingEvents
+            .Include(item => item.EventPlannerUser)
+            .SingleOrDefaultAsync(item => item.Title == "شب اجتماعی تهران", cancellationToken);
+        var organizerEvent = await db.DatingEvents
+            .Include(item => item.EventPlannerUser)
+            .SingleOrDefaultAsync(item => item.Title == "گالری عصرانه تهران", cancellationToken);
+
+        if (platformEvent is not null)
+        {
+            await AddSampleManualPaymentReceiptAsync(
+                db,
+                platformEvent,
+                platformPayer,
+                EventPaymentCollectionMethod.PlatformManualTransfer,
+                "/uploads/manual-payment-receipts/sample-platform-receipt.txt",
+                "TEST-PLATFORM-001",
+                "فیش تستی واریز به حساب پلتفرم برای بررسی پشتیبان.",
+                cancellationToken);
+        }
+
+        if (organizerEvent is not null)
+        {
+            await AddSampleManualPaymentReceiptAsync(
+                db,
+                organizerEvent,
+                organizerPayer,
+                EventPaymentCollectionMethod.OrganizerManualTransfer,
+                "/uploads/manual-payment-receipts/sample-organizer-receipt.txt",
+                "TEST-ORGANIZER-001",
+                "فیش تستی واریز مستقیم به برگزارکننده برای بررسی برگزارکننده.",
+                cancellationToken);
+        }
+    }
+
+    private static async Task AddSampleManualPaymentReceiptAsync(
+        RandevooDbContext db,
+        DatingEvent datingEvent,
+        User participant,
+        EventPaymentCollectionMethod paymentCollectionMethod,
+        string uploadedFilePath,
+        string trackingNumber,
+        string payerNote,
+        CancellationToken cancellationToken)
+    {
+        if (await db.ManualPaymentReceipts.AnyAsync(item => item.TrackingNumber == trackingNumber, cancellationToken))
+            return;
+
+        if (participant.Profile is null)
+            return;
+
+        var originalAmount = datingEvent.GetTicketPriceForGender(participant.Profile.Gender);
+        var receipt = new ManualPaymentReceipt(
+            datingEvent,
+            participant,
+            originalAmount,
+            originalAmount,
+            datingEvent.CurrencyCode,
+            paymentCollectionMethod,
+            uploadedFilePath,
+            trackingNumber,
+            payerNote,
+            1m,
+            DateTime.UtcNow.AddHours(-4));
+
+        db.ManualPaymentReceipts.Add(receipt);
     }
 
     private static async Task EnsureSampleSurveysAndConversationsAsync(RandevooDbContext db, CancellationToken cancellationToken)
@@ -682,6 +829,7 @@ public static class RandevooSampleDataSeeder
                 continue;
 
             var planner = plannerByMobile[definition.PlannerMobile];
+            var eventImages = GetSampleEventImages(definition.Title);
             var datingEvent = new DatingEvent(
                 planner,
                 definition.Title,
@@ -699,9 +847,9 @@ public static class RandevooSampleDataSeeder
                 definition.FemalePrice,
                 definition.Education,
                 definition.Tags,
-                "/images/logo.png",
-                null,
-                null,
+                eventImages[0],
+                eventImages[1],
+                eventImages[2],
                 definition.Description,
                 12m);
 
@@ -964,6 +1112,75 @@ public static class RandevooSampleDataSeeder
         return existing.ToDictionary(item => item.Name, StringComparer.Ordinal);
     }
 
+    private static string[] GetSampleEventImages(string title) =>
+        SampleEventImages.TryGetValue(title, out var images)
+            ? images
+            :
+            [
+                $"{SampleUploadsRoot}/events/event-01.png",
+                $"{SampleUploadsRoot}/events/event-02.png",
+                $"{SampleUploadsRoot}/events/event-03.png"
+            ];
+
+    private static async Task EnsureSampleEventImagesAsync(RandevooDbContext db, CancellationToken cancellationToken)
+    {
+        var titles = SampleEventImages.Keys.ToList();
+        var events = await db.DatingEvents
+            .Where(item => titles.Contains(item.Title))
+            .ToListAsync(cancellationToken);
+
+        foreach (var datingEvent in events)
+        {
+            var images = GetSampleEventImages(datingEvent.Title);
+            db.Entry(datingEvent).Property(nameof(DatingEvent.EventImage1)).CurrentValue = images[0];
+            db.Entry(datingEvent).Property(nameof(DatingEvent.EventImage2)).CurrentValue = images[1];
+            db.Entry(datingEvent).Property(nameof(DatingEvent.EventImage3)).CurrentValue = images[2];
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
+    private static async Task EnsureSampleProfileImagesAsync(RandevooDbContext db, CancellationToken cancellationToken)
+    {
+        var mobiles = SampleParticipantImages.Keys.ToList();
+        var users = await db.Users
+            .Include(item => item.Profile)!.ThenInclude(profile => profile!.Images)
+            .Where(item => mobiles.Contains(item.MobileNumber))
+            .ToListAsync(cancellationToken);
+
+        foreach (var user in users)
+        {
+            if (user.Profile is null || !SampleParticipantImages.TryGetValue(user.MobileNumber, out var imageUrl))
+                continue;
+
+            EnsurePrimaryProfileImage(user.Profile, imageUrl);
+            db.UserProfiles.Update(user.Profile);
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
+    private static void EnsurePrimaryProfileImage(UserProfile profile, string imageUrl)
+    {
+        var target = profile.Images.FirstOrDefault(item => item.DisplayOrder == 1)
+            ?? profile.Images.FirstOrDefault(item => item.IsPrimary)
+            ?? profile.Images.OrderBy(item => item.DisplayOrder).FirstOrDefault();
+
+        if (target is null)
+        {
+            profile.AddImage(imageUrl, 1, true);
+            return;
+        }
+
+        foreach (var image in profile.Images)
+        {
+            image.Update(
+                image == target ? imageUrl : image.ImageUrl,
+                image.DisplayOrder,
+                image == target);
+        }
+    }
+
     private static async Task<User> EnsureUserAsync(RandevooDbContext db, string mobileNumber, UserRole role, CancellationToken cancellationToken)
     {
         var user = await db.Users
@@ -1009,16 +1226,25 @@ public static class RandevooSampleDataSeeder
 
     private static void EnsurePlannerProfile(RandevooDbContext db, User planner)
     {
-        if (db.EventPlannerProfiles.Any(item => item.UserId == planner.Id))
+        var pictureUrl = SamplePlannerImages.TryGetValue(planner.MobileNumber, out var sampleImageUrl)
+            ? sampleImageUrl
+            : "/images/logo.png";
+        const string title = "برگزارکننده رویدادهای اجتماعی و شام های منتخب";
+        const string resume = "پویا فرهی بیش از هفت سال در طراحی و اجرای رویدادهای اجتماعی خصوصی، شب های آشنایی و تجربه های گفتگو محور فعالیت داشته است و روی انتخاب مهمان های مناسب، زمان بندی دقیق و اجرای حرفه ای تمرکز دارد.";
+
+        var existing = db.EventPlannerProfiles.SingleOrDefault(item => item.UserId == planner.Id);
+        if (existing is not null)
         {
+            existing.Update(title, pictureUrl, resume);
+            db.EventPlannerProfiles.Update(existing);
             return;
         }
 
         var profile = new EventPlannerProfile(
             planner,
-            "برگزارکننده رویدادهای اجتماعی و شام های منتخب",
-            "/images/logo.png",
-            "پویا فرهی بیش از هفت سال در طراحی و اجرای رویدادهای اجتماعی خصوصی، شب های آشنایی و تجربه های گفتگو محور فعالیت داشته است و روی انتخاب مهمان های مناسب، زمان بندی دقیق و اجرای حرفه ای تمرکز دارد.");
+            title,
+            pictureUrl,
+            resume);
 
         profile.UpdateMetrics(4.8m, 126, 34, 1, 29);
         db.EventPlannerProfiles.Add(profile);
@@ -1052,46 +1278,122 @@ public static class RandevooSampleDataSeeder
         CancellationToken cancellationToken)
     {
         const string samplePrefix = "نمونه پشتیبانی";
-        if (await db.SupportTickets.AnyAsync(ticket => ticket.Title.StartsWith(samplePrefix), cancellationToken))
+        var hasPlatformSamples = await db.SupportTickets.AnyAsync(
+            ticket => ticket.Title.StartsWith(samplePrefix)
+                && ticket.TicketRecipientTypeId == SupportTicketLookupIds.RecipientPlatformSupport,
+            cancellationToken);
+
+        if (!hasPlatformSamples)
+        {
+            var submitters = sampleUsers.Concat(new[] { guestOne, guestTwo, planner, plannerTwo, plannerThree }).ToList();
+            var seeds = new SupportTicketSeed[]
+            {
+                new(submitters[0], $"{samplePrefix}: پرداخت موفق اما بلیت صادر نشده", SupportTicketCategory.FinancialProblem, "پرداخت انجام شد اما هنوز بلیت در حساب من دیده نمی شود.", SupportTicketStatus.Open, 1, null),
+                new(submitters[1], $"{samplePrefix}: سوال درباره بازگشت وجه", SupportTicketCategory.FinancialProblem, "برای رویدادی که لغو شده، زمان بازگشت وجه چقدر است؟", SupportTicketStatus.InProgress, 2, "رسید پرداخت بررسی شد و وضعیت بازگشت وجه در حال پیگیری است."),
+                new(submitters[2], $"{samplePrefix}: کد تخفیف اعمال نمی شود", SupportTicketCategory.FinancialProblem, "کد تخفیف روی رویداد فعال خطا می دهد.", SupportTicketStatus.WaitingForUser, 3, "لطفا اسکرین شات خطا و نام رویداد را ارسال کنید."),
+                new(submitters[3], $"{samplePrefix}: تغییر ساعت رویداد", SupportTicketCategory.EventProblem, "می خواهم ساعت شروع رویداد فردا اصلاح شود اما گزینه ویرایش غیرفعال است.", SupportTicketStatus.InProgress, 4, "رویداد در وضعیت فروش است؛ امکان تغییر مستقیم محدود شده و باید تایید شود."),
+                new(submitters[4], $"{samplePrefix}: شرکت کننده در لیست حضور نیست", SupportTicketCategory.EventProblem, "یکی از خریداران در لیست حضور رویداد دیده نمی شود.", SupportTicketStatus.Open, 5, null),
+                new(submitters[5], $"{samplePrefix}: پرسش درباره تکمیل پروفایل", SupportTicketCategory.GeneralQuestion, "برای تایید پروفایل چه اطلاعاتی لازم است؟", SupportTicketStatus.Closed, 6, "اطلاعات لازم ارسال شد و تیکت با تایید ثبت‌کننده بسته شد."),
+                new(submitters[6], $"{samplePrefix}: مغایرت مبلغ کیف پول", SupportTicketCategory.FinancialProblem, "موجودی کیف پول بعد از خرید کمتر از چیزی است که انتظار داشتم.", SupportTicketStatus.Reopened, 7, "تراکنش های کیف پول بررسی شد و برای بازبینی دوباره بازگشایی شد."),
+                new(submitters[7], $"{samplePrefix}: تغییر تصویر رویداد", SupportTicketCategory.EventProblem, "تصویر جدید رویداد آپلود شده اما در صفحه عمومی دیده نمی شود.", SupportTicketStatus.WaitingForUser, 8, "احتمالا تصویر در cache مرورگر است؛ لطفا لینک صفحه را ارسال کنید."),
+                new(submitters[8], $"{samplePrefix}: راهنمای ارسال پیامک", SupportTicketCategory.GeneralQuestion, "برای ارسال پیامک به شرکت کنندگان باید از کدام بخش اقدام کنم؟", SupportTicketStatus.Closed, 9, "مسیر عملیات برگزارکننده و مرکز پیامک توضیح داده شد."),
+                new(submitters[0], $"{samplePrefix}: پیگیری تسویه برگزارکننده", SupportTicketCategory.FinancialProblem, "درخواست تسویه ثبت شده اما هنوز پرداخت نشده است.", SupportTicketStatus.InProgress, 10, "درخواست تسویه در صف بررسی مالی قرار دارد."),
+                new(submitters[1], $"{samplePrefix}: مشکل نمایش نقشه", SupportTicketCategory.EventProblem, "آدرس رویداد درست است اما موقعیت نقشه اشتباه نمایش داده می شود.", SupportTicketStatus.Open, 11, null),
+                new(submitters[2], $"{samplePrefix}: سوال درباره ظرفیت", SupportTicketCategory.GeneralQuestion, "ظرفیت آقایان و خانم ها چطور جداگانه کنترل می شود؟", SupportTicketStatus.Closed, 12, "توضیح ظرفیت جنسیتی و محدودیت خرید برای ثبت‌کننده ارسال شد."),
+                new(submitters[3], $"{samplePrefix}: فایل رسید پرداخت", SupportTicketCategory.FinancialProblem, "رسید پرداخت را چطور برای پشتیبانی ارسال کنم؟", SupportTicketStatus.WaitingForUser, 13, "امکان پیوست تصویر در پاسخ تیکت فعال است."),
+                new(submitters[4], $"{samplePrefix}: بازگشایی تیکت قبلی", SupportTicketCategory.GeneralQuestion, "موضوع قبلی هنوز حل نشده و می خواهم تیکت دوباره بررسی شود.", SupportTicketStatus.Reopened, 14, "تیکت برای بررسی مجدد بازگشایی شد.")
+            };
+
+            foreach (var seed in seeds)
+            {
+                var firstMessage = new SupportTicketMessage(seed.User, seed.Body);
+                var ticket = new SupportTicket(seed.User, seed.Title, seed.Category, firstMessage, support);
+                if (!string.IsNullOrWhiteSpace(seed.Reply))
+                {
+                    ticket.AddReply(support, seed.Reply);
+                }
+
+                if (seed.Status != SupportTicketStatus.Open)
+                {
+                    ticket.ChangeStatus(support, seed.Status, "وضعیت نمونه برای تست داشبورد پشتیبانی");
+                }
+
+                db.SupportTickets.Add(ticket);
+                var createdAt = DateTime.UtcNow.Date.AddDays(-seed.DaysAgo).AddHours(8 + seed.DaysAgo % 8);
+                db.Entry(ticket).Property("CreatedAt").CurrentValue = createdAt;
+                db.Entry(ticket).Property("UpdatedAt").CurrentValue = createdAt.AddHours(seed.Reply is null ? 1 : 4);
+                db.Entry(firstMessage).Property("CreatedAt").CurrentValue = createdAt;
+                db.Entry(firstMessage).Property("UpdatedAt").CurrentValue = createdAt;
+            }
+        }
+
+        var hasOrganizerSamples = await db.SupportTickets.AnyAsync(
+            ticket => ticket.Title.StartsWith(samplePrefix)
+                && ticket.TicketRecipientTypeId == SupportTicketLookupIds.RecipientEventPlanner,
+            cancellationToken);
+        if (hasOrganizerSamples)
             return;
 
-        var submitters = sampleUsers.Concat(new[] { guestOne, guestTwo, planner, plannerTwo, plannerThree }).ToList();
-        var seeds = new SupportTicketSeed[]
+        var organizerEvents = await db.DatingEvents
+            .Include(item => item.EventPlannerUser)
+            .Where(item => item.EventPlannerUserId == planner.Id || item.EventPlannerUserId == plannerTwo.Id)
+            .OrderBy(item => item.DateTimeStart)
+            .ToListAsync(cancellationToken);
+
+        var organizerSeeds = new[]
         {
-            new(submitters[0], $"{samplePrefix}: پرداخت موفق اما بلیت صادر نشده", SupportTicketCategory.FinancialProblem, "پرداخت انجام شد اما هنوز بلیت در حساب من دیده نمی شود.", SupportTicketStatus.Open, 1, null),
-            new(submitters[1], $"{samplePrefix}: سوال درباره بازگشت وجه", SupportTicketCategory.FinancialProblem, "برای رویدادی که لغو شده، زمان بازگشت وجه چقدر است؟", SupportTicketStatus.InProgress, 2, "رسید پرداخت بررسی شد و وضعیت بازگشت وجه در حال پیگیری است."),
-            new(submitters[2], $"{samplePrefix}: کد تخفیف اعمال نمی شود", SupportTicketCategory.FinancialProblem, "کد تخفیف روی رویداد فعال خطا می دهد.", SupportTicketStatus.WaitingForUser, 3, "لطفا اسکرین شات خطا و نام رویداد را ارسال کنید."),
-            new(submitters[3], $"{samplePrefix}: تغییر ساعت رویداد", SupportTicketCategory.EventProblem, "می خواهم ساعت شروع رویداد فردا اصلاح شود اما گزینه ویرایش غیرفعال است.", SupportTicketStatus.InProgress, 4, "رویداد در وضعیت فروش است؛ امکان تغییر مستقیم محدود شده و باید تایید شود."),
-            new(submitters[4], $"{samplePrefix}: شرکت کننده در لیست حضور نیست", SupportTicketCategory.EventProblem, "یکی از خریداران در لیست حضور رویداد دیده نمی شود.", SupportTicketStatus.Open, 5, null),
-            new(submitters[5], $"{samplePrefix}: پرسش درباره تکمیل پروفایل", SupportTicketCategory.GeneralQuestion, "برای تایید پروفایل چه اطلاعاتی لازم است؟", SupportTicketStatus.Closed, 6, "اطلاعات لازم ارسال شد و تیکت با تایید ثبت‌کننده بسته شد."),
-            new(submitters[6], $"{samplePrefix}: مغایرت مبلغ کیف پول", SupportTicketCategory.FinancialProblem, "موجودی کیف پول بعد از خرید کمتر از چیزی است که انتظار داشتم.", SupportTicketStatus.Reopened, 7, "تراکنش های کیف پول بررسی شد و برای بازبینی دوباره بازگشایی شد."),
-            new(submitters[7], $"{samplePrefix}: تغییر تصویر رویداد", SupportTicketCategory.EventProblem, "تصویر جدید رویداد آپلود شده اما در صفحه عمومی دیده نمی شود.", SupportTicketStatus.WaitingForUser, 8, "احتمالا تصویر در cache مرورگر است؛ لطفا لینک صفحه را ارسال کنید."),
-            new(submitters[8], $"{samplePrefix}: راهنمای ارسال پیامک", SupportTicketCategory.GeneralQuestion, "برای ارسال پیامک به شرکت کنندگان باید از کدام بخش اقدام کنم؟", SupportTicketStatus.Closed, 9, "مسیر عملیات برگزارکننده و مرکز پیامک توضیح داده شد."),
-            new(submitters[0], $"{samplePrefix}: پیگیری تسویه برگزارکننده", SupportTicketCategory.FinancialProblem, "درخواست تسویه ثبت شده اما هنوز پرداخت نشده است.", SupportTicketStatus.InProgress, 10, "درخواست تسویه در صف بررسی مالی قرار دارد."),
-            new(submitters[1], $"{samplePrefix}: مشکل نمایش نقشه", SupportTicketCategory.EventProblem, "آدرس رویداد درست است اما موقعیت نقشه اشتباه نمایش داده می شود.", SupportTicketStatus.Open, 11, null),
-            new(submitters[2], $"{samplePrefix}: سوال درباره ظرفیت", SupportTicketCategory.GeneralQuestion, "ظرفیت آقایان و خانم ها چطور جداگانه کنترل می شود؟", SupportTicketStatus.Closed, 12, "توضیح ظرفیت جنسیتی و محدودیت خرید برای ثبت‌کننده ارسال شد."),
-            new(submitters[3], $"{samplePrefix}: فایل رسید پرداخت", SupportTicketCategory.FinancialProblem, "رسید پرداخت را چطور برای پشتیبانی ارسال کنم؟", SupportTicketStatus.WaitingForUser, 13, "امکان پیوست تصویر در پاسخ تیکت فعال است."),
-            new(submitters[4], $"{samplePrefix}: بازگشایی تیکت قبلی", SupportTicketCategory.GeneralQuestion, "موضوع قبلی هنوز حل نشده و می خواهم تیکت دوباره بررسی شود.", SupportTicketStatus.Reopened, 14, "تیکت برای بررسی مجدد بازگشایی شد.")
+            new
+            {
+                Submitter = guestOne,
+                Event = organizerEvents.FirstOrDefault(item => item.EventPlannerUserId == planner.Id),
+                Title = $"{samplePrefix}: سوال از برگزارکننده درباره حضور",
+                Body = "برای رویداد شب اجتماعی، امکان ورود با ده دقیقه تاخیر وجود دارد؟",
+                TicketTypeId = SupportTicketLookupIds.TypePrePurchaseQuestion,
+                StatusId = SupportTicketLookupIds.StatusWaitingForUser,
+                Reply = (string?)"بله، تا ده دقیقه تاخیر مشکلی ندارد. لطفا قبل از شروع اطلاع دهید.",
+                DaysAgo = 4
+            },
+            new
+            {
+                Submitter = guestTwo,
+                Event = organizerEvents.FirstOrDefault(item => item.EventPlannerUserId == plannerTwo.Id),
+                Title = $"{samplePrefix}: مشکل هماهنگی با برگزارکننده",
+                Body = "اطلاعات محل رویداد برای من کامل نیست و نیاز به توضیح بیشتر دارم.",
+                TicketTypeId = SupportTicketLookupIds.TypeEventProblem,
+                StatusId = SupportTicketLookupIds.StatusOpen,
+                Reply = (string?)null,
+                DaysAgo = 2
+            }
         };
 
-        foreach (var seed in seeds)
+        foreach (var seed in organizerSeeds.Where(item => item.Event is not null))
         {
-            var firstMessage = new SupportTicketMessage(seed.User, seed.Body);
-            var ticket = new SupportTicket(seed.User, seed.Title, seed.Category, firstMessage, support);
+            var eventPlanner = seed.Event!.EventPlannerUser;
+            var firstMessage = new SupportTicketMessage(seed.Submitter, seed.Body);
+            var ticket = new SupportTicket(
+                seed.Submitter,
+                seed.Title,
+                seed.TicketTypeId,
+                SupportTicketLookupIds.RecipientEventPlanner,
+                firstMessage,
+                null,
+                seed.Event,
+                eventPlanner);
+
             if (!string.IsNullOrWhiteSpace(seed.Reply))
             {
-                ticket.AddReply(support, seed.Reply);
+                ticket.AddReply(eventPlanner, seed.Reply);
             }
 
-            if (seed.Status != SupportTicketStatus.Open)
+            if (seed.StatusId != SupportTicketLookupIds.StatusOpen)
             {
-                ticket.ChangeStatus(support, seed.Status, "وضعیت نمونه برای تست داشبورد پشتیبانی");
+                ticket.ChangeStatus(eventPlanner, seed.StatusId, "وضعیت نمونه برای تست تیکت های دریافتی برگزارکننده");
             }
 
             db.SupportTickets.Add(ticket);
-            var createdAt = DateTime.UtcNow.Date.AddDays(-seed.DaysAgo).AddHours(8 + seed.DaysAgo % 8);
+            var createdAt = DateTime.UtcNow.Date.AddDays(-seed.DaysAgo).AddHours(10 + seed.DaysAgo % 6);
             db.Entry(ticket).Property("CreatedAt").CurrentValue = createdAt;
-            db.Entry(ticket).Property("UpdatedAt").CurrentValue = createdAt.AddHours(seed.Reply is null ? 1 : 4);
+            db.Entry(ticket).Property("UpdatedAt").CurrentValue = createdAt.AddHours(seed.Reply is null ? 1 : 3);
             db.Entry(firstMessage).Property("CreatedAt").CurrentValue = createdAt;
             db.Entry(firstMessage).Property("UpdatedAt").CurrentValue = createdAt;
         }

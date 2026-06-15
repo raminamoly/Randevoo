@@ -1,4 +1,5 @@
 using Randevoo.Domain.Entities;
+using Randevoo.Domain.Constants;
 using Randevoo.Domain.Enums;
 
 namespace Randevoo.Application.Features.SupportTickets.Common;
@@ -6,8 +7,18 @@ namespace Randevoo.Application.Features.SupportTickets.Common;
 public record SupportTicketListItemDto(
     long Id,
     string Title,
+    long TicketTypeId,
+    string TicketTypeTitleFa,
     SupportTicketCategory Category,
+    long TicketStatusId,
+    string TicketStatusTitleFa,
     SupportTicketStatus Status,
+    long TicketRecipientTypeId,
+    string TicketRecipientTypeTitleFa,
+    long? EventId,
+    string? EventTitle,
+    long? RecipientPlannerUserId,
+    string? RecipientPlannerDisplayName,
     long SubmitterUserId,
     string SubmitterDisplayName,
     string SubmitterMobileNumber,
@@ -20,8 +31,18 @@ public record SupportTicketListItemDto(
 public record SupportTicketDetailDto(
     long Id,
     string Title,
+    long TicketTypeId,
+    string TicketTypeTitleFa,
     SupportTicketCategory Category,
+    long TicketStatusId,
+    string TicketStatusTitleFa,
     SupportTicketStatus Status,
+    long TicketRecipientTypeId,
+    string TicketRecipientTypeTitleFa,
+    long? EventId,
+    string? EventTitle,
+    long? RecipientPlannerUserId,
+    string? RecipientPlannerDisplayName,
     SubmitterContextDto Submitter,
     long? AssignedSupportUserId,
     string? AssignedSupportDisplayName,
@@ -71,8 +92,18 @@ public static class SupportTicketDtoMapper
         new(
             ticket.Id,
             ticket.Title,
+            ticket.TicketTypeId,
+            ResolveTicketTypeTitle(ticket),
             ticket.Category,
+            ticket.TicketStatusId,
+            ResolveTicketStatusTitle(ticket),
             ticket.Status,
+            ticket.TicketRecipientTypeId,
+            ResolveTicketRecipientTypeTitle(ticket),
+            ticket.DatingEventId,
+            ticket.DatingEvent?.Title,
+            ticket.RecipientPlannerUserId,
+            ticket.RecipientPlannerUser is null ? null : ResolveDisplayName(ticket.RecipientPlannerUser),
             ticket.SubmitterUserId,
             ResolveDisplayName(ticket.SubmitterUser),
             ticket.SubmitterUser.MobileNumber,
@@ -86,8 +117,18 @@ public static class SupportTicketDtoMapper
         new(
             ticket.Id,
             ticket.Title,
+            ticket.TicketTypeId,
+            ResolveTicketTypeTitle(ticket),
             ticket.Category,
+            ticket.TicketStatusId,
+            ResolveTicketStatusTitle(ticket),
             ticket.Status,
+            ticket.TicketRecipientTypeId,
+            ResolveTicketRecipientTypeTitle(ticket),
+            ticket.DatingEventId,
+            ticket.DatingEvent?.Title,
+            ticket.RecipientPlannerUserId,
+            ticket.RecipientPlannerUser is null ? null : ResolveDisplayName(ticket.RecipientPlannerUser),
             new SubmitterContextDto(
                 ticket.SubmitterUserId,
                 ResolveDisplayName(ticket.SubmitterUser),
@@ -134,4 +175,34 @@ public static class SupportTicketDtoMapper
 
     public static string ResolveDisplayName(User user) =>
         user.Profile?.DisplayName ?? user.Email ?? user.MobileNumber;
+
+    private static string ResolveTicketTypeTitle(SupportTicket ticket) =>
+        ticket.TicketType?.DisplayNameFa ?? ticket.TicketTypeId switch
+        {
+            SupportTicketLookupIds.TypeFinancialProblem => "مشکل مالی",
+            SupportTicketLookupIds.TypeEventProblem => "مشکل رویداد",
+            SupportTicketLookupIds.TypeGeneralQuestion => "سوال عمومی",
+            SupportTicketLookupIds.TypeTicketProblem => "مشکل بلیت",
+            SupportTicketLookupIds.TypePrePurchaseQuestion => "سوال قبل از خرید",
+            _ => "نامشخص"
+        };
+
+    private static string ResolveTicketStatusTitle(SupportTicket ticket) =>
+        ticket.TicketStatus?.DisplayNameFa ?? ticket.TicketStatusId switch
+        {
+            SupportTicketLookupIds.StatusOpen => "باز",
+            SupportTicketLookupIds.StatusInProgress => "در حال رسیدگی",
+            SupportTicketLookupIds.StatusWaitingForUser => "منتظر ثبت‌کننده",
+            SupportTicketLookupIds.StatusClosed => "بسته",
+            SupportTicketLookupIds.StatusReopened => "بازگشایی شده",
+            _ => "نامشخص"
+        };
+
+    private static string ResolveTicketRecipientTypeTitle(SupportTicket ticket) =>
+        ticket.TicketRecipientType?.DisplayNameFa ?? ticket.TicketRecipientTypeId switch
+        {
+            SupportTicketLookupIds.RecipientPlatformSupport => "پشتیبانی سایت",
+            SupportTicketLookupIds.RecipientEventPlanner => "برگزارکننده رویداد",
+            _ => "نامشخص"
+        };
 }

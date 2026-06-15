@@ -11,23 +11,38 @@
     <a asp-page="/Events/Edit" class="btn btn-primary">ساخت رویداد</a>
 </section>
 
+@if (!string.IsNullOrWhiteSpace(Model.StatusMessage))
+{
+    <div class="alert alert-success border-0 mb-4">@Model.StatusMessage</div>
+}
+
+@if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+{
+    <div class="alert alert-danger border-0 mb-4">@Model.ErrorMessage</div>
+}
+
 <form method="get" class="glass-panel p-4 mb-4 filter-panel admin-filter-panel">
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
         <div>
             <h2 class="section-title mb-1">فیلتر رویدادها</h2>
             <p class="text-muted small mb-0">فیلترها در ورود اولیه بسته هستند؛ در صورت نیاز باز کنید و مقدارها هنگام صفحه بندی حفظ می شوند.</p>
         </div>
-        <button class="btn btn-outline-secondary btn-sm filter-toggle-button" type="button" data-bs-toggle="collapse" data-bs-target="#eventFilterPanel" aria-expanded="@(Model.HasActiveFilters.ToString().ToLowerInvariant())" aria-controls="eventFilterPanel">
-            <i class="bi bi-funnel"></i>فیلترها
-        </button>
+        <div class="event-filter-actions">
+            <button class="btn btn-outline-primary btn-sm event-status-guide-button" type="button" data-bs-toggle="modal" data-bs-target="#eventStatusGuideModal">
+                <i class="bi bi-info-circle"></i>راهنمای وضعیت
+            </button>
+            <button class="btn btn-outline-secondary btn-sm filter-toggle-button" type="button" data-bs-toggle="collapse" data-bs-target="#eventFilterPanel" aria-expanded="@(Model.HasActiveFilters.ToString().ToLowerInvariant())" aria-controls="eventFilterPanel">
+                <i class="bi bi-funnel"></i>فیلترها
+            </button>
+        </div>
     </div>
     <div id="eventFilterPanel" class="collapse @(Model.HasActiveFilters ? "show" : string.Empty)">
         <input type="hidden" asp-for="Scope" />
         <input type="hidden" name="PageNumber" value="1" />
         <div class="row g-3 align-items-end">
             <div class="col-xl-3 col-md-6">
-                <label asp-for="Search" class="form-label">عنوان یا برگزارکننده</label>
-                <input asp-for="Search" class="form-control" placeholder="جستجو..." />
+                <label asp-for="Search" class="form-label">عنوان، کد یا برگزارکننده</label>
+                <input asp-for="Search" class="form-control" placeholder="مثلاً #۱۲۲۳ یا نام رویداد" />
             </div>
             <div class="col-xl-2 col-md-6">
                 <label asp-for="TagId" class="form-label">تگ</label>
@@ -48,15 +63,15 @@
                 </select>
             </div>
             <div class="col-xl-3 col-md-6">
-                <label asp-for="OperationalStatus" class="form-label">وضعیت رویداد</label>
+                <label asp-for="OperationalStatus" class="form-label">وضعیت عملیاتی</label>
                 <select asp-for="OperationalStatus" asp-items="Model.OperationalStatusOptions" class="form-select">
-                    <option value="">همه وضعیت های رویداد</option>
+                    <option value="">همه وضعیت‌های عملیاتی</option>
                 </select>
             </div>
             <div class="col-xl-3 col-md-6">
-                <label asp-for="ReviewStatus" class="form-label">بررسی مدیر</label>
-                <select asp-for="ReviewStatus" asp-items="Model.ReviewStatusOptions" class="form-select">
-                    <option value="">همه وضعیت های بررسی</option>
+                <label asp-for="ApprovalStatus" class="form-label">وضعیت پروفایل</label>
+                <select asp-for="ApprovalStatus" asp-items="Model.ApprovalStatusOptions" class="form-select">
+                    <option value="">همه وضعیت‌های پروفایل</option>
                 </select>
             </div>
             <div class="col-xl-2 col-md-6">
@@ -93,8 +108,8 @@
                     <th>رویداد</th>
                     <th>برگزارکننده</th>
                     <th>شروع</th>
-                    <th>وضعیت رویداد</th>
-                    <th>بررسی مدیر</th>
+                    <th>وضعیت عملیاتی</th>
+                    <th>وضعیت پروفایل</th>
                     <th>کمیسیون</th>
                     <th></th>
                 </tr>
@@ -113,6 +128,7 @@
                         <tr>
                             <td>
                                 <div class="fw-semibold">@item.DisplayTitle</div>
+                                <div class="text-muted small">رویداد @item.DisplayCode</div>
                                 <div class="text-muted small">@(item.ActiveDraft.IsOnline ? "آنلاین" : $"{item.ActiveDraft.City}، {item.ActiveDraft.Country}")</div>
                                 <div class="text-muted small">@DisplayFormatter.EducationRestriction(item.ActiveDraft.EducationLevelRestriction)</div>
                                 @if (item.ActiveDraft.Tags.Count > 0)
@@ -128,7 +144,7 @@
                             <td>@item.PlannerName</td>
                             <td>@PersianDateFormatter.Format(item.ActiveDraft.StartAtUtc, Model.IsRtl)</td>
                             <td><span class="status-badge @Model.GetOperationalStatusClass(item.OperationalStatus)">@DisplayFormatter.OperationalStatus(item.OperationalStatus)</span></td>
-                            <td><span class="status-badge @Model.GetReviewStatusClass(item.ReviewStatus)">@DisplayFormatter.ReviewStatus(item.ReviewStatus)</span></td>
+                            <td><span class="status-badge @Model.GetProfileStatusClass(item.ApprovalStatus)">@DisplayFormatter.ProfileStatus(item.ApprovalStatus)</span></td>
                             <td>@DisplayFormatter.Percent(item.ActiveDraft.OrganizerCommissionPercent)</td>
                             <td class="text-end table-action-cell">
                                 <div class="dropdown">
@@ -139,8 +155,12 @@
                                         <a asp-page="/Events/Details" asp-route-id="@item.Id" class="dropdown-item"><i class="bi bi-eye"></i>بررسی رویداد</a>
                                         <a asp-page="/Events/Edit" asp-route-id="@item.Id" class="dropdown-item"><i class="bi bi-pencil-square"></i>ویرایش رویداد</a>
                                         <a asp-page="/Events/Faqs" asp-route-eventId="@item.Id" class="dropdown-item"><i class="bi bi-question-circle"></i>سوالات متداول</a>
-                                        <a asp-page="/Events/Buyers" asp-route-eventId="@item.Id" class="dropdown-item"><i class="bi bi-ticket-perforated"></i>خریداران بلیت</a>
+                                        <a asp-page="/Participants/Index" asp-route-EventId="@item.Id" class="dropdown-item"><i class="bi bi-people"></i>فهرست شرکت‌کنندگان</a>
+                                        <a asp-page="/Buyers/Index" asp-route-EventId="@item.Id" class="dropdown-item"><i class="bi bi-bag-check"></i>خریداران بلیت</a>
                                         <a asp-page="/Events/Sms" asp-route-eventId="@item.Id" class="dropdown-item"><i class="bi bi-chat-dots"></i>پیام به شرکت کنندگان</a>
+                                        <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#eventStatusTransitionModal-@item.Id">
+                                            <i class="bi bi-arrow-repeat"></i>تغییر وضعیت رویداد
+                                        </button>
                                         <div class="dropdown-divider"></div>
                                         <a asp-page="/Events/SurveyRatings" asp-route-eventId="@item.Id" class="dropdown-item"><i class="bi bi-star-half"></i>نظرسنجی ها</a>
                                         <a asp-page="/Events/Conversations" asp-route-eventId="@item.Id" class="dropdown-item"><i class="bi bi-chat-square-text"></i>مانیتور گفتگوها</a>
@@ -162,7 +182,7 @@
            asp-route-City="@Model.City"
            asp-route-EventModeId="@Model.EventModeId"
            asp-route-OperationalStatus="@Model.OperationalStatus"
-           asp-route-ReviewStatus="@Model.ReviewStatus"
+           asp-route-ApprovalStatus="@Model.ApprovalStatus"
            asp-route-FromDate="@Model.FromDate"
            asp-route-ToDate="@Model.ToDate"
            asp-route-Sort="@Model.Sort"
@@ -178,7 +198,7 @@
            asp-route-City="@Model.City"
            asp-route-EventModeId="@Model.EventModeId"
            asp-route-OperationalStatus="@Model.OperationalStatus"
-           asp-route-ReviewStatus="@Model.ReviewStatus"
+           asp-route-ApprovalStatus="@Model.ApprovalStatus"
            asp-route-FromDate="@Model.FromDate"
            asp-route-ToDate="@Model.ToDate"
            asp-route-Sort="@Model.Sort"
@@ -187,3 +207,10 @@
         </a>
     </nav>
 </div>
+
+@foreach (var item in Model.Events)
+{
+    <partial name="_StatusTransitionModal" model="Model.CreateStatusTransitionModal(item)" />
+}
+
+<partial name="_EventStatusGuideModal" />

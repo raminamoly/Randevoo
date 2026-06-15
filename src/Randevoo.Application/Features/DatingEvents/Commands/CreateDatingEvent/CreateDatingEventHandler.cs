@@ -38,7 +38,7 @@ public class CreateDatingEventHandler : IRequestHandler<CreateDatingEventCommand
             throw new BusinessRuleViolationException("Missing event planner profile", "Create event planner profile before creating events");
 
         var input = request.Input;
-        var eventCurrencyCode = plannerProfile?.SettlementCurrencyCode ?? "IRR";
+        var eventCurrencyCode = CurrencyLookup.NormalizeCode(input.MaleTicketCurrencyCode);
         var eventType = await _eventTypes.GetByIdAsync(input.EventTypeId, cancellationToken)
             ?? throw new NotFoundException("EventType", input.EventTypeId);
 
@@ -74,11 +74,8 @@ public class CreateDatingEventHandler : IRequestHandler<CreateDatingEventCommand
         var (countryId, cityId) = MapLocationIds(input.Country, input.City);
         datingEvent.SetLocationLookup(countryId, cityId);
         datingEvent.SubmitForReview();
-        plannerProfile?.LockSettlementCurrency("Locked after first event creation.");
 
         await _events.AddAsync(datingEvent, cancellationToken);
-        if (plannerProfile is not null)
-            await _plannerProfiles.UpdateAsync(plannerProfile, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         _logger.LogInformation("Event planner {EventPlannerUserId} created dating event {EventId}", user.Id, datingEvent.Id);
         return DatingEventDto.FromEntity(datingEvent);

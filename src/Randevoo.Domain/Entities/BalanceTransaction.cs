@@ -19,6 +19,8 @@ public class BalanceTransaction : BaseEntity
     public BalanceTransactionType Type { get; private set; }
     public string Description { get; private set; } = null!;
     public long? DatingEventId { get; private set; }
+    public long? TicketOrderId { get; private set; }
+    public TicketOrder? TicketOrder { get; private set; }
     public string? ReferenceType { get; private set; }
     public long? ReferenceId { get; private set; }
     public long? CreatedByUserId { get; private set; }
@@ -58,5 +60,11 @@ public class BalanceTransaction : BaseEntity
         ReferenceType = string.IsNullOrWhiteSpace(referenceType) ? null : GuardAgainst.String.MaxLength(referenceType, nameof(referenceType), 100);
         ReferenceId = referenceId;
         CreatedByUserId = createdByUserId;
+    }
+
+    public void SetTicketOrder(TicketOrder? ticketOrder)
+    {
+        TicketOrder = ticketOrder;
+        TicketOrderId = ticketOrder is not null && ticketOrder.Id > 0 ? ticketOrder.Id : null;
     }
 }

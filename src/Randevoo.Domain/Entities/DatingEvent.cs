@@ -9,6 +9,7 @@ namespace Randevoo.Domain.Entities;
 
 public class DatingEvent : BaseEntity, IAggregateRoot
 {
+    public int EventCode { get; private set; }
     private readonly List<EventTicket> _tickets = new();
     private readonly List<EventTag> _eventTags = new();
     private readonly List<EventFaq> _faqs = new();
@@ -36,14 +37,29 @@ public class DatingEvent : BaseEntity, IAggregateRoot
     public bool IsOpenForSell { get; private set; }
     public bool IsCancelled { get; private set; }
     public EventReviewStatus ReviewStatus { get; private set; }
+    public EventApprovalStatus ApprovalStatus { get; private set; }
+    public EventSaleStatus SaleStatus { get; private set; }
+    public EventLifecycleStatus LifecycleStatus { get; private set; }
+    public string? AdminReviewNote { get; private set; }
+    public DateTime? ApprovedAtUtc { get; private set; }
+    public long? ApprovedByUserId { get; private set; }
+    public User? ApprovedByUser { get; private set; }
+    public DateTime? CancelledAtUtc { get; private set; }
+    public long? CancelledByUserId { get; private set; }
+    public User? CancelledByUser { get; private set; }
+    public string? CancellationReason { get; private set; }
+    public DateTime? CompletedAtUtc { get; private set; }
     public long EventPlannerUserId { get; private set; }
     public User EventPlannerUser { get; private set; } = null!;
     public decimal EventPlannerCommissionPercent { get; private set; }
     public EventPaymentCollectionMethod PaymentCollectionMethod { get; private set; } = EventPaymentCollectionMethod.PlatformGateway;
     public string? OrganizerPaymentInstructions { get; private set; }
+    public long? OrganizerPaymentAccountId { get; private set; }
+    public PlannerBankAccount? OrganizerPaymentAccount { get; private set; }
     public int MaleCapacity { get; private set; }
     public int FemaleCapacity { get; private set; }
     public int NumberOfLikesAllowed { get; private set; }
+    public string CurrencyCode { get; private set; } = "IRR";
     public decimal MaleTicketPrice { get; private set; }
     public string MaleTicketCurrencyCode { get; private set; } = "IRR";
     public decimal FemaleTicketPrice { get; private set; }
@@ -96,17 +112,21 @@ public class DatingEvent : BaseEntity, IAggregateRoot
         string maleTicketCurrencyCode = "IRR",
         string femaleTicketCurrencyCode = "IRR",
         EventPaymentCollectionMethod paymentCollectionMethod = EventPaymentCollectionMethod.PlatformGateway,
-        string? organizerPaymentInstructions = null)
+        string? organizerPaymentInstructions = null,
+        long? organizerPaymentAccountId = null)
     {
         EventPlannerUser = GuardAgainst.Object.Null(eventPlannerUser, nameof(eventPlannerUser));
         if (eventPlannerUser.Role != UserRole.EventPlanner && eventPlannerUser.Role != UserRole.Admin)
             throw new BusinessRuleViolationException("Invalid event planner", "Only event planners can own dating events");
 
-        SetCoreDetails(title, location, address, dateTimeStart, dateTimeEnd, eventType, ageRangeForMale, ageRangeForFemale, maleCapacity, femaleCapacity, numberOfChatAllowed, maleTicketPrice, femaleTicketPrice, educationLevelRestriction, tags, eventImage1, eventImage2, eventImage3, eventDescriptionHtml, maleTicketCurrencyCode, femaleTicketCurrencyCode, paymentCollectionMethod, organizerPaymentInstructions);
+        SetCoreDetails(title, location, address, dateTimeStart, dateTimeEnd, eventType, ageRangeForMale, ageRangeForFemale, maleCapacity, femaleCapacity, numberOfChatAllowed, maleTicketPrice, femaleTicketPrice, educationLevelRestriction, tags, eventImage1, eventImage2, eventImage3, eventDescriptionHtml, maleTicketCurrencyCode, femaleTicketCurrencyCode, paymentCollectionMethod, organizerPaymentInstructions, organizerPaymentAccountId);
         SetCommissionPercent(eventPlannerCommissionPercent);
         IsOpenForSell = false;
         IsCancelled = false;
         ReviewStatus = EventReviewStatus.NotSubmitted;
+        ApprovalStatus = EventApprovalStatus.Draft;
+        SaleStatus = EventSaleStatus.Closed;
+        LifecycleStatus = EventLifecycleStatus.Active;
         AddDomainEvent(new EntityCreatedEvent<DatingEvent>(this));
     }
 
@@ -119,40 +139,82 @@ public class DatingEvent : BaseEntity, IAggregateRoot
 
     public string GetTicketCurrencyForGender(Gender gender) => gender switch
     {
-        Gender.Male => MaleTicketCurrencyCode,
-        Gender.Female => FemaleTicketCurrencyCode,
+        Gender.Male => CurrencyCode,
+        Gender.Female => CurrencyCode,
         _ => throw new BusinessRuleViolationException("Unsupported gender", "Ticket pricing is not available for this user gender.")
     };
 
     public EventTicket SellTicket(User buyer, UserProfile buyerProfile, decimal? finalPriceOverride = null, EventDiscountCode? discountCode = null)
     {
-        if (!IsOpenForSell || IsCancelled)
-            throw new BusinessRuleViolationException("Event is not open", "Tickets cannot be sold for this event");
-
         GuardAgainst.Object.Null(buyer, nameof(buyer));
         GuardAgainst.Object.Null(buyerProfile, nameof(buyerProfile));
 
         if (buyer.Id != buyerProfile.UserId)
             throw new BusinessRuleViolationException("Invalid profile", "Buyer profile does not belong to buyer");
 
-        var capacity = buyerProfile.Gender == Gender.Male ? MaleCapacity : FemaleCapacity;
-        var sold = _tickets.Count(t => !t.IsRefunded && t.Gender == buyerProfile.Gender);
-        if (sold >= capacity)
-            throw new BusinessRuleViolationException("Capacity full", $"{buyerProfile.Gender} capacity is full");
-
-        var range = buyerProfile.Gender == Gender.Male ? AgeRangeForMale : AgeRangeForFemale;
-        if (!range.IsWithinRange(buyerProfile.Age))
-            throw new BusinessRuleViolationException("Age out of range", "User age is not allowed for this event");
-
-        if (!MeetsEducationRestriction(buyerProfile))
-            throw new BusinessRuleViolationException("Education level not eligible", "User education level does not meet this event's minimum requirement");
-
         var basePrice = GetTicketPriceForGender(buyerProfile.Gender);
         var finalPrice = finalPriceOverride.HasValue
             ? GuardAgainst.Number.OutOfRange(finalPriceOverride.Value, nameof(finalPriceOverride), 0.01m, basePrice)
             : basePrice;
+        var platformCommission = finalPrice * EventPlannerCommissionPercent / 100m;
+        var order = new TicketOrder(
+            this,
+            buyer,
+            basePrice,
+            basePrice - finalPrice,
+            finalPrice,
+            platformCommission,
+            PaymentCollectionMethod,
+            GetTicketCurrencyForGender(buyerProfile.Gender),
+            1m,
+            DateTime.UtcNow,
+            null,
+            discountCode,
+            TicketOrderPaymentStatus.Paid,
+            TicketOrderStatus.Confirmed);
 
-        var ticket = new EventTicket(this, buyer, buyerProfile.Gender, basePrice, finalPrice, GetTicketCurrencyForGender(buyerProfile.Gender), discountCode);
+        return SellTicket(order, buyer, buyerProfile, finalPrice, discountCode);
+    }
+
+    public EventTicket SellTicket(TicketOrder ticketOrder, User participantUser, UserProfile participantProfile, decimal? finalPriceOverride = null, EventDiscountCode? discountCode = null)
+    {
+        if (!IsOpenForSell || IsCancelled)
+            throw new BusinessRuleViolationException("Event is not open", "Tickets cannot be sold for this event");
+
+        GuardAgainst.Object.Null(ticketOrder, nameof(ticketOrder));
+        GuardAgainst.Object.Null(participantUser, nameof(participantUser));
+        GuardAgainst.Object.Null(participantProfile, nameof(participantProfile));
+
+        if (ticketOrder.DatingEventId != Id && ticketOrder.DatingEvent != this)
+            throw new BusinessRuleViolationException("Invalid ticket order", "Ticket order does not belong to this event");
+
+        if (participantUser.Id != participantProfile.UserId)
+            throw new BusinessRuleViolationException("Invalid profile", "Participant profile does not belong to participant");
+
+        var participantAlreadyHasTicket = participantUser.Id > 0
+            ? _tickets.Any(t => !t.IsRefunded && !t.IsRemoved && t.UserId == participantUser.Id)
+            : _tickets.Any(t => !t.IsRefunded && !t.IsRemoved && ReferenceEquals(t.User, participantUser));
+        if (participantAlreadyHasTicket)
+            throw new BusinessRuleViolationException("Ticket already exists", "Participant already has an active ticket for this event");
+
+        var capacity = participantProfile.Gender == Gender.Male ? MaleCapacity : FemaleCapacity;
+        var sold = _tickets.Count(t => !t.IsRefunded && !t.IsRemoved && t.Gender == participantProfile.Gender);
+        if (sold >= capacity)
+            throw new BusinessRuleViolationException("Capacity full", $"{participantProfile.Gender} capacity is full");
+
+        var range = participantProfile.Gender == Gender.Male ? AgeRangeForMale : AgeRangeForFemale;
+        if (!range.IsWithinRange(participantProfile.Age))
+            throw new BusinessRuleViolationException("Age out of range", "User age is not allowed for this event");
+
+        if (!MeetsEducationRestriction(participantProfile))
+            throw new BusinessRuleViolationException("Education level not eligible", "User education level does not meet this event's minimum requirement");
+
+        var basePrice = GetTicketPriceForGender(participantProfile.Gender);
+        var finalPrice = finalPriceOverride.HasValue
+            ? GuardAgainst.Number.OutOfRange(finalPriceOverride.Value, nameof(finalPriceOverride), 0.01m, basePrice)
+            : basePrice;
+
+        var ticket = new EventTicket(ticketOrder, this, participantUser, participantProfile.Gender, basePrice, finalPrice, GetTicketCurrencyForGender(participantProfile.Gender), discountCode);
         _tickets.Add(ticket);
         UpdateTimestamp();
         return ticket;
@@ -188,7 +250,8 @@ public class DatingEvent : BaseEntity, IAggregateRoot
         string maleTicketCurrencyCode = "IRR",
         string femaleTicketCurrencyCode = "IRR",
         EventPaymentCollectionMethod paymentCollectionMethod = EventPaymentCollectionMethod.PlatformGateway,
-        string? organizerPaymentInstructions = null)
+        string? organizerPaymentInstructions = null,
+        long? organizerPaymentAccountId = null)
     {
         if (IsCancelled)
             throw new BusinessRuleViolationException("Event cancelled", "Cancelled events cannot be edited");
@@ -216,9 +279,9 @@ public class DatingEvent : BaseEntity, IAggregateRoot
             maleTicketCurrencyCode,
             femaleTicketCurrencyCode,
             paymentCollectionMethod,
-            organizerPaymentInstructions);
+            organizerPaymentInstructions,
+            organizerPaymentAccountId);
 
-        SubmitForReview();
         UpdateTimestamp();
     }
 
@@ -237,26 +300,36 @@ public class DatingEvent : BaseEntity, IAggregateRoot
         if (IsCancelled)
             throw new BusinessRuleViolationException("Event cancelled", "Cancelled events cannot be opened");
 
-        if (ReviewStatus != EventReviewStatus.Approved)
+        if (ApprovalStatus != EventApprovalStatus.Approved)
             throw new BusinessRuleViolationException("Event is not approved", "Only admin approved events can be opened for sale");
+
+        if (LifecycleStatus != EventLifecycleStatus.Active)
+            throw new BusinessRuleViolationException("Event is not active", "Only active events can be opened for sale");
 
         if (DateTimeEnd <= DateTime.UtcNow)
             throw new BusinessRuleViolationException("Event closed", "Closed events cannot be opened for sale");
 
         IsOpenForSell = true;
+        SaleStatus = EventSaleStatus.Open;
         UpdateTimestamp();
     }
 
     public void CloseForSell()
     {
         IsOpenForSell = false;
+        SaleStatus = EventSaleStatus.Closed;
         UpdateTimestamp();
     }
 
-    public IReadOnlyList<EventTicket> Cancel()
+    public IReadOnlyList<EventTicket> Cancel(long? cancelledByUserId = null, string? reason = null)
     {
         IsCancelled = true;
         IsOpenForSell = false;
+        SaleStatus = EventSaleStatus.Closed;
+        LifecycleStatus = EventLifecycleStatus.Cancelled;
+        CancelledByUserId = cancelledByUserId;
+        CancelledAtUtc = DateTime.UtcNow;
+        CancellationReason = NormalizeOptional(reason, nameof(reason), 1000);
         foreach (var ticket in _tickets.Where(t => !t.IsRefunded))
             ticket.MarkRefunded();
         UpdateTimestamp();
@@ -269,41 +342,66 @@ public class DatingEvent : BaseEntity, IAggregateRoot
             throw new BusinessRuleViolationException("Event cancelled", "Cancelled events cannot be submitted for review");
 
         ReviewStatus = EventReviewStatus.PendingReview;
+        ApprovalStatus = EventApprovalStatus.PendingReview;
         IsOpenForSell = false;
+        SaleStatus = EventSaleStatus.Closed;
+        AdminReviewNote = null;
         UpdateTimestamp();
     }
 
-    public void ApproveByAdmin()
+    public void ApproveByAdmin(long? approvedByUserId = null, string? note = null)
     {
         if (IsCancelled)
             throw new BusinessRuleViolationException("Event cancelled", "Cancelled events cannot be approved");
 
         ReviewStatus = EventReviewStatus.Approved;
+        ApprovalStatus = EventApprovalStatus.Approved;
+        ApprovedByUserId = approvedByUserId;
+        ApprovedAtUtc = DateTime.UtcNow;
+        AdminReviewNote = NormalizeOptional(note, nameof(note), 1000);
         UpdateTimestamp();
     }
 
-    public void RejectByAdmin()
+    public void RejectByAdmin(string? note = null)
     {
         if (IsCancelled)
             throw new BusinessRuleViolationException("Event cancelled", "Cancelled events cannot be rejected");
 
-        ReviewStatus = EventReviewStatus.Rejected;
+        ReviewStatus = EventReviewStatus.NotSubmitted;
+        ApprovalStatus = EventApprovalStatus.Draft;
         IsOpenForSell = false;
+        SaleStatus = EventSaleStatus.Closed;
+        AdminReviewNote = NormalizeOptional(note, nameof(note), 1000);
+        UpdateTimestamp();
+    }
+
+    public void MarkCompleted(DateTime nowUtc)
+    {
+        if (LifecycleStatus == EventLifecycleStatus.Cancelled)
+            return;
+
+        if (DateTimeEnd > nowUtc)
+            throw new BusinessRuleViolationException("Event has not ended", "Only ended events can be completed.");
+
+        LifecycleStatus = EventLifecycleStatus.Completed;
+        SaleStatus = EventSaleStatus.Closed;
+        IsOpenForSell = false;
+        CompletedAtUtc ??= nowUtc;
         UpdateTimestamp();
     }
 
     public EventOperationalStatus ResolveOperationalStatus(DateTime nowUtc)
     {
-        if (IsCancelled)
+        if (LifecycleStatus == EventLifecycleStatus.Cancelled || IsCancelled)
             return EventOperationalStatus.Cancelled;
 
-        if (DateTimeEnd <= nowUtc)
-            return EventOperationalStatus.Closed;
+        if (LifecycleStatus == EventLifecycleStatus.Completed || DateTimeEnd <= nowUtc)
+            return EventOperationalStatus.Completed;
 
-        if (IsOpenForSell)
-            return EventOperationalStatus.Selling;
+        if (SaleStatus == EventSaleStatus.Open || IsOpenForSell)
+            return EventOperationalStatus.SaleOpen;
 
-        return EventOperationalStatus.Draft;
+        return EventOperationalStatus.SaleClosed;
     }
 
     public void SetCommissionPercent(decimal percent)
@@ -312,10 +410,11 @@ public class DatingEvent : BaseEntity, IAggregateRoot
         UpdateTimestamp();
     }
 
-    public void SetPaymentCollection(EventPaymentCollectionMethod method, string? organizerPaymentInstructions)
+    public void SetPaymentCollection(EventPaymentCollectionMethod method, string? organizerPaymentInstructions, long? organizerPaymentAccountId = null)
     {
         PaymentCollectionMethod = GuardAgainst.Number.AgainstInvalidEnum<EventPaymentCollectionMethod>((int)method, nameof(method));
         OrganizerPaymentInstructions = NormalizeOrganizerPaymentInstructions(PaymentCollectionMethod, organizerPaymentInstructions);
+        OrganizerPaymentAccountId = PaymentCollectionMethod == EventPaymentCollectionMethod.OrganizerManualTransfer ? organizerPaymentAccountId : null;
         UpdateTimestamp();
     }
 
@@ -342,7 +441,8 @@ public class DatingEvent : BaseEntity, IAggregateRoot
         string maleTicketCurrencyCode = "IRR",
         string femaleTicketCurrencyCode = "IRR",
         EventPaymentCollectionMethod paymentCollectionMethod = EventPaymentCollectionMethod.PlatformGateway,
-        string? organizerPaymentInstructions = null)
+        string? organizerPaymentInstructions = null,
+        long? organizerPaymentAccountId = null)
     {
         if (dateTimeEnd <= dateTimeStart)
             throw new BusinessRuleViolationException("Invalid event time", "End time must be after start time");
@@ -362,6 +462,7 @@ public class DatingEvent : BaseEntity, IAggregateRoot
         MaleTicketPrice = GuardAgainst.Number.OutOfRange(maleTicketPrice, nameof(maleTicketPrice), 0.01m, 1_000_000_000m);
         FemaleTicketPrice = GuardAgainst.Number.OutOfRange(femaleTicketPrice, nameof(femaleTicketPrice), 0.01m, 1_000_000_000m);
         var ticketCurrencyCode = NormalizeCurrencyCode(maleTicketCurrencyCode);
+        CurrencyCode = ticketCurrencyCode;
         MaleTicketCurrencyCode = ticketCurrencyCode;
         FemaleTicketCurrencyCode = ticketCurrencyCode;
         EducationLevelRestriction = GuardAgainst.Number.AgainstInvalidEnum<EventEducationLevelRestriction>((int)educationLevelRestriction, nameof(educationLevelRestriction));
@@ -372,6 +473,7 @@ public class DatingEvent : BaseEntity, IAggregateRoot
         EventDescriptionHtml = GuardAgainst.String.InvalidLength(eventDescriptionHtml, nameof(eventDescriptionHtml), 10, 10000);
         PaymentCollectionMethod = GuardAgainst.Number.AgainstInvalidEnum<EventPaymentCollectionMethod>((int)paymentCollectionMethod, nameof(paymentCollectionMethod));
         OrganizerPaymentInstructions = NormalizeOrganizerPaymentInstructions(PaymentCollectionMethod, organizerPaymentInstructions);
+        OrganizerPaymentAccountId = PaymentCollectionMethod == EventPaymentCollectionMethod.OrganizerManualTransfer ? organizerPaymentAccountId : null;
     }
 
     private static string NormalizeTags(IReadOnlyCollection<string>? tags)
@@ -404,12 +506,7 @@ public class DatingEvent : BaseEntity, IAggregateRoot
 
     private static string NormalizeCurrencyCode(string? currencyCode)
     {
-        var normalized = CurrencyLookup.NormalizeCode(string.IsNullOrWhiteSpace(currencyCode) ? "IRR" : currencyCode);
-        var allowedCodes = new[] { "IRR", "EUR", "USD", "CAD", "GBP", "AED", "TRY" };
-        if (!allowedCodes.Contains(normalized, StringComparer.OrdinalIgnoreCase))
-            throw new BusinessRuleViolationException("Invalid ticket currency", "Ticket currency is not supported.");
-
-        return normalized;
+        return CurrencyLookup.NormalizeCode(string.IsNullOrWhiteSpace(currencyCode) ? "IRR" : currencyCode);
     }
 
     private static string? NormalizeOrganizerPaymentInstructions(EventPaymentCollectionMethod method, string? instructions)
@@ -592,4 +689,7 @@ public class DatingEvent : BaseEntity, IAggregateRoot
         5 => EventEducationLevelRestriction.ProfessionalDoctorateOrPhD,
         _ => EventEducationLevelRestriction.WithoutLimit
     };
+
+    private static string? NormalizeOptional(string? value, string parameterName, int maxLength)
+        => string.IsNullOrWhiteSpace(value) ? null : GuardAgainst.String.MaxLength(value.Trim(), parameterName, maxLength);
 }

@@ -2,116 +2,30 @@
 @{
     var path = Context.Request.Path.Value ?? string.Empty;
     var role = CurrentSession.CurrentUser?.Role.ToString() ?? string.Empty;
+    var isAdmin = string.Equals(role, "Admin", StringComparison.OrdinalIgnoreCase);
     var isPlanner = string.Equals(role, "EventPlanner", StringComparison.OrdinalIgnoreCase);
     var isSupport = string.Equals(role, "SupportTeam", StringComparison.OrdinalIgnoreCase);
-    var dashboardActive = path.StartsWith("/Dashboard", StringComparison.OrdinalIgnoreCase);
+
     var eventsActive = path.StartsWith("/Events", StringComparison.OrdinalIgnoreCase);
-    var usersActive = path.StartsWith("/Users", StringComparison.OrdinalIgnoreCase) || path.StartsWith("/UserProfiles", StringComparison.OrdinalIgnoreCase);
-    var plannerOpsActive = path.StartsWith("/Planner", StringComparison.OrdinalIgnoreCase);
-    var financeActive = path.StartsWith("/Finance", StringComparison.OrdinalIgnoreCase);
+    var organizerActive = path.StartsWith("/Planner", StringComparison.OrdinalIgnoreCase)
+        || path.StartsWith("/Users", StringComparison.OrdinalIgnoreCase);
+    var participantActive = path.StartsWith("/Participants", StringComparison.OrdinalIgnoreCase)
+        || path.StartsWith("/Buyers", StringComparison.OrdinalIgnoreCase)
+        || path.StartsWith("/UserProfiles", StringComparison.OrdinalIgnoreCase);
     var supportActive = path.StartsWith("/Support", StringComparison.OrdinalIgnoreCase);
-    var logsActive = path.StartsWith("/Logs", StringComparison.OrdinalIgnoreCase);
-    var analyticsActive = path.Equals("/Dashboard/Users", StringComparison.OrdinalIgnoreCase)
-        || path.Equals("/Dashboard/Sales", StringComparison.OrdinalIgnoreCase)
-        || path.Equals("/Dashboard/Events", StringComparison.OrdinalIgnoreCase)
-        || path.Equals("/Dashboard/Money", StringComparison.OrdinalIgnoreCase);
+    var notificationsActive = path.StartsWith("/Notifications", StringComparison.OrdinalIgnoreCase);
+    var financeActive = path.StartsWith("/Finance", StringComparison.OrdinalIgnoreCase)
+        || (isPlanner && path.StartsWith("/Planner/BankAccounts", StringComparison.OrdinalIgnoreCase));
     var settingsActive = path.StartsWith("/Settings", StringComparison.OrdinalIgnoreCase)
         || path.StartsWith("/DiscountCodes", StringComparison.OrdinalIgnoreCase)
         || path.StartsWith("/EventTypes", StringComparison.OrdinalIgnoreCase)
-        || path.StartsWith("/Tags", StringComparison.OrdinalIgnoreCase);
+        || path.StartsWith("/Tags", StringComparison.OrdinalIgnoreCase)
+        || path.StartsWith("/Logs", StringComparison.OrdinalIgnoreCase);
 }
 
 <nav class="nav flex-column sidebar-nav sidebar-tree" aria-label="منوی اصلی پنل مدیریت">
-    <a class="nav-link nav-link-root @(dashboardActive ? "active" : string.Empty)"
-       asp-page="@(isPlanner ? "/Dashboard/My" : isSupport ? "/Support/Index" : "/Dashboard/Index")">
-        <i class="bi bi-grid-1x2-fill"></i><span>داشبورد</span>
-    </a>
-
-    <div class="nav-section @(supportActive ? "active" : string.Empty)">
-        <button class="nav-tree-toggle @(supportActive ? "active" : string.Empty)"
-                type="button"
-                data-bs-toggle="collapse"
-                data-bs-target="#supportTree"
-                aria-expanded="@(supportActive.ToString().ToLowerInvariant())"
-                aria-controls="supportTree">
-            <span><i class="bi bi-headset"></i><span class="nav-tree-label">پشتیبانی</span></span>
-            <i class="bi bi-chevron-down nav-tree-chevron"></i>
-        </button>
-        <div id="supportTree" class="collapse nav-subnav @(supportActive ? "show" : string.Empty)">
-            @if (!isPlanner)
-            {
-                <a class="nav-link @(path.Equals("/Support", StringComparison.OrdinalIgnoreCase) || path.StartsWith("/Support/Index", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/Support/Index">
-                    <i class="bi bi-speedometer2"></i><span>آمار تیکت</span>
-                </a>
-                <a class="nav-link @(path.StartsWith("/Support/Tickets", StringComparison.OrdinalIgnoreCase) || path.StartsWith("/Support/Details", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/Support/Tickets">
-                    <i class="bi bi-inboxes-fill"></i><span>همه تیکت‌ها</span>
-                </a>
-            }
-            @if (isPlanner)
-            {
-                <a class="nav-link @(path.StartsWith("/Support/My", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/Support/My">
-                    <i class="bi bi-ticket-perforated"></i><span>تیکت های من</span>
-                </a>
-                <a class="nav-link @(path.StartsWith("/Support/Create", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/Support/Create">
-                    <i class="bi bi-plus-circle"></i><span>ثبت تیکت</span>
-                </a>
-            }
-        </div>
-    </div>
-
-    @if (isPlanner)
+    @if (isAdmin)
     {
-        <div class="nav-section @(eventsActive || plannerOpsActive || financeActive ? "active" : string.Empty)">
-            <button class="nav-tree-toggle @(eventsActive || plannerOpsActive || financeActive ? "active" : string.Empty)"
-                    type="button"
-                    data-bs-toggle="collapse"
-                    data-bs-target="#plannerMyTree"
-                    aria-expanded="@((eventsActive || plannerOpsActive || financeActive).ToString().ToLowerInvariant())"
-                    aria-controls="plannerMyTree">
-                <span><i class="bi bi-calendar-heart"></i><span class="nav-tree-label">عملیات من</span></span>
-                <i class="bi bi-chevron-down nav-tree-chevron"></i>
-            </button>
-            <div id="plannerMyTree" class="collapse nav-subnav @(eventsActive || plannerOpsActive || financeActive ? "show" : string.Empty)">
-                <a class="nav-link @(path.StartsWith("/Events/My", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/Events/My">
-                    <i class="bi bi-calendar-event-fill"></i><span>رویدادهای من</span>
-                </a>
-                <a class="nav-link @(path.StartsWith("/Planner/Profile", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/Planner/Profile">
-                    <i class="bi bi-person-vcard-fill"></i><span>پروفایل</span>
-                </a>
-                <a class="nav-link @(path.StartsWith("/Finance/My", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/Finance/My">
-                    <i class="bi bi-wallet2"></i><span>مالی من</span>
-                </a>
-                <a class="nav-link @(path.StartsWith("/Planner/BankAccounts", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/Planner/BankAccounts">
-                    <i class="bi bi-bank2"></i><span>حساب بانکی</span>
-                </a>
-            </div>
-        </div>
-    }
-    else if (!isSupport)
-    {
-        <div class="nav-section @(plannerOpsActive ? "active" : string.Empty)">
-            <button class="nav-tree-toggle @(plannerOpsActive ? "active" : string.Empty)"
-                    type="button"
-                    data-bs-toggle="collapse"
-                    data-bs-target="#plannerOpsTree"
-                    aria-expanded="@(plannerOpsActive.ToString().ToLowerInvariant())"
-                    aria-controls="plannerOpsTree">
-                <span><i class="bi bi-person-badge"></i><span class="nav-tree-label">برگزارکننده</span></span>
-                <i class="bi bi-chevron-down nav-tree-chevron"></i>
-            </button>
-            <div id="plannerOpsTree" class="collapse nav-subnav @(plannerOpsActive ? "show" : string.Empty)">
-                <a class="nav-link @(path.Equals("/Planner", StringComparison.OrdinalIgnoreCase) || path.StartsWith("/Planner/Index", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/Planner/Index">
-                    <i class="bi bi-list-check"></i><span>برگزارکنندگان</span>
-                </a>
-                <a class="nav-link @(path.StartsWith("/Planner/Approvals", StringComparison.OrdinalIgnoreCase) || path.StartsWith("/Planner/Review", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/Planner/Approvals">
-                    <i class="bi bi-patch-check-fill"></i><span>تایید پروفایل</span>
-                </a>
-                <a class="nav-link @(path.StartsWith("/Finance/Withdrawals", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/Finance/Withdrawals">
-                    <i class="bi bi-bank2"></i><span>تایید تسویه</span>
-                </a>
-            </div>
-        </div>
-
         <div class="nav-section @(eventsActive ? "active" : string.Empty)">
             <button class="nav-tree-toggle @(eventsActive ? "active" : string.Empty)"
                     type="button"
@@ -129,32 +43,175 @@
                 <a class="nav-link @(eventsActive && string.Equals(Context.Request.Query["Scope"], "Archive", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/Events/Index" asp-route-Scope="Archive">
                     <i class="bi bi-archive"></i><span>آرشیو</span>
                 </a>
-                <a class="nav-link @(path.Equals("/Dashboard/Events", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/Dashboard/Events">
-                    <i class="bi bi-speedometer2"></i><span>آمار رویداد</span>
+            </div>
+        </div>
+    }
+    else if (isPlanner)
+    {
+        <div class="nav-section @(eventsActive ? "active" : string.Empty)">
+            <button class="nav-tree-toggle @(eventsActive ? "active" : string.Empty)"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#plannerEventsTree"
+                    aria-expanded="@(eventsActive.ToString().ToLowerInvariant())"
+                    aria-controls="plannerEventsTree">
+                <span><i class="bi bi-calendar-heart"></i><span class="nav-tree-label">رویدادها</span></span>
+                <i class="bi bi-chevron-down nav-tree-chevron"></i>
+            </button>
+            <div id="plannerEventsTree" class="collapse nav-subnav @(eventsActive ? "show" : string.Empty)">
+                <a class="nav-link @(path.StartsWith("/Events/My", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/Events/My">
+                    <i class="bi bi-calendar-event-fill"></i><span>رویدادهای من</span>
                 </a>
             </div>
         </div>
+    }
 
-        <div class="nav-section @(usersActive ? "active" : string.Empty)">
-            <button class="nav-tree-toggle @(usersActive ? "active" : string.Empty)"
+    @if (isAdmin)
+    {
+        <div class="nav-section @(organizerActive ? "active" : string.Empty)">
+            <button class="nav-tree-toggle @(organizerActive ? "active" : string.Empty)"
                     type="button"
                     data-bs-toggle="collapse"
-                    data-bs-target="#usersTree"
-                    aria-expanded="@(usersActive.ToString().ToLowerInvariant())"
-                    aria-controls="usersTree">
+                    data-bs-target="#organizersTree"
+                    aria-expanded="@(organizerActive.ToString().ToLowerInvariant())"
+                    aria-controls="organizersTree">
+                <span><i class="bi bi-person-badge"></i><span class="nav-tree-label">برگزارکنندگان</span></span>
+                <i class="bi bi-chevron-down nav-tree-chevron"></i>
+            </button>
+            <div id="organizersTree" class="collapse nav-subnav @(organizerActive ? "show" : string.Empty)">
+                <a class="nav-link @(path.Equals("/Planner", StringComparison.OrdinalIgnoreCase) || path.StartsWith("/Planner/Index", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/Planner/Index">
+                    <i class="bi bi-list-check"></i><span>فهرست برگزارکنندگان</span>
+                </a>
+                <a class="nav-link @(path.StartsWith("/Planner/Approvals", StringComparison.OrdinalIgnoreCase) || path.StartsWith("/Planner/Review", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/Planner/Approvals">
+                    <i class="bi bi-patch-check-fill"></i><span>تایید پروفایل</span>
+                </a>
+                <a class="nav-link @(path.StartsWith("/Users", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/Users/Index">
+                    <i class="bi bi-person-gear"></i><span>حساب‌های کاربری</span>
+                </a>
+            </div>
+        </div>
+    }
+    else if (isPlanner)
+    {
+        <div class="nav-section @(organizerActive && !financeActive ? "active" : string.Empty)">
+            <button class="nav-tree-toggle @(organizerActive && !financeActive ? "active" : string.Empty)"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#plannerProfileTree"
+                    aria-expanded="@((organizerActive && !financeActive).ToString().ToLowerInvariant())"
+                    aria-controls="plannerProfileTree">
+                <span><i class="bi bi-person-vcard-fill"></i><span class="nav-tree-label">برگزارکننده</span></span>
+                <i class="bi bi-chevron-down nav-tree-chevron"></i>
+            </button>
+            <div id="plannerProfileTree" class="collapse nav-subnav @(organizerActive && !financeActive ? "show" : string.Empty)">
+                <a class="nav-link @(path.StartsWith("/Planner/Profile", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/Planner/Profile">
+                    <i class="bi bi-person-vcard-fill"></i><span>پروفایل</span>
+                </a>
+                <a class="nav-link @(path.StartsWith("/Planner/BankAccounts", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/Planner/BankAccounts">
+                    <i class="bi bi-bank2"></i><span>حساب‌های بانکی</span>
+                </a>
+            </div>
+        </div>
+    }
+
+    @if (isAdmin || isSupport)
+    {
+        <div class="nav-section @(participantActive ? "active" : string.Empty)">
+            <button class="nav-tree-toggle @(participantActive ? "active" : string.Empty)"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#participantsTree"
+                    aria-expanded="@(participantActive.ToString().ToLowerInvariant())"
+                    aria-controls="participantsTree">
                 <span><i class="bi bi-people-fill"></i><span class="nav-tree-label">شرکت‌کنندگان</span></span>
                 <i class="bi bi-chevron-down nav-tree-chevron"></i>
             </button>
-            <div id="usersTree" class="collapse nav-subnav @(usersActive ? "show" : string.Empty)">
-                <a class="nav-link @(path.StartsWith("/UserProfiles", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/UserProfiles/Index">
-                    <i class="bi bi-person-lines-fill"></i><span>لیست شرکت‌کنندگان</span>
+            <div id="participantsTree" class="collapse nav-subnav @(participantActive ? "show" : string.Empty)">
+                <a class="nav-link @(path.StartsWith("/Participants", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/Participants/Index">
+                    <i class="bi bi-person-lines-fill"></i><span>فهرست شرکت‌کنندگان</span>
                 </a>
-                <a class="nav-link @(path.Equals("/Dashboard/Users", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/Dashboard/Users">
-                    <i class="bi bi-bar-chart-line"></i><span>آمار شرکت‌کنندگان</span>
+                <a class="nav-link @(path.StartsWith("/Buyers", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/Buyers/Index">
+                    <i class="bi bi-bag-check"></i><span>خریداران بلیت</span>
                 </a>
+                @if (isAdmin)
+                {
+                    <a class="nav-link @(path.StartsWith("/UserProfiles", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/UserProfiles/Index">
+                        <i class="bi bi-person-bounding-box"></i><span>پروفایل شرکت‌کنندگان</span>
+                    </a>
+                }
             </div>
         </div>
+    }
 
+    @if (isAdmin || isPlanner || isSupport)
+    {
+        <div class="nav-section @(supportActive ? "active" : string.Empty)">
+            <button class="nav-tree-toggle @(supportActive ? "active" : string.Empty)"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#supportTree"
+                    aria-expanded="@(supportActive.ToString().ToLowerInvariant())"
+                    aria-controls="supportTree">
+                <span><i class="bi bi-headset"></i><span class="nav-tree-label">پشتیبانی</span></span>
+                <i class="bi bi-chevron-down nav-tree-chevron"></i>
+            </button>
+            <div id="supportTree" class="collapse nav-subnav @(supportActive ? "show" : string.Empty)">
+                @if (isAdmin || isSupport)
+                {
+                    <a class="nav-link @(path.Equals("/Support", StringComparison.OrdinalIgnoreCase) || path.StartsWith("/Support/Index", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/Support/Index">
+                        <i class="bi bi-speedometer2"></i><span>آمار تیکت</span>
+                    </a>
+                    <a class="nav-link @(path.StartsWith("/Support/Tickets", StringComparison.OrdinalIgnoreCase) || path.StartsWith("/Support/Details", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/Support/Tickets">
+                        <i class="bi bi-inboxes-fill"></i><span>همه تیکت‌ها</span>
+                    </a>
+                }
+                @if (isPlanner)
+                {
+                    <a class="nav-link @(path.StartsWith("/Support/Received", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/Support/Received">
+                        <i class="bi bi-inbox-fill"></i><span>تیکت‌های شرکت‌کنندگان</span>
+                    </a>
+                    <a class="nav-link @(path.StartsWith("/Support/My", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/Support/My">
+                        <i class="bi bi-ticket-perforated"></i><span>تیکت‌های من با پشتیبانی</span>
+                    </a>
+                    <a class="nav-link @(path.StartsWith("/Support/Create", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/Support/Create">
+                        <i class="bi bi-plus-circle"></i><span>ثبت تیکت</span>
+                    </a>
+                }
+            </div>
+        </div>
+    }
+
+    @if (isAdmin || isPlanner || isSupport)
+    {
+        <div class="nav-section @(notificationsActive ? "active" : string.Empty)">
+            <button class="nav-tree-toggle @(notificationsActive ? "active" : string.Empty)"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#notificationsTree"
+                    aria-expanded="@(notificationsActive.ToString().ToLowerInvariant())"
+                    aria-controls="notificationsTree">
+                <span><i class="bi bi-bell-fill"></i><span class="nav-tree-label">پیام‌ها</span></span>
+                <i class="bi bi-chevron-down nav-tree-chevron"></i>
+            </button>
+            <div id="notificationsTree" class="collapse nav-subnav @(notificationsActive ? "show" : string.Empty)">
+                <a class="nav-link @(path.StartsWith("/Notifications/Index", StringComparison.OrdinalIgnoreCase) || path.Equals("/Notifications", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/Notifications/Index">
+                    <i class="bi bi-inbox"></i><span>صندوق پیام‌ها</span>
+                </a>
+                <a class="nav-link @(path.StartsWith("/Notifications/Create", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/Notifications/Create">
+                    <i class="bi bi-send"></i><span>ارسال پیام</span>
+                </a>
+                @if (isAdmin || isSupport)
+                {
+                    <a class="nav-link @(path.StartsWith("/Notifications/Approvals", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/Notifications/Approvals">
+                        <i class="bi bi-shield-check"></i><span>تایید پیام‌ها</span>
+                    </a>
+                }
+            </div>
+        </div>
+    }
+
+    @if (isAdmin || isPlanner || isSupport)
+    {
         <div class="nav-section @(financeActive ? "active" : string.Empty)">
             <button class="nav-tree-toggle @(financeActive ? "active" : string.Empty)"
                     type="button"
@@ -166,53 +223,45 @@
                 <i class="bi bi-chevron-down nav-tree-chevron"></i>
             </button>
             <div id="financeTree" class="collapse nav-subnav @(financeActive ? "show" : string.Empty)">
-                <a class="nav-link @(path.StartsWith("/Finance/TicketTransactions", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/Finance/TicketTransactions">
-                    <i class="bi bi-receipt-cutoff"></i><span>خرید بلیت</span>
-                </a>
-                <a class="nav-link @(path.StartsWith("/Finance/Withdrawals", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/Finance/Withdrawals">
-                    <i class="bi bi-credit-card-2-back"></i><span>تسویه‌ها</span>
-                </a>
-                <a class="nav-link @(path.Equals("/Dashboard/Sales", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/Dashboard/Sales">
-                    <i class="bi bi-pie-chart-fill"></i><span>آمار فروش</span>
-                </a>
-                <a class="nav-link @(path.Equals("/Dashboard/Money", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/Dashboard/Money">
-                    <i class="bi bi-currency-exchange"></i><span>آمار مالی</span>
-                </a>
+                @if (isAdmin)
+                {
+                    <a class="nav-link @(path.StartsWith("/Finance/TicketTransactions", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/Finance/TicketTransactions">
+                        <i class="bi bi-receipt-cutoff"></i><span>خرید بلیت</span>
+                    </a>
+                    <a class="nav-link @(path.StartsWith("/Finance/PaymentReceipts", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/Finance/PaymentReceipts">
+                        <i class="bi bi-receipt"></i><span>رسیدهای پرداخت</span>
+                    </a>
+                    <a class="nav-link @(path.StartsWith("/Finance/Withdrawals", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/Finance/Withdrawals">
+                        <i class="bi bi-credit-card-2-back"></i><span>تسویه‌ها</span>
+                    </a>
+                    <a class="nav-link @(path.StartsWith("/Finance/RefundRequests", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/Finance/RefundRequests">
+                        <i class="bi bi-arrow-counterclockwise"></i><span>بازگشت وجه</span>
+                    </a>
+                }
+                @if (isSupport)
+                {
+                    <a class="nav-link @(path.StartsWith("/Finance/PaymentReceipts", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/Finance/PaymentReceipts">
+                        <i class="bi bi-receipt"></i><span>رسیدهای پرداخت</span>
+                    </a>
+                    <a class="nav-link @(path.StartsWith("/Finance/RefundRequests", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/Finance/RefundRequests">
+                        <i class="bi bi-arrow-counterclockwise"></i><span>بازگشت وجه</span>
+                    </a>
+                }
+                @if (isPlanner)
+                {
+                    <a class="nav-link @(path.StartsWith("/Finance/My", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/Finance/My">
+                        <i class="bi bi-wallet2"></i><span>مالی من</span>
+                    </a>
+                    <a class="nav-link @(path.StartsWith("/Finance/ReceivedReceipts", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/Finance/ReceivedReceipts">
+                        <i class="bi bi-receipt"></i><span>رسیدهای دریافتی</span>
+                    </a>
+                }
             </div>
         </div>
+    }
 
-        <div class="nav-section @(analyticsActive || logsActive ? "active" : string.Empty)">
-            <button class="nav-tree-toggle @(analyticsActive || logsActive ? "active" : string.Empty)"
-                    type="button"
-                    data-bs-toggle="collapse"
-                    data-bs-target="#analyticsTree"
-                    aria-expanded="@((analyticsActive || logsActive).ToString().ToLowerInvariant())"
-                    aria-controls="analyticsTree">
-                <span><i class="bi bi-graph-up-arrow"></i><span class="nav-tree-label">تحلیل</span></span>
-                <i class="bi bi-chevron-down nav-tree-chevron"></i>
-            </button>
-            <div id="analyticsTree" class="collapse nav-subnav @(analyticsActive || logsActive ? "show" : string.Empty)">
-                <a class="nav-link @(path.Equals("/Dashboard/Users", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/Dashboard/Users">
-                    <i class="bi bi-people"></i><span>آمار شرکت‌کنندگان</span>
-                </a>
-                <a class="nav-link @(path.Equals("/Dashboard/Sales", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/Dashboard/Sales">
-                    <i class="bi bi-bag-check"></i><span>آمار فروش</span>
-                </a>
-                <a class="nav-link @(path.Equals("/Dashboard/Events", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/Dashboard/Events">
-                    <i class="bi bi-calendar4-event"></i><span>آمار رویداد</span>
-                </a>
-                <a class="nav-link @(path.Equals("/Dashboard/Money", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/Dashboard/Money">
-                    <i class="bi bi-cash-coin"></i><span>آمار مالی</span>
-                </a>
-                <a class="nav-link @(logsActive ? "active" : string.Empty)" asp-page="/Logs/Index">
-                    <i class="bi bi-journal-text"></i><span>مرکز لاگ</span>
-                </a>
-                <a class="nav-link @(path.Equals("/Logs/SmsQueue", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/Logs/SmsQueue">
-                    <i class="bi bi-chat-square-text"></i><span>صف پیامک</span>
-                </a>
-            </div>
-        </div>
-
+    @if (isAdmin)
+    {
         <div class="nav-section @(settingsActive ? "active" : string.Empty)">
             <button class="nav-tree-toggle @(settingsActive ? "active" : string.Empty)"
                     type="button"
@@ -220,7 +269,7 @@
                     data-bs-target="#settingsTree"
                     aria-expanded="@(settingsActive.ToString().ToLowerInvariant())"
                     aria-controls="settingsTree">
-                <span><i class="bi bi-sliders"></i><span class="nav-tree-label">پایه</span></span>
+                <span><i class="bi bi-sliders"></i><span class="nav-tree-label">اطلاعات پایه</span></span>
                 <i class="bi bi-chevron-down nav-tree-chevron"></i>
             </button>
             <div id="settingsTree" class="collapse nav-subnav @(settingsActive ? "show" : string.Empty)">
@@ -233,11 +282,22 @@
                 <a class="nav-link @(path.StartsWith("/Tags", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/Tags/Index">
                     <i class="bi bi-bookmarks-fill"></i><span>تگ‌ها</span>
                 </a>
+                <a class="nav-link @(path.StartsWith("/Settings/Locations", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/Settings/Locations">
+                    <i class="bi bi-geo-alt-fill"></i><span>کشورها و شهرها</span>
+                </a>
+                <a class="nav-link @(path.Equals("/Settings", StringComparison.OrdinalIgnoreCase) || path.StartsWith("/Settings/Index", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/Settings/Index">
+                    <i class="bi bi-currency-exchange"></i><span>نرخ ارزها</span>
+                </a>
+                <a class="nav-link @(path.StartsWith("/Settings/OperationPermissions", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/Settings/OperationPermissions">
+                    <i class="bi bi-shield-lock-fill"></i><span>سطوح دسترسی عملیات</span>
+                </a>
+                <a class="nav-link @(path.Equals("/Logs", StringComparison.OrdinalIgnoreCase) || path.StartsWith("/Logs/Index", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/Logs/Index">
+                    <i class="bi bi-journal-text"></i><span>مرکز لاگ</span>
+                </a>
+                <a class="nav-link @(path.Equals("/Logs/SmsQueue", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/Logs/SmsQueue">
+                    <i class="bi bi-chat-square-text"></i><span>صف پیامک</span>
+                </a>
             </div>
         </div>
     }
-
-    <a class="nav-link nav-link-root @(path.StartsWith("/Settings", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/Settings/Index">
-        <i class="bi bi-gear-fill"></i><span>تنظیمات</span>
-    </a>
 </nav>

@@ -6,6 +6,7 @@ using Randevoo.AdminPanel.Models.Common;
 using Randevoo.AdminPanel.Models.Events;
 using Randevoo.AdminPanel.Services.ApiClients;
 using Randevoo.AdminPanel.Services.State;
+using DomainEventApprovalStatus = Randevoo.Domain.Enums.EventApprovalStatus;
 
 namespace Randevoo.AdminPanel.Pages.Events;
 
@@ -28,37 +29,73 @@ public class MyModel : PageModel
     [TempData]
     public string? StatusMessage { get; set; }
 
+    [TempData]
+    public string? ErrorMessage { get; set; }
+
     public async Task OnGetAsync()
     {
         var current = _session.CurrentUser ?? throw new InvalidOperationException("حساب جاری شناسایی نشد.");
         Events = await _eventsApi.GetEventsAsync(current);
     }
 
-    public async Task<IActionResult> OnPostOpenSaleAsync(long id)
+    public async Task<IActionResult> OnGetCancellationPreviewAsync(long id)
     {
         var current = _session.CurrentUser ?? throw new InvalidOperationException("حساب جاری شناسایی نشد.");
-        await _eventsApi.ToggleSaleAsync(id, current, true);
-        StatusMessage = "فروش رویداد باز شد.";
-        return RedirectToPage();
+        var preview = await _eventsApi.PreviewCancellationAsync(id, current);
+        return new JsonResult(preview);
     }
 
-    public async Task<IActionResult> OnPostCloseSaleAsync(long id)
+    public async Task<IActionResult> OnPostChangeStatusAsync(long id, EventStatusTransitionAction action, string? note, string? publicMessage, bool cancellationConfirmed, string? returnUrl)
     {
         var current = _session.CurrentUser ?? throw new InvalidOperationException("حساب جاری شناسایی نشد.");
-        await _eventsApi.ToggleSaleAsync(id, current, false);
-        StatusMessage = "فروش رویداد بسته شد.";
-        return RedirectToPage();
-    }
+        try
+        {
+            if (action == EventStatusTransitionAction.CancelEvent)
+            {
+                await _eventsApi.CancelEventWithChecklistAsync(
+                    id,
+                    current,
+                    note ?? string.Empty,
+                    publicMessage ?? string.Empty,
+                    cancellationConfirmed);
+            }
+            else
+            {
+                await _eventsApi.ApplyStatusTransitionAsync(id, current, action, note);
+            }
 
-    public async Task<IActionResult> OnPostCancelAsync(long id)
-    {
-        var current = _session.CurrentUser ?? throw new InvalidOperationException("حساب جاری شناسایی نشد.");
-        await _eventsApi.CancelAsync(id, current);
-        StatusMessage = "رویداد لغو شد.";
-        return RedirectToPage();
+            StatusMessage = "وضعیت رویداد با موفقیت تغییر کرد.";
+        }
+        catch (InvalidOperationException ex)
+        {
+            ErrorMessage = ex.Message;
+        }
+
+        return RedirectToSafeReturnUrl(returnUrl);
     }
 
     public string GetOperationalStatusClass(EventOperationalStatus status) => DisplayFormatter.OperationalStatusClass(status);
 
-    public string GetReviewStatusClass(EventReviewStatus status) => DisplayFormatter.ReviewStatusClass(status);
+    public string GetProfileStatusClass(DomainEventApprovalStatus status) => DisplayFormatter.ApprovalStatusClass(status);
+
+    public EventStatusTransitionModalViewModel CreateStatusTransitionModal(DatingEvent datingEvent)
+    {
+        var current = _session.CurrentUser ?? throw new InvalidOperationException("حساب جاری شناسایی نشد.");
+        return new EventStatusTransitionModalViewModel
+        {
+            Event = datingEvent,
+            Options = EventStatusTransitionCatalog.GetOptions(datingEvent, current.Role),
+            EmptyMessage = EventStatusTransitionCatalog.GetEmptyMessage(datingEvent),
+            ReturnUrl = Request.Path + Request.QueryString,
+            CancellationPreviewUrl = Url.Page(null, "CancellationPreview", new { id = datingEvent.Id }) ?? string.Empty
+        };
+    }
+
+    private IActionResult RedirectToSafeReturnUrl(string? returnUrl)
+    {
+        if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl))
+            return LocalRedirect(returnUrl);
+
+        return RedirectToPage();
+    }
 }

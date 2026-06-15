@@ -6,31 +6,16 @@
 }
 
 <section class="auth-card glass-panel auth-card-premium">
-    <div class="auth-orb auth-orb-pink"></div>
-    <div class="auth-orb auth-orb-blue"></div>
-
     <div class="planner-public-header">
         <img src="@Model.Profile.PictureUrl" alt="@Model.Profile.FullName" class="planner-avatar planner-avatar-lg" />
         <div>
             <div class="auth-kicker">پروفایل برگزارکننده</div>
             <h1>@Model.Profile.FullName</h1>
             <p>@Model.Profile.Title</p>
-            @if (Model.CanManageBankAccounts)
-            {
-                <div class="d-flex flex-wrap gap-2 mt-2">
-                    <a asp-page="/Planner/BankAccounts" asp-route-plannerUserId="@Model.Profile.UserId" class="btn btn-sm btn-outline-primary">
-                        <i class="bi bi-bank2"></i>حساب های بانکی
-                    </a>
-                    <a asp-page="/Finance/User" asp-route-userId="@Model.Profile.UserId" class="btn btn-sm btn-outline-secondary">
-                        <i class="bi bi-cash-stack"></i>تراکنش های مالی برگزارکننده
-                    </a>
-                </div>
-            }
         </div>
     </div>
 
     <div class="planner-metrics mt-4">
-        <div class="detail-block"><span>موبایل برگزارکننده</span><strong dir="ltr">@Model.Profile.MobileNumber</strong></div>
         <div class="detail-block"><span>شهر فعالیت</span><strong>@Model.Profile.City</strong></div>
         <div class="detail-block"><span>میانگین امتیاز</span><strong>@DisplayFormatter.ToPersianDigits(Model.Profile.AverageRating.ToString("0.0"))</strong></div>
         <div class="detail-block"><span>نظرسنجی ثبت شده</span><strong>@DisplayFormatter.Count(Model.Profile.TotalSurveyCount)</strong></div>
@@ -43,71 +28,4 @@
         <h2 class="section-title">معرفی برگزارکننده</h2>
         <p class="mb-0">@Model.Profile.Resume</p>
     </div>
-
-    @if (Model.CanManageBankAccounts)
-    {
-        <div class="glass-panel p-4 mt-4">
-            <div class="form-section-head">
-                <div>
-                    <h2 class="section-title mb-1">حساب های بانکی برگزارکننده</h2>
-                    <p class="text-muted mb-0">این اطلاعات فقط برای مدیر و خود برگزارکننده نمایش داده می شود.</p>
-                </div>
-                <a asp-page="/Planner/BankAccounts" asp-route-plannerUserId="@Model.Profile.UserId" class="btn btn-sm btn-primary">
-                    <i class="bi bi-pencil-square"></i>مدیریت حساب ها
-                </a>
-            </div>
-
-            @if (Model.BankAccounts.Count > 0)
-            {
-                <div class="table-responsive mt-3">
-                    <table class="table align-middle mb-0">
-                        <thead>
-                            <tr>
-                                <th>حساب</th>
-                                <th>ارز/روش</th>
-                                <th>اطلاعات پرداخت</th>
-                                <th>فعال/غیرفعال</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var account in Model.BankAccounts)
-                            {
-                                <tr>
-                                    <td>
-                                        <div class="fw-semibold">@(account.BankName ?? "بدون بانک")</div>
-                                        <div class="text-muted small">@account.AccountHolderName</div>
-                                    </td>
-                                    <td>
-                                        <div dir="ltr">@account.CurrencyCode</div>
-                                        <div class="text-muted small">@DisplayFormatter.PayoutMethod(account.PayoutMethod)</div>
-                                    </td>
-                                    <td class="table-wrap-cell">
-                                        @if (account.CurrencyCode == "IRR")
-                                        {
-                                            <div dir="ltr">@(account.CardNumber ?? "-")</div>
-                                            <div dir="ltr" class="text-muted small">@(account.Iban ?? "-")</div>
-                                        }
-                                        else
-                                        {
-                                            <div dir="ltr">@(account.AccountIdentifier ?? account.Iban ?? account.SwiftCode ?? "-")</div>
-                                            <div class="text-muted small">@(account.Country ?? account.PublicPaymentInstructions ?? "بدون توضیحات")</div>
-                                        }
-                                    </td>
-                                    <td>
-                                        <span class="status-badge @(account.IsActive ? "status-approved" : "status-closed")">
-                                            @(account.IsActive ? "فعال" : "غیرفعال")
-                                        </span>
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            }
-            else
-            {
-                <div class="empty-state mt-3">هنوز شماره کارت، شماره شبا و بانک برای این برگزارکننده ثبت نشده است.</div>
-            }
-        </div>
-    }
 </section>

@@ -1,7 +1,10 @@
 using FluentAssertions;
+using Randevoo.Domain.Common;
+using Randevoo.Domain.Constants;
 using Randevoo.Domain.Entities;
 using Randevoo.Domain.Enums;
 using Randevoo.Domain.Exceptions;
+using Randevoo.Domain.ValueObjects;
 using Xunit;
 
 namespace Randevoo.Tests.Unit;
@@ -25,6 +28,59 @@ public class SupportTicketTests
         ticket.Messages.Should().ContainSingle();
         ticket.Messages.Single().Attachments.Should().ContainSingle();
         ticket.History.Select(item => item.Action).Should().Contain(new[] { "TicketCreated", "TicketAssigned" });
+    }
+
+    [Fact]
+    public void Constructor_WithLookupIds_StoresTypeStatusAndRecipientIds()
+    {
+        var submitter = CreateUser("+989120000021", UserRole.EndUser, 21);
+        var support = CreateUser("+989120000022", UserRole.PlatformSupportTeam, 22);
+        var message = new SupportTicketMessage(submitter, "Ticket problem body.");
+
+        var ticket = new SupportTicket(
+            submitter,
+            "Ticket problem",
+            SupportTicketLookupIds.TypeTicketProblem,
+            SupportTicketLookupIds.RecipientPlatformSupport,
+            message,
+            support,
+            null,
+            null);
+
+        ticket.TicketTypeId.Should().Be(SupportTicketLookupIds.TypeTicketProblem);
+        ticket.TicketStatusId.Should().Be(SupportTicketLookupIds.StatusOpen);
+        ticket.TicketRecipientTypeId.Should().Be(SupportTicketLookupIds.RecipientPlatformSupport);
+        ticket.Category.Should().Be(SupportTicketCategory.FinancialProblem);
+        ticket.Status.Should().Be(SupportTicketStatus.Open);
+    }
+
+    [Fact]
+    public void Constructor_WithPlannerRecipient_RoutesTicketToEventPlanner()
+    {
+        var submitter = CreateUser("+989120000031", UserRole.EndUser, 31);
+        var planner = CreateUser("+989120000032", UserRole.EventPlanner, 32);
+        var otherPlanner = CreateUser("+989120000033", UserRole.EventPlanner, 33);
+        var support = CreateUser("+989120000034", UserRole.PlatformSupportTeam, 34);
+        var datingEvent = CreateEvent(planner);
+        var message = new SupportTicketMessage(submitter, "Can I arrive late?");
+
+        var ticket = new SupportTicket(
+            submitter,
+            "Question for organizer",
+            SupportTicketLookupIds.TypePrePurchaseQuestion,
+            SupportTicketLookupIds.RecipientEventPlanner,
+            message,
+            null,
+            datingEvent,
+            planner);
+
+        ticket.AssignedSupportUserId.Should().BeNull();
+        ticket.RecipientPlannerUserId.Should().Be(planner.Id);
+        ticket.DatingEventId.Should().Be(datingEvent.Id);
+        ticket.CanBeViewedBy(planner).Should().BeTrue();
+        ticket.CanBeViewedBy(otherPlanner).Should().BeFalse();
+        ticket.CanBeViewedBy(support).Should().BeFalse();
+        ticket.History.Select(item => item.Action).Should().Contain("TicketSentToPlanner");
     }
 
     [Fact]
@@ -56,6 +112,19 @@ public class SupportTicketTests
     }
 
     [Fact]
+    public void ChangeStatus_WithLookupStatusId_UpdatesLegacyStatusAndStatusId()
+    {
+        var submitter = CreateUser("+989120000041", UserRole.EndUser, 41);
+        var support = CreateUser("+989120000042", UserRole.PlatformSupportTeam, 42);
+        var ticket = new SupportTicket(submitter, "Question", SupportTicketCategory.GeneralQuestion, new SupportTicketMessage(submitter, "How does this work?"), support);
+
+        ticket.ChangeStatus(support, SupportTicketLookupIds.StatusWaitingForUser, "Need more info");
+
+        ticket.TicketStatusId.Should().Be(SupportTicketLookupIds.StatusWaitingForUser);
+        ticket.Status.Should().Be(SupportTicketStatus.WaitingForUser);
+    }
+
+    [Fact]
     public void ChangeStatus_WithSubmitter_ThrowsBusinessRuleViolationException()
     {
         var submitter = new User("+989120000006");
@@ -72,5 +141,51 @@ public class SupportTicketTests
         Action act = () => new SupportTicketAttachment("notes.pdf", "application/pdf", 1024, "/uploads/support/notes.pdf");
 
         act.Should().Throw<BusinessRuleViolationException>();
+    }
+
+    private static User CreateUser(string mobile, UserRole role, long id)
+    {
+        var user = new User(mobile);
+        if (role != UserRole.EndUser)
+        {
+            user.ChangeUserRole(role);
+        }
+
+        SetId(user, id);
+        return user;
+    }
+
+    private static DatingEvent CreateEvent(User planner)
+    {
+        var eventType = new EventType("Social");
+        SetId(eventType, 51);
+        var datingEvent = new DatingEvent(
+            planner,
+            "Organizer event",
+            new Location("Iran", "Tehran", new Coordinates(35.6895m, 51.3890m)),
+            "Main venue",
+            DateTime.UtcNow.AddDays(3),
+            DateTime.UtcNow.AddDays(3).AddHours(2),
+            eventType,
+            new AgeRange(18, 45),
+            new AgeRange(18, 45),
+            10,
+            10,
+            3,
+            100m,
+            100m,
+            EventEducationLevelRestriction.WithoutLimit,
+            null,
+            null,
+            null,
+            null,
+            "<p>Test event description.</p>");
+        SetId(datingEvent, 61);
+        return datingEvent;
+    }
+
+    private static void SetId(BaseEntity entity, long id)
+    {
+        typeof(BaseEntity).GetProperty(nameof(BaseEntity.Id))!.SetValue(entity, id);
     }
 }

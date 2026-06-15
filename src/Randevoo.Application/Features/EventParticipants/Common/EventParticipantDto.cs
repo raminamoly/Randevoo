@@ -14,7 +14,9 @@ public record EventParticipantDto(
     bool IsRemoved,
     string? RemovalReason,
     DateTime TicketCreatedAt,
-    DatingProfileDto Profile)
+    DatingProfileDto Profile,
+    long? TicketOrderId = null,
+    long? BuyerUserId = null)
 {
     public static EventParticipantDto FromTicket(EventTicket ticket) =>
         new(
@@ -27,5 +29,7 @@ public record EventParticipantDto(
             ticket.IsRemoved,
             ticket.RemovalReason,
             ticket.CreatedAt,
-            DatingProfileDto.FromEntity(ticket.User.Profile!));
+            DatingProfileDto.FromEntity(ticket.User.Profile!),
+            ticket.TicketOrderId,
+            ticket.TicketOrder?.BuyerUserId);
 }

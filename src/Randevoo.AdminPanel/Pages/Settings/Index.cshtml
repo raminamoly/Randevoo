@@ -1,12 +1,14 @@
 @page
 @model Randevoo.AdminPanel.Pages.Settings.IndexModel
 @{
-    ViewData["Title"] = "تنظیمات";
+    ViewData["Title"] = "نرخ ارزها";
+    var editorExpanded = !ViewData.ModelState.IsValid;
+    var editorCollapseId = "currencyRateEditorPanel";
 }
 
 <section class="page-header">
     <div>
-        <h1>تنظیمات</h1>
+        <h1>نرخ ارزها</h1>
     </div>
 </section>
 
@@ -15,33 +17,55 @@
     <div class="alert alert-success border-0 mb-4">@Model.StatusMessage</div>
 }
 
-<div class="row g-4">
-    <div class="col-xl-5">
-        <form method="post" asp-page-handler="SaveRate" class="glass-panel p-4 stacked-form">
+<div class="settings-editor-stack">
+    <section class="glass-panel base-data-editor-shell">
+        <div class="base-data-editor-bar">
             <div>
-                <h2 class="section-title mb-1">نرخ تبدیل ارز</h2>
-                <p class="text-muted small mb-0">هر تغییر، یک ردیف تاریخی جدید می‌سازد و نرخ قبلی را نمی‌نویسد.</p>
+                <span class="base-data-editor-kicker">پنل ایجاد نرخ</span>
+                <h2 class="section-title mb-0">نرخ تبدیل ارز</h2>
             </div>
-            <div asp-validation-summary="ModelOnly" class="text-danger small"></div>
-            <div>
-                <label asp-for="RateInput.CurrencyCode" class="form-label">ارز</label>
-                <select asp-for="RateInput.CurrencyCode" asp-items="Model.CurrencyOptions" class="form-select"></select>
-                <span asp-validation-for="RateInput.CurrencyCode" class="text-danger small"></span>
-            </div>
-            <div>
-                <label asp-for="RateInput.Rate" class="form-label">معادل هر واحد به ریال</label>
-                <input asp-for="RateInput.Rate" class="form-control" type="number" min="0.000001" step="0.000001" dir="ltr" />
-                <span asp-validation-for="RateInput.Rate" class="text-danger small"></span>
-                <div class="form-text">مثلاً اگر ۱ دلار برابر ۱,۷۵۰,۰۰۰ ریال است، عدد 1750000 را وارد کنید.</div>
-            </div>
-            <button type="submit" class="btn btn-primary">
-                <i class="bi bi-save"></i>ثبت نرخ جدید
+            <button class="btn btn-primary base-data-editor-toggle"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#@editorCollapseId"
+                    aria-expanded="@(editorExpanded.ToString().ToLowerInvariant())"
+                    aria-controls="@editorCollapseId">
+                <i class="bi bi-plus-lg"></i>
+                <span>ثبت نرخ جدید</span>
             </button>
-        </form>
-    </div>
+        </div>
 
-    <div class="col-xl-7">
-        <div class="glass-panel p-4">
+        <div id="@editorCollapseId" class="collapse @(editorExpanded ? "show" : string.Empty)">
+            <div class="base-data-editor-body">
+                <form method="post" asp-page-handler="SaveRate" class="stacked-form">
+                    <p class="text-muted small mb-0">هر تغییر، یک ردیف تاریخی جدید می‌سازد و نرخ قبلی را نمی‌نویسد.</p>
+                    <div asp-validation-summary="ModelOnly" class="text-danger small"></div>
+                    <div class="row g-3 align-items-start">
+                        <div class="col-lg-4 col-md-6">
+                            <label asp-for="RateInput.CurrencyCode" class="form-label">ارز</label>
+                            <select asp-for="RateInput.CurrencyCode" asp-items="Model.CurrencyOptions" class="form-select"></select>
+                            <span asp-validation-for="RateInput.CurrencyCode" class="text-danger small"></span>
+                        </div>
+                        <div class="col-lg-5 col-md-6">
+                            <label asp-for="RateInput.Rate" class="form-label">معادل هر واحد به ریال</label>
+                            <input asp-for="RateInput.Rate" class="form-control" type="number" min="0.000001" step="0.000001" dir="ltr" />
+                            <span asp-validation-for="RateInput.Rate" class="text-danger small"></span>
+                            <div class="form-text">مثلاً اگر ۱ دلار برابر ۱,۷۵۰,۰۰۰ ریال است، عدد 1750000 را وارد کنید.</div>
+                        </div>
+                        <div class="col-lg-3">
+                            <div class="settings-editor-actions">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-save"></i>ثبت نرخ جدید
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <section class="glass-panel p-4">
             <h2 class="section-title">نرخ‌های فعال</h2>
             <div class="table-responsive">
                 <table class="table align-middle">
@@ -69,37 +93,36 @@
                     </tbody>
                 </table>
             </div>
-        </div>
-    </div>
-</div>
+    </section>
 
-<div class="glass-panel p-4 mt-4">
-    <h2 class="section-title">تاریخچه نرخ‌ها</h2>
-    <div class="table-responsive">
-        <table class="table align-middle">
-            <thead>
-                <tr>
-                    <th>ارز</th>
-                    <th>نرخ به ریال</th>
-                    <th>از تاریخ</th>
-                    <th>تا تاریخ</th>
-                    <th>منبع</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var item in Model.RateHistory)
-                {
+    <section class="glass-panel p-4">
+        <h2 class="section-title">تاریخچه نرخ‌ها</h2>
+        <div class="table-responsive">
+            <table class="table align-middle">
+                <thead>
                     <tr>
-                        <td>@item.CurrencyTitle <span class="text-muted small" dir="ltr">(@item.CurrencyCode)</span></td>
-                        <td>@DisplayFormatter.Money(item.Rate, Model.IsRtl)</td>
-                        <td>@PersianDateFormatter.FormatDateTime(item.EffectiveFromUtc, Model.IsRtl)</td>
-                        <td>@(item.EffectiveToUtc is null ? "فعال" : PersianDateFormatter.FormatDateTime(item.EffectiveToUtc.Value, Model.IsRtl))</td>
-                        <td>@item.Source</td>
+                        <th>ارز</th>
+                        <th>نرخ به ریال</th>
+                        <th>از تاریخ</th>
+                        <th>تا تاریخ</th>
+                        <th>منبع</th>
                     </tr>
-                }
-            </tbody>
-        </table>
-    </div>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.RateHistory)
+                    {
+                        <tr>
+                            <td>@item.CurrencyTitle <span class="text-muted small" dir="ltr">(@item.CurrencyCode)</span></td>
+                            <td>@DisplayFormatter.Money(item.Rate, Model.IsRtl)</td>
+                            <td>@PersianDateFormatter.FormatDateTime(item.EffectiveFromUtc, Model.IsRtl)</td>
+                            <td>@(item.EffectiveToUtc is null ? "فعال" : PersianDateFormatter.FormatDateTime(item.EffectiveToUtc.Value, Model.IsRtl))</td>
+                            <td>@item.Source</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
 </div>
 
 <partial name="_ValidationScriptsPartial" />

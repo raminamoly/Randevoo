@@ -55,26 +55,60 @@ public static class DisplayFormatter
 
     public static string OperationalStatus(AdminEventOperationalStatus status) => status switch
     {
-        AdminEventOperationalStatus.Draft => "پیش‌نویس",
-        AdminEventOperationalStatus.Selling => "در حال فروش",
-        AdminEventOperationalStatus.Closed => "تمام شده",
+        AdminEventOperationalStatus.SaleClosed => "فروش بسته",
+        AdminEventOperationalStatus.SaleOpen => "فروش باز",
+        AdminEventOperationalStatus.Completed => "تمام شده",
         AdminEventOperationalStatus.Cancelled => "لغو شده",
         _ => status.ToString()
     };
 
+    public static string ProfileStatus(AdminEventReviewStatus status) => status switch
+    {
+        AdminEventReviewStatus.NotSubmitted => "پیش‌نویس",
+        AdminEventReviewStatus.PendingReview => "در انتظار بررسی مدیر",
+        AdminEventReviewStatus.Approved => "تایید شده",
+        AdminEventReviewStatus.Rejected => "بازگشت برای اصلاح",
+        _ => status.ToString()
+    };
+
+    public static string ProfileStatus(EventApprovalStatus status) => ApprovalStatus(status);
+
     public static string ReviewStatus(AdminEventReviewStatus status) => status switch
     {
-        AdminEventReviewStatus.NotSubmitted => "ارسال نشده",
+        AdminEventReviewStatus.NotSubmitted => "پیش‌نویس",
         AdminEventReviewStatus.PendingReview => "در انتظار بررسی",
-        AdminEventReviewStatus.Approved => "تایید شده توسط مدیر",
-        AdminEventReviewStatus.Rejected => "رد شده توسط مدیر",
+        AdminEventReviewStatus.Approved => "تایید شده",
+        AdminEventReviewStatus.Rejected => "بازگشت برای اصلاح",
+        _ => status.ToString()
+    };
+
+    public static string ApprovalStatus(EventApprovalStatus status) => status switch
+    {
+        EventApprovalStatus.Draft => "پیش‌نویس",
+        EventApprovalStatus.PendingReview => "در انتظار بررسی مدیر",
+        EventApprovalStatus.Approved => "تایید شده",
+        _ => status.ToString()
+    };
+
+    public static string SaleStatus(EventSaleStatus status) => status switch
+    {
+        EventSaleStatus.Closed => "فروش بسته",
+        EventSaleStatus.Open => "فروش باز",
+        _ => status.ToString()
+    };
+
+    public static string LifecycleStatus(EventLifecycleStatus status) => status switch
+    {
+        EventLifecycleStatus.Active => "فعال",
+        EventLifecycleStatus.Cancelled => "لغو شده",
+        EventLifecycleStatus.Completed => "تمام شده",
         _ => status.ToString()
     };
 
     public static string OperationalStatusClass(AdminEventOperationalStatus status) => status switch
     {
-        AdminEventOperationalStatus.Selling => "status-approved",
-        AdminEventOperationalStatus.Closed => "status-closed",
+        AdminEventOperationalStatus.SaleOpen => "status-approved",
+        AdminEventOperationalStatus.Completed => "status-closed",
         AdminEventOperationalStatus.Cancelled => "status-cancelled",
         _ => "status-draft"
     };
@@ -84,6 +118,13 @@ public static class DisplayFormatter
         AdminEventReviewStatus.PendingReview => "status-pending",
         AdminEventReviewStatus.Approved => "status-approved",
         AdminEventReviewStatus.Rejected => "status-rejected",
+        _ => "status-draft"
+    };
+
+    public static string ApprovalStatusClass(EventApprovalStatus status) => status switch
+    {
+        EventApprovalStatus.PendingReview => "status-pending",
+        EventApprovalStatus.Approved => "status-approved",
         _ => "status-draft"
     };
 
@@ -97,6 +138,11 @@ public static class DisplayFormatter
         BalanceTransactionType.EmergencyRemovalRefund => "بازگشت حذف اضطراری",
         BalanceTransactionType.PlannerWithdrawalPayout => "تسویه برگزارکننده",
         BalanceTransactionType.EventPlannerIncomeReversal => "برگشت سهم برگزارکننده",
+        BalanceTransactionType.EventSettlementCredit => "بستانکاری تسویه رویداد",
+        BalanceTransactionType.EventSettlementReversal => "برگشت بستانکاری رویداد",
+        BalanceTransactionType.PlatformCommissionRecognized => "شناسایی کمیسیون پلتفرم",
+        BalanceTransactionType.ManualReceiptWalletCredit => "اعتبار کیف پول بابت رسید دستی",
+        BalanceTransactionType.OrganizerManualReceiptLiability => "بدهی برگزارکننده بابت رسید دستی",
         _ => type.ToString()
     };
 

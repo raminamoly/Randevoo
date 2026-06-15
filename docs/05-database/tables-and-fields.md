@@ -1324,9 +1324,18 @@ Fields:
 | ----- | ---- | -------- | --- | ------- | ----------- | ---------------- | ------ |
 | Entity | string | Needs Verification |  | See initializer/DbContext | See DbContext/migrations | Business data for PermissionAction; exact meaning should be verified with handlers and UI. | `src/Randevoo.Domain/Entities/PermissionAction.cs` |
 | Action | string | Needs Verification |  | See initializer/DbContext | See DbContext/migrations | Business data for PermissionAction; exact meaning should be verified with handlers and UI. | `src/Randevoo.Domain/Entities/PermissionAction.cs` |
+| EntityLabel | string | Likely required |  | Empty string | Max 120 | User-facing entity label shown in the operation permission tree. | `src/Randevoo.Domain/Entities/PermissionAction.cs` |
 | Label | string | Needs Verification |  | See initializer/DbContext | See DbContext/migrations | Business data for PermissionAction; exact meaning should be verified with handlers and UI. | `src/Randevoo.Domain/Entities/PermissionAction.cs` |
 | Description | string? | Needs Verification |  | See initializer/DbContext | nullable marker | User-facing or operational descriptive text. | `src/Randevoo.Domain/Entities/PermissionAction.cs` |
+| GroupKey | string | Likely required |  | Empty string | Max 80 | Catalog group key used by the operation permission tree. | `src/Randevoo.Domain/Entities/PermissionAction.cs` |
+| GroupLabel | string | Likely required |  | Empty string | Max 120 | User-facing catalog group label. | `src/Randevoo.Domain/Entities/PermissionAction.cs` |
+| PagePath | string? | Optional |  | null | Max 160 | AdminPanel page path associated with the operation. | `src/Randevoo.Domain/Entities/PermissionAction.cs` |
+| HandlerName | string? | Optional |  | null | Max 120 | Razor Page handler or logical handler associated with the operation. | `src/Randevoo.Domain/Entities/PermissionAction.cs` |
+| UiSurface | string | Likely required |  | Manual | Max 40 | Operation surface such as PageAccess, GridAction, FormSubmit, Export, SensitiveData, or SensitiveAction. | `src/Randevoo.Domain/Entities/PermissionAction.cs` |
+| RiskLevel | string | Likely required |  | Low | Max 20 | Operational risk label used for filtering and visual badges. | `src/Randevoo.Domain/Entities/PermissionAction.cs` |
 | IsActive | bool | Likely required |  | See initializer/DbContext | See DbContext/migrations | Business data for PermissionAction; exact meaning should be verified with handlers and UI. | `src/Randevoo.Domain/Entities/PermissionAction.cs` |
+| IsSystemAction | bool | Likely required |  | true | See DbContext/migrations | Indicates the action came from the system catalog rather than a manual custom row. | `src/Randevoo.Domain/Entities/PermissionAction.cs` |
+| IsDeprecated | bool | Likely required |  | false | See DbContext/migrations | Marks old catalog actions that should remain visible for audit but are no longer current. | `src/Randevoo.Domain/Entities/PermissionAction.cs` |
 | DisplayOrder | int | Likely required |  | See initializer/DbContext | See DbContext/migrations | Business data for PermissionAction; exact meaning should be verified with handlers and UI. | `src/Randevoo.Domain/Entities/PermissionAction.cs` |
 
 Relationships:
@@ -1336,8 +1345,9 @@ Relationships:
 | Needs Verification | Needs Verification | Needs Verification | Needs Verification | See DbContext/migrations | `src/Randevoo.Domain/Entities/PermissionAction.cs` |
 
 Business rules:
-- Respect lifecycle/status fields and repository handler behavior for this entity.
-- Preserve audit and financial references where delete behavior is restrictive.
+- `OperationPermissionCatalog` is the source of truth for system permission actions.
+- Startup sync creates missing catalog rows, refreshes metadata, creates missing role permission rows for admin-panel roles, and marks removed system actions inactive/deprecated.
+- Do not hard-delete permission actions that may be referenced by role permissions or user overrides.
 
 Notes:
 - Indexes and constraints are centralized in DbContext and migrations; review before altering fields.

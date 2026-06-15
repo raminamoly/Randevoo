@@ -77,6 +77,8 @@
                             <tr>
                                 <th>خریدار</th>
                                 <th>موبایل</th>
+                                <th>سفارش</th>
+                                <th>بلیت</th>
                                 <th>کد تخفیف</th>
                                 <th>قیمت اصلی</th>
                                 <th>تخفیف</th>
@@ -91,6 +93,12 @@
                                 <tr>
                                     <td>@item.BuyerName</td>
                                     <td>@DisplayFormatter.ToPersianDigits(item.BuyerMobile)</td>
+                                    <td>
+                                        <a asp-page="/Buyers/Index" asp-route-TicketOrderId="@item.OrderId">
+                                            #@DisplayFormatter.Count((int)item.OrderId)
+                                        </a>
+                                    </td>
+                                    <td>@DisplayFormatter.Count(item.TicketCount)</td>
                                     <td dir="ltr">@(string.IsNullOrWhiteSpace(item.DiscountCode) ? "-" : item.DiscountCode)</td>
                                     <td>@DisplayFormatter.CurrencyMoney(item.OriginalPrice, item.CurrencyCode, Model.IsRtl)</td>
                                     <td>@DisplayFormatter.CurrencyMoney(item.DiscountAmount, item.CurrencyCode, Model.IsRtl)</td>

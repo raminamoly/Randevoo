@@ -157,6 +157,33 @@ $(function () {
                 sidebarController.hide();
             }
         });
+
+        const syncMobileSidebarState = function () {
+            const isMobileOpen = window.matchMedia("(max-width: 991.98px)").matches && sidebar.classList.contains("show");
+            document.body.classList.toggle("sidebar-mobile-open", isMobileOpen);
+            if (adminShell) {
+                adminShell.classList.toggle("sidebar-mobile-open", isMobileOpen);
+            }
+        };
+
+        sidebar.addEventListener("shown.bs.collapse", syncMobileSidebarState);
+        sidebar.addEventListener("hidden.bs.collapse", syncMobileSidebarState);
+
+        document.addEventListener("click", function (event) {
+            if (!window.matchMedia("(max-width: 991.98px)").matches || !sidebar.classList.contains("show")) {
+                return;
+            }
+
+            const target = event.target;
+            if (sidebar.contains(target) || target.closest("[data-bs-target='#sidebarCollapse']")) {
+                return;
+            }
+
+            sidebarController.hide();
+        });
+
+        window.addEventListener("resize", syncMobileSidebarState);
+        syncMobileSidebarState();
     }
 
     if (window.bootstrap && window.bootstrap.Tooltip) {
@@ -514,6 +541,7 @@ $(function () {
             });
 
             picker.value = "";
+            picker.dispatchEvent(new Event("randevoo:refresh-searchable-select"));
         };
 
         const renderSelectedTags = function () {
@@ -674,12 +702,253 @@ $(function () {
         }
     });
 
+    const initSearchableSelect = function (select) {
+        if (!select || select.dataset.searchableReady === "true") {
+            return;
+        }
+
+        select.dataset.searchableReady = "true";
+        const wrapper = document.createElement("div");
+        wrapper.className = "searchable-select";
+        const input = document.createElement("input");
+        input.type = "text";
+        input.className = "form-control searchable-select-input";
+        input.autocomplete = "off";
+        input.placeholder = select.dataset.searchPlaceholder || "جستجو";
+        input.setAttribute("aria-label", input.placeholder);
+        input.setAttribute("role", "combobox");
+        input.setAttribute("aria-expanded", "false");
+        const list = document.createElement("div");
+        list.className = "searchable-select-list";
+        list.setAttribute("role", "listbox");
+
+        select.parentNode.insertBefore(wrapper, select);
+        wrapper.appendChild(input);
+        wrapper.appendChild(list);
+        wrapper.appendChild(select);
+        select.classList.add("searchable-select-native");
+        select.setAttribute("aria-hidden", "true");
+        select.tabIndex = -1;
+        let searchMode = false;
+
+        const optionText = function (option) {
+            return (option.textContent || "").replace(/\s+/g, " ").trim();
+        };
+
+        const syncInput = function () {
+            const selected = select.selectedOptions && select.selectedOptions.length > 0 ? select.selectedOptions[0] : null;
+            input.value = selected ? optionText(selected) : "";
+        };
+
+        const close = function (restoreValue) {
+            wrapper.classList.remove("is-open");
+            input.setAttribute("aria-expanded", "false");
+            if (restoreValue) {
+                searchMode = false;
+                syncInput();
+            }
+        };
+
+        const open = function () {
+            wrapper.classList.add("is-open");
+            input.setAttribute("aria-expanded", "true");
+        };
+
+        const choose = function (value) {
+            select.value = value;
+            searchMode = false;
+            syncInput();
+            select.dispatchEvent(new Event("change", { bubbles: true }));
+            close(false);
+        };
+
+        const render = function (searchText) {
+            const search = normalizeNumericInput(searchText || "").trim().toLowerCase();
+            list.innerHTML = "";
+            const options = Array.from(select.options)
+                .filter(function (option) {
+                    return !option.hidden && !option.disabled;
+                })
+                .filter(function (option) {
+                    const text = normalizeNumericInput(optionText(option)).toLowerCase();
+                    return !search || text.includes(search);
+                })
+                .slice(0, 80);
+
+            if (options.length === 0) {
+                const empty = document.createElement("div");
+                empty.className = "searchable-select-empty";
+                empty.textContent = "موردی پیدا نشد";
+                list.appendChild(empty);
+                return;
+            }
+
+            options.forEach(function (option) {
+                const item = document.createElement("button");
+                item.type = "button";
+                item.className = "searchable-select-option";
+                item.setAttribute("role", "option");
+                item.setAttribute("aria-selected", option.selected ? "true" : "false");
+                item.dataset.value = option.value;
+                item.textContent = optionText(option);
+                item.addEventListener("mousedown", function (event) {
+                    event.preventDefault();
+                    choose(option.value);
+                });
+                item.addEventListener("click", function () {
+                    choose(option.value);
+                });
+                item.addEventListener("keydown", function (event) {
+                    if (event.key === "Enter" || event.key === " ") {
+                        choose(option.value);
+                        event.preventDefault();
+                    }
+                });
+                list.appendChild(item);
+            });
+        };
+
+        const openFullList = function () {
+            searchMode = false;
+            syncInput();
+            render("");
+            open();
+            input.select();
+        };
+
+        input.addEventListener("focus", function () {
+            openFullList();
+        });
+
+        input.addEventListener("click", function () {
+            openFullList();
+        });
+
+        input.addEventListener("input", function () {
+            searchMode = true;
+            render(input.value);
+            open();
+        });
+
+        input.addEventListener("keydown", function (event) {
+            if (event.key === "Escape") {
+                close(true);
+                event.preventDefault();
+            } else if (event.key === "ArrowDown") {
+                render(searchMode ? input.value : "");
+                open();
+                const items = Array.from(list.querySelectorAll(".searchable-select-option"));
+                const currentIndex = items.findIndex(function (item) { return item === document.activeElement; });
+                (items[currentIndex + 1] || items[0] || input).focus();
+                event.preventDefault();
+            } else if (event.key === "Enter") {
+                const items = Array.from(list.querySelectorAll(".searchable-select-option"));
+                const first = items[0];
+                if (first && wrapper.classList.contains("is-open")) {
+                    choose(first.dataset.value || "");
+                    event.preventDefault();
+                }
+            }
+        });
+
+        list.addEventListener("keydown", function (event) {
+            const items = Array.from(list.querySelectorAll(".searchable-select-option"));
+            const currentIndex = items.findIndex(function (item) { return item === document.activeElement; });
+            if (event.key === "ArrowDown") {
+                (items[currentIndex + 1] || items[0] || input).focus();
+                event.preventDefault();
+            } else if (event.key === "ArrowUp") {
+                (items[currentIndex - 1] || input).focus();
+                event.preventDefault();
+            } else if (event.key === "Escape") {
+                input.focus();
+                close(true);
+                event.preventDefault();
+            }
+        });
+
+        select.addEventListener("change", function () {
+            searchMode = false;
+            syncInput();
+            render("");
+        });
+
+        select.addEventListener("randevoo:refresh-searchable-select", function () {
+            searchMode = false;
+            syncInput();
+            render("");
+        });
+
+        wrapper.addEventListener("focusout", function () {
+            window.setTimeout(function () {
+                if (!wrapper.contains(document.activeElement)) {
+                    close(true);
+                }
+            }, 80);
+        });
+
+        syncInput();
+        render("");
+    };
+
+    document.querySelectorAll("select[data-searchable-select='true']").forEach(initSearchableSelect);
+
+    document.querySelectorAll("[data-location-edit-country='true']").forEach(function (button) {
+        button.addEventListener("click", function () {
+            const map = {
+                "CountryInput_Id": "id",
+                "CountryInput_Name": "name",
+                "CountryInput_Code": "code",
+                "CountryInput_DisplayOrder": "displayOrder"
+            };
+            Object.keys(map).forEach(function (id) {
+                const input = document.getElementById(id);
+                if (input) {
+                    input.value = button.dataset[map[id]] || "";
+                    input.dispatchEvent(new Event("change", { bubbles: true }));
+                }
+            });
+            const active = document.getElementById("CountryInput_IsActive");
+            if (active) {
+                active.checked = button.dataset.isActive === "true";
+            }
+            document.getElementById("CountryInput_Name")?.focus();
+        });
+    });
+
+    document.querySelectorAll("[data-location-edit-city='true']").forEach(function (button) {
+        button.addEventListener("click", function () {
+            const map = {
+                "CityInput_Id": "id",
+                "CityInput_CountryId": "countryId",
+                "CityInput_Name": "name",
+                "CityInput_Latitude": "latitude",
+                "CityInput_Longitude": "longitude",
+                "CityInput_DisplayOrder": "displayOrder"
+            };
+            Object.keys(map).forEach(function (id) {
+                const input = document.getElementById(id);
+                if (input) {
+                    input.value = button.dataset[map[id]] || "";
+                    input.dispatchEvent(new Event("change", { bubbles: true }));
+                    input.dispatchEvent(new Event("randevoo:refresh-searchable-select"));
+                }
+            });
+            const active = document.getElementById("CityInput_IsActive");
+            if (active) {
+                active.checked = button.dataset.isActive === "true";
+            }
+            document.getElementById("CityInput_Name")?.focus();
+        });
+    });
+
     document.querySelectorAll("[data-event-wizard-form='true']").forEach(function (form) {
         const panels = Array.from(form.querySelectorAll("[data-event-wizard-panel]"));
         const steps = Array.from(form.querySelectorAll("[data-event-wizard-target]"));
         const prevButton = form.querySelector("[data-event-wizard-prev='true']");
         const nextButton = form.querySelector("[data-event-wizard-next='true']");
-        const submitButton = form.querySelector("[data-event-wizard-submit='true']");
+        const submitButtons = Array.from(form.querySelectorAll("[data-event-wizard-submit='true']"));
+        const submitAction = form.querySelector("[data-event-submit-action]");
         let activeIndex = 0;
 
         if (panels.length === 0 || steps.length === 0) {
@@ -740,6 +1009,208 @@ $(function () {
             form.querySelectorAll("[data-financial-value='" + key + "']").forEach(function (element) {
                 element.textContent = (value || "").trim() || "0";
             });
+        };
+
+        const stripHtml = function (value) {
+            const element = document.createElement("div");
+            element.innerHTML = value || "";
+            return (element.textContent || element.innerText || "").replace(/\s+/g, " ").trim();
+        };
+
+        const jalaliToGregorian = function (jy, jm, jd) {
+            jy = Number(jy) - 979;
+            jm = Number(jm) - 1;
+            jd = Number(jd) - 1;
+            let jDayNo = 365 * jy + Math.floor(jy / 33) * 8 + Math.floor(((jy % 33) + 3) / 4);
+            for (let i = 0; i < jm; ++i) {
+                jDayNo += i < 6 ? 31 : 30;
+            }
+            jDayNo += jd;
+            let gDayNo = jDayNo + 79;
+            let gy = 1600 + 400 * Math.floor(gDayNo / 146097);
+            gDayNo %= 146097;
+            let leap = true;
+            if (gDayNo >= 36525) {
+                gDayNo--;
+                gy += 100 * Math.floor(gDayNo / 36524);
+                gDayNo %= 36524;
+                if (gDayNo >= 365) {
+                    gDayNo++;
+                } else {
+                    leap = false;
+                }
+            }
+            gy += 4 * Math.floor(gDayNo / 1461);
+            gDayNo %= 1461;
+            if (gDayNo >= 366) {
+                leap = false;
+                gDayNo--;
+                gy += Math.floor(gDayNo / 365);
+                gDayNo %= 365;
+            }
+            const gdMonthDays = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+            let gm = 0;
+            while (gm < 12 && gDayNo >= gdMonthDays[gm]) {
+                gDayNo -= gdMonthDays[gm];
+                gm++;
+            }
+            return { year: gy, month: gm + 1, day: gDayNo + 1 };
+        };
+
+        const gregorianToJalali = function (gy, gm, gd) {
+            const gDaysInMonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+            const jDaysInMonth = [31, 31, 31, 31, 31, 31, 30, 30, 30, 30, 30, 29];
+            gy -= 1600;
+            gm -= 1;
+            gd -= 1;
+
+            let gDayNo = 365 * gy + Math.floor((gy + 3) / 4) - Math.floor((gy + 99) / 100) + Math.floor((gy + 399) / 400);
+            for (let i = 0; i < gm; ++i) {
+                gDayNo += gDaysInMonth[i];
+            }
+            if (gm > 1 && ((gy + 1600) % 4 === 0 && ((gy + 1600) % 100 !== 0 || (gy + 1600) % 400 === 0))) {
+                gDayNo++;
+            }
+            gDayNo += gd;
+
+            let jDayNo = gDayNo - 79;
+            const jNp = Math.floor(jDayNo / 12053);
+            jDayNo %= 12053;
+            let jy = 979 + 33 * jNp + 4 * Math.floor(jDayNo / 1461);
+            jDayNo %= 1461;
+            if (jDayNo >= 366) {
+                jy += Math.floor((jDayNo - 1) / 365);
+                jDayNo = (jDayNo - 1) % 365;
+            }
+
+            let jm = 0;
+            while (jm < 11 && jDayNo >= jDaysInMonth[jm]) {
+                jDayNo -= jDaysInMonth[jm];
+                jm++;
+            }
+
+            return { year: jy, month: jm + 1, day: jDayNo + 1 };
+        };
+
+        const pad2 = function (value) {
+            return String(value).padStart(2, "0");
+        };
+
+        const toPersianDigits = function (value) {
+            return String(value)
+                .replace(/0/g, "۰")
+                .replace(/1/g, "۱")
+                .replace(/2/g, "۲")
+                .replace(/3/g, "۳")
+                .replace(/4/g, "۴")
+                .replace(/5/g, "۵")
+                .replace(/6/g, "۶")
+                .replace(/7/g, "۷")
+                .replace(/8/g, "۸")
+                .replace(/9/g, "۹");
+        };
+
+        const parseDateParts = function (dateText) {
+            const normalized = normalizeNumericInput(dateText || "").trim();
+            const parts = normalized.split(/[/-]/).map(function (part) {
+                return Number.parseInt(part, 10);
+            });
+            if (parts.length !== 3 || parts.some(function (part) { return !Number.isFinite(part); })) {
+                return null;
+            }
+
+            if (window.randevooEventEdit && window.randevooEventEdit.isRtl) {
+                return jalaliToGregorian(parts[0], parts[1], parts[2]);
+            }
+
+            return { year: parts[0], month: parts[1], day: parts[2] };
+        };
+
+        const parseDateTime = function (dateSelector, timeSelector) {
+            const dateParts = parseDateParts(readControl(dateSelector));
+            const timeParts = normalizeNumericInput(readControl(timeSelector)).split(":").map(function (part) {
+                return Number.parseInt(part, 10);
+            });
+            if (!dateParts || timeParts.length !== 2 || timeParts.some(function (part) { return !Number.isFinite(part); })) {
+                return null;
+            }
+
+            return new Date(dateParts.year, dateParts.month - 1, dateParts.day, timeParts[0], timeParts[1], 0, 0);
+        };
+
+        const formatDateForInput = function (date) {
+            if (window.randevooEventEdit && window.randevooEventEdit.isRtl) {
+                const jalali = gregorianToJalali(date.getFullYear(), date.getMonth() + 1, date.getDate());
+                return toPersianDigits(jalali.year + "/" + pad2(jalali.month) + "/" + pad2(jalali.day));
+            }
+
+            return date.getFullYear() + "-" + pad2(date.getMonth() + 1) + "-" + pad2(date.getDate());
+        };
+
+        const formatTimeForInput = function (date) {
+            return pad2(date.getHours()) + ":" + pad2(date.getMinutes());
+        };
+
+        const setDateTimeControls = function (dateSelector, timeSelector, date) {
+            const dateInput = form.querySelector(dateSelector);
+            const timeInput = form.querySelector(timeSelector);
+            if (dateInput) {
+                dateInput.value = formatDateForInput(date);
+            }
+            if (timeInput) {
+                timeInput.value = formatTimeForInput(date);
+            }
+        };
+
+        const formatDurationText = function (milliseconds) {
+            const totalMinutes = Math.round(milliseconds / 60000);
+            const days = Math.floor(totalMinutes / 1440);
+            const hours = Math.floor((totalMinutes % 1440) / 60);
+            const minutes = totalMinutes % 60;
+            const parts = [];
+            if (days > 0) {
+                parts.push(days.toLocaleString("fa-IR") + " روز");
+            }
+            if (hours > 0) {
+                parts.push(hours.toLocaleString("fa-IR") + " ساعت");
+            }
+            if (minutes > 0 || parts.length === 0) {
+                parts.push(minutes.toLocaleString("fa-IR") + " دقیقه");
+            }
+            return parts.join(" و ");
+        };
+
+        let lastValidDurationMs = 60 * 60 * 1000;
+
+        const syncEventDuration = function () {
+            const panel = form.querySelector("[data-event-duration-panel='true']");
+            const target = form.querySelector("[data-event-duration-value='true']");
+            const start = parseDateTime("#StartDateText", "#StartTimeText");
+            let end = parseDateTime("#EndDateText", "#EndTimeText");
+            let text = "برای محاسبه مدت، شروع و پایان را کامل کنید.";
+            let wasAdjusted = false;
+
+            if (start && end) {
+                let diff = end.getTime() - start.getTime();
+                if (diff <= 0) {
+                    end = new Date(start.getTime() + Math.max(lastValidDurationMs, 60 * 60 * 1000));
+                    setDateTimeControls("#EndDateText", "#EndTimeText", end);
+                    diff = end.getTime() - start.getTime();
+                    wasAdjusted = true;
+                }
+
+                lastValidDurationMs = diff;
+                text = formatDurationText(diff);
+            }
+
+            if (target) {
+                target.textContent = text;
+            }
+            if (panel) {
+                panel.classList.remove("has-error");
+                panel.classList.toggle("was-adjusted", wasAdjusted);
+            }
+            return text;
         };
 
         const readDecimal = function (selector) {
@@ -806,13 +1277,59 @@ $(function () {
                 return;
             }
 
-            const textarea = panel.querySelector("textarea");
+            const accountSelect = panel.querySelector("[data-organizer-payment-account-select='true']");
             const isVisible = isOrganizerManualTransfer();
             panel.classList.toggle("d-none", !isVisible);
-            if (textarea) {
-                textarea.disabled = !isVisible;
-                textarea.required = isVisible;
+            if (accountSelect) {
+                accountSelect.disabled = !isVisible;
+                accountSelect.required = isVisible;
             }
+        };
+
+        const paymentAccountLabel = function () {
+            const select = form.querySelector("[data-organizer-payment-account-select='true']");
+            return select ? selectedText("#" + select.id) : "";
+        };
+
+        const syncOrganizerPaymentAccounts = function () {
+            const select = form.querySelector("[data-organizer-payment-account-select='true']");
+            if (!select) {
+                return;
+            }
+
+            const config = window.randevooEventEdit || {};
+            const accounts = Array.isArray(config.organizerPaymentAccounts) ? config.organizerPaymentAccounts : [];
+            const currencyCode = currentEventCurrencyCode();
+            const selectedValue = select.value;
+            const warning = form.querySelector("[data-organizer-payment-warning='true']");
+            const matchingAccounts = accounts.filter(function (account) {
+                const isActive = account && (account.isActive !== undefined ? account.isActive : account.IsActive);
+                return account && isActive !== false && String(account.currencyCode || account.CurrencyCode || "").toUpperCase() === currencyCode;
+            });
+
+            select.innerHTML = '<option value="">انتخاب حساب</option>';
+            matchingAccounts.forEach(function (account) {
+                const option = document.createElement("option");
+                option.value = String(account.id || account.Id || "");
+                option.textContent = account.label || account.Label || option.value;
+                select.appendChild(option);
+            });
+
+            if (selectedValue && matchingAccounts.some(function (account) { return String(account.id || account.Id) === selectedValue; })) {
+                select.value = selectedValue;
+            } else if (selectedValue) {
+                select.value = "";
+            }
+
+            if (warning) {
+                const hasWarning = matchingAccounts.length === 0;
+                warning.classList.toggle("d-none", !hasWarning);
+                warning.textContent = hasWarning
+                    ? "حساب فعال " + currencyCode + " برای این برگزارکننده ثبت نشده است. ابتدا حساب را در پروفایل برگزارکننده ثبت و فعال کنید."
+                    : "";
+            }
+
+            select.dispatchEvent(new Event("randevoo:refresh-searchable-select"));
         };
 
         const syncFinancialPreview = function () {
@@ -880,6 +1397,7 @@ $(function () {
             currencyDisplays.forEach(function (control) {
                 control.value = currencyText || currencyCode;
             });
+            syncOrganizerPaymentAccounts();
         };
 
         const syncEventReview = function () {
@@ -892,10 +1410,13 @@ $(function () {
             const isOnline = window.randevooEventEdit && eventModeId === window.randevooEventEdit.onlineModeId;
             const start = [readControl("#StartDateText"), readControl("#StartTimeText")].filter(Boolean).join(" ");
             const end = [readControl("#EndDateText"), readControl("#EndTimeText")].filter(Boolean).join(" ");
+            const duration = syncEventDuration();
             const countryCity = [readControl("#Input_Country"), readControl("#Input_City"), readControl("#Input_Region")].filter(Boolean).join("، ");
             const venue = readControl("#Input_VenueName");
             const platform = selectedText("#Input_OnlineEventPlatformId");
             const joinUrl = readControl("#Input_OnlineJoinUrl");
+            const onlineInstructions = readControl("#Input_OnlineAccessInstructions");
+            const organizerPayment = paymentAccountLabel();
             const eventCurrencyText = currentEventCurrencyText();
             const maleTicket = [readControl("#Input_MaleTicketPrice"), eventCurrencyText].filter(Boolean).join(" ");
             const femaleTicket = [readControl("#Input_FemaleTicketPrice"), eventCurrencyText].filter(Boolean).join(" ");
@@ -909,19 +1430,26 @@ $(function () {
             }).length;
 
             setReviewValue("title", readControl("#Input_Title"));
+            setReviewValue("planner", selectedText("#AssignedPlannerId"));
             setReviewValue("event-type", selectedText("#Input_EventTypeId"));
             setReviewValue("event-mode", checkedRadioLabel("Input.EventModeId"));
             setReviewValue("delivery-detail", isOnline ? [platform, joinUrl].filter(Boolean).join(" / ") : [countryCity, venue].filter(Boolean).join(" / "));
+            setReviewValue("address", isOnline ? joinUrl : readControl("#Input_Address"));
             setReviewValue("start", start);
             setReviewValue("end", end);
+            setReviewValue("duration", duration);
             setReviewValue("male-ticket", maleTicket);
             setReviewValue("female-ticket", femaleTicket);
             setReviewValue("capacity", [readControl("#Input_CapacityMale") || "0", readControl("#Input_CapacityFemale") || "0"].join(" آقا / ") + " خانم");
             setReviewValue("age-range", [selectedText("#Input_AgeRangeForMale"), selectedText("#Input_AgeRangeForFemale")].filter(Boolean).join(" آقا / ") + (selectedText("#Input_AgeRangeForFemale") ? " خانم" : ""));
+            setReviewValue("education", selectedText("#Input_MinimumEducationLevelId"));
             setReviewValue("like-limit", readControl("#Input_LikeLimit"));
             setReviewValue("tags", selectedTags.join("، "));
             setReviewValue("images", imageCount + " / 3");
             setReviewValue("payment-method", paymentMethodLabel());
+            setReviewValue("organizer-payment", organizerPayment);
+            setReviewValue("online-instructions", onlineInstructions);
+            setReviewValue("description", stripHtml(readControl("#Input_DescriptionHtml")));
             syncPaymentMethodFields();
             syncFinancialPreview();
         };
@@ -967,9 +1495,9 @@ $(function () {
                 nextButton.classList.toggle("d-none", activeIndex === panels.length - 1);
             }
 
-            if (submitButton) {
-                submitButton.classList.toggle("d-none", activeIndex !== panels.length - 1);
-            }
+            submitButtons.forEach(function (button) {
+                button.classList.toggle("d-none", activeIndex !== panels.length - 1);
+            });
 
             window.setTimeout(function () {
                 window.dispatchEvent(new Event("resize"));
@@ -996,6 +1524,14 @@ $(function () {
             });
         }
 
+        submitButtons.forEach(function (button) {
+            button.addEventListener("click", function () {
+                if (submitAction) {
+                    submitAction.value = button.dataset.submitMode || "draft";
+                }
+            });
+        });
+
         form.addEventListener("input", syncEventReview);
         form.addEventListener("change", function () {
             syncEventReview();
@@ -1006,6 +1542,10 @@ $(function () {
             }
             if (event.target.closest("[data-financial-calc-button='true']")) {
                 syncEventReview();
+            }
+            if (event.target.closest("[data-event-review-print='true']")) {
+                syncEventReview();
+                window.print();
             }
         });
 
@@ -1172,7 +1712,8 @@ $(function () {
                 filteredCities.forEach(function (city) {
                     const option = document.createElement("option");
                     option.value = getCityName(city);
-                    option.textContent = getCityName(city);
+                    const isActive = city.isActive ?? city.IsActive;
+                    option.textContent = isActive === false ? getCityName(city) + " (غیرفعال)" : getCityName(city);
                     citySelector.appendChild(option);
                 });
 
@@ -1180,6 +1721,7 @@ $(function () {
                     return getCityName(city) === previousCity;
                 });
                 citySelector.value = hasPrevious ? previousCity : (filteredCities[0] ? getCityName(filteredCities[0]) : "");
+                citySelector.dispatchEvent(new Event("randevoo:refresh-searchable-select"));
             };
 
             const startLat = parseFloat(latitudeInput.value || "35.7219");
@@ -1194,7 +1736,7 @@ $(function () {
 
             const marker = L.marker([startLat, startLng], { draggable: true }).addTo(map);
 
-            function toPersianDigits(value) {
+            function toPersianCoordinateDigits(value) {
                 return String(value)
                     .replace(/0/g, "۰")
                     .replace(/1/g, "۱")
@@ -1213,11 +1755,11 @@ $(function () {
                 longitudeInput.value = lng.toFixed(4);
 
                 if (latitudeDisplay) {
-                    latitudeDisplay.textContent = toPersianDigits(lat.toFixed(4));
+                    latitudeDisplay.textContent = toPersianCoordinateDigits(lat.toFixed(4));
                 }
 
                 if (longitudeDisplay) {
-                    longitudeDisplay.textContent = toPersianDigits(lng.toFixed(4));
+                    longitudeDisplay.textContent = toPersianCoordinateDigits(lng.toFixed(4));
                 }
             }
 
@@ -1357,4 +1899,265 @@ $(function () {
 
         window.addEventListener("pagehide", flushTimeSpent, { once: true });
     }
+
+    document.querySelectorAll(".event-status-transition-form").forEach(function (form) {
+        const actionInputs = Array.from(form.querySelectorAll("input[name='action']"));
+        const impact = form.querySelector("[data-transition-impact]");
+        const target = form.querySelector("[data-transition-target]");
+        const description = form.querySelector("[data-transition-description]");
+        const noteWrapper = form.querySelector("[data-transition-note-wrapper]");
+        const noteInput = form.querySelector("[data-transition-note]");
+        const noteLabel = form.querySelector("[data-transition-note-label]");
+        const confirmation = form.querySelector("[data-transition-confirm]");
+        const confirmationLabel = form.querySelector("[data-transition-confirm-label]");
+        const submitButton = form.querySelector("[data-transition-submit]");
+        const cancellationAction = form.dataset.cancellationAction || "CancelEvent";
+        const cancellationPreviewUrl = form.dataset.cancellationPreviewUrl || "";
+        const cancellationPreviewPanel = form.querySelector("[data-cancellation-preview]");
+        const cancellationPreviewState = form.querySelector("[data-cancellation-preview-state]");
+        const cancellationPreviewContent = form.querySelector("[data-cancellation-preview-content]");
+        const cancellationSummary = form.querySelector("[data-cancellation-summary]");
+        const cancellationMetrics = form.querySelector("[data-cancellation-metrics]");
+        const cancellationBlockers = form.querySelector("[data-cancellation-blockers]");
+        const cancellationConsequences = form.querySelector("[data-cancellation-consequences]");
+        const cancellationWarnings = form.querySelector("[data-cancellation-warnings]");
+        const cancellationMessageWrapper = form.querySelector("[data-cancellation-message-wrapper]");
+        const cancellationMessageInput = form.querySelector("[data-cancellation-message]");
+        let cancellationPreview = null;
+        let cancellationPreviewLoading = false;
+
+        const selectedAction = function () {
+            return actionInputs.find(function (input) { return input.checked; }) || null;
+        };
+
+        const readValue = function (source, camelName, pascalName, fallback) {
+            if (!source) {
+                return fallback;
+            }
+
+            if (Object.prototype.hasOwnProperty.call(source, camelName)) {
+                return source[camelName];
+            }
+
+            if (Object.prototype.hasOwnProperty.call(source, pascalName)) {
+                return source[pascalName];
+            }
+
+            return fallback;
+        };
+
+        const renderCancellationList = function (wrapper, items) {
+            if (!wrapper) {
+                return;
+            }
+
+            const list = wrapper.querySelector("ul");
+            if (!list) {
+                return;
+            }
+
+            list.innerHTML = "";
+            const values = Array.isArray(items) ? items : [];
+            wrapper.hidden = values.length === 0;
+            values.forEach(function (item) {
+                const li = document.createElement("li");
+                li.textContent = item;
+                list.appendChild(li);
+            });
+        };
+
+        const renderCancellationPreview = function (preview) {
+            if (!cancellationPreviewContent || !preview) {
+                return;
+            }
+
+            const summary = readValue(preview, "summary", "Summary", "");
+            const metrics = readValue(preview, "metrics", "Metrics", []);
+            const blockers = readValue(preview, "blockingReasons", "BlockingReasons", []);
+            const consequences = readValue(preview, "consequences", "Consequences", []);
+            const warnings = readValue(preview, "warnings", "Warnings", []);
+            const suggestedMessage = readValue(preview, "suggestedPublicMessage", "SuggestedPublicMessage", "");
+
+            if (cancellationSummary) {
+                cancellationSummary.textContent = summary;
+            }
+
+            if (cancellationMetrics) {
+                cancellationMetrics.innerHTML = "";
+                (Array.isArray(metrics) ? metrics : []).forEach(function (metric) {
+                    const card = document.createElement("div");
+                    card.className = "event-cancellation-metric";
+
+                    const label = document.createElement("span");
+                    label.textContent = readValue(metric, "label", "Label", "");
+                    card.appendChild(label);
+
+                    const value = document.createElement("strong");
+                    value.textContent = readValue(metric, "value", "Value", "");
+                    card.appendChild(value);
+
+                    const hintText = readValue(metric, "hint", "Hint", "");
+                    if (hintText) {
+                        const hint = document.createElement("small");
+                        hint.textContent = hintText;
+                        card.appendChild(hint);
+                    }
+
+                    cancellationMetrics.appendChild(card);
+                });
+            }
+
+            renderCancellationList(cancellationBlockers, blockers);
+            renderCancellationList(cancellationConsequences, consequences);
+            renderCancellationList(cancellationWarnings, warnings);
+
+            if (cancellationMessageInput && !cancellationMessageInput.value.trim() && suggestedMessage) {
+                cancellationMessageInput.value = suggestedMessage;
+            }
+
+            if (cancellationPreviewState) {
+                cancellationPreviewState.hidden = true;
+            }
+
+            cancellationPreviewContent.hidden = false;
+        };
+
+        const renderCancellationError = function (message) {
+            cancellationPreview = { canCancel: false, blockingReasons: [message] };
+
+            if (cancellationPreviewState) {
+                cancellationPreviewState.hidden = false;
+                cancellationPreviewState.innerHTML = "";
+                const icon = document.createElement("i");
+                icon.className = "bi bi-exclamation-triangle";
+                cancellationPreviewState.appendChild(icon);
+                const text = document.createElement("span");
+                text.textContent = message;
+                cancellationPreviewState.appendChild(text);
+            }
+
+            if (cancellationPreviewContent) {
+                cancellationPreviewContent.hidden = true;
+            }
+        };
+
+        const loadCancellationPreview = function () {
+            if (!cancellationPreviewUrl) {
+                renderCancellationError("مسیر بررسی چک‌لیست لغو برای این صفحه تنظیم نشده است.");
+                return;
+            }
+
+            if (cancellationPreview || cancellationPreviewLoading) {
+                return;
+            }
+
+            cancellationPreviewLoading = true;
+            if (cancellationPreviewPanel) {
+                cancellationPreviewPanel.hidden = false;
+            }
+            if (cancellationPreviewState) {
+                cancellationPreviewState.hidden = false;
+                cancellationPreviewState.innerHTML = '<span class="spinner-border spinner-border-sm" aria-hidden="true"></span><span>در حال بررسی اثرات لغو این رویداد...</span>';
+            }
+            if (cancellationPreviewContent) {
+                cancellationPreviewContent.hidden = true;
+            }
+
+            fetch(cancellationPreviewUrl, {
+                method: "GET",
+                headers: {
+                    "Accept": "application/json"
+                },
+                credentials: "same-origin"
+            })
+                .then(function (response) {
+                    if (!response.ok) {
+                        throw new Error("امکان دریافت چک‌لیست لغو وجود ندارد.");
+                    }
+
+                    return response.json();
+                })
+                .then(function (preview) {
+                    cancellationPreview = preview;
+                    renderCancellationPreview(preview);
+                })
+                .catch(function (error) {
+                    renderCancellationError(error.message || "امکان دریافت چک‌لیست لغو وجود ندارد.");
+                })
+                .finally(function () {
+                    cancellationPreviewLoading = false;
+                    updateState();
+                });
+        };
+
+        const updateState = function () {
+            const selected = selectedAction();
+            const hasSelection = Boolean(selected);
+            const requiresNote = selected?.dataset.requiresNote === "true";
+            const hasNote = !requiresNote || Boolean((noteInput?.value || "").trim());
+            const confirmed = Boolean(confirmation?.checked);
+            const isCancellation = hasSelection && selected.value === cancellationAction;
+            const hasCancellationMessage = !isCancellation || Boolean((cancellationMessageInput?.value || "").trim());
+            const cancellationCanSubmit = !isCancellation
+                || (!cancellationPreviewLoading && Boolean(cancellationPreview) && readValue(cancellationPreview, "canCancel", "CanCancel", false) === true);
+
+            if (impact) {
+                impact.hidden = !hasSelection;
+            }
+
+            if (target) {
+                target.textContent = selected?.dataset.target || "";
+            }
+
+            if (description) {
+                description.textContent = selected?.dataset.description || "";
+            }
+
+            if (noteWrapper) {
+                noteWrapper.hidden = !requiresNote;
+            }
+
+            if (noteInput) {
+                noteInput.required = requiresNote;
+                noteInput.placeholder = selected?.dataset.notePlaceholder || "";
+            }
+
+            if (noteLabel) {
+                noteLabel.textContent = selected?.dataset.noteLabel || "توضیحات";
+            }
+
+            if (confirmationLabel) {
+                confirmationLabel.textContent = selected?.dataset.confirmation || "تایید می‌کنم این تغییر وضعیت ثبت شود.";
+            }
+
+            if (cancellationPreviewPanel) {
+                cancellationPreviewPanel.hidden = !isCancellation;
+            }
+
+            if (cancellationMessageWrapper) {
+                cancellationMessageWrapper.hidden = !isCancellation;
+            }
+
+            if (cancellationMessageInput) {
+                cancellationMessageInput.required = isCancellation;
+            }
+
+            if (isCancellation) {
+                loadCancellationPreview();
+            }
+
+            if (submitButton) {
+                submitButton.disabled = !hasSelection || !hasNote || !confirmed || !hasCancellationMessage || !cancellationCanSubmit;
+            }
+        };
+
+        actionInputs.forEach(function (input) {
+            input.addEventListener("change", updateState);
+        });
+
+        noteInput?.addEventListener("input", updateState);
+        confirmation?.addEventListener("change", updateState);
+        cancellationMessageInput?.addEventListener("input", updateState);
+        updateState();
+    });
 });

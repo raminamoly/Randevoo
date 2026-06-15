@@ -1,7 +1,7 @@
 @page "{id:long}"
 @model Randevoo.AdminPanel.Pages.Public.EventModel
 @{
-    ViewData["Title"] = Model.Event.DisplayTitle;
+    ViewData["Title"] = $"{Model.Event.DisplayTitle} {Model.Event.DisplayCode}";
     ViewData["UseShell"] = false;
     var draft = Model.Event.Live;
 }
@@ -22,7 +22,7 @@
         <div class="public-event-hero-copy">
             <div class="auth-kicker">پروفایل رویداد</div>
             <h1>@Model.Event.DisplayTitle</h1>
-            <p>@(draft.IsOnline ? "رویداد آنلاین با ظرفیت کنترل شده" : $"{draft.VenueName}، {draft.City}")</p>
+            <p>رویداد @Model.Event.DisplayCode</p>
             @if (draft.Tags.Count > 0)
             {
                 <div class="event-chip-list">
@@ -32,10 +32,6 @@
                     }
                 </div>
             }
-            <div class="public-event-hero-actions">
-                <a href="#tickets" class="btn btn-primary btn-lg">مشاهده بلیت و ظرفیت</a>
-                <a href="#details" class="btn btn-outline-secondary btn-lg">جزئیات رویداد</a>
-            </div>
         </div>
         <div class="public-event-hero-media">
             @if (Model.EventImages.Count > 0)
@@ -57,7 +53,7 @@
         <div class="detail-block"><span>پایان</span><strong>@PersianDateFormatter.Format(draft.EndAtUtc, true)</strong></div>
         <div class="detail-block"><span>نحوه برگزاری</span><strong>@draft.EventModeName</strong></div>
         <div class="detail-block"><span>حداقل تحصیلات</span><strong>@DisplayFormatter.EducationRestriction(draft.EducationLevelRestriction)</strong></div>
-        <div class="detail-block"><span>روش پرداخت</span><strong>@DisplayFormatter.PaymentCollectionMethod(draft.PaymentCollectionMethod)</strong></div>
+        <div class="detail-block"><span>کد رویداد</span><strong>@Model.Event.DisplayCode</strong></div>
     </section>
 
     <section id="tickets" class="public-event-section">
@@ -81,29 +77,6 @@
                     <div class="col-md-6"><div class="detail-block"><span>بازه سنی</span><strong>@draft.AgeRangeForFemale</strong></div></div>
                 </div>
             </article>
-        </div>
-    </section>
-
-    <section class="public-event-section">
-        <div class="public-section-head">
-            <h2>پرداخت و تسویه</h2>
-        </div>
-        <div class="payment-method-public-panel">
-            <div class="detail-block">
-                <span>روش دریافت هزینه</span>
-                <strong>@DisplayFormatter.PaymentCollectionMethod(draft.PaymentCollectionMethod)</strong>
-            </div>
-            <div class="detail-block">
-                <span>توضیح مالی</span>
-                <strong>@DisplayFormatter.PaymentCollectionSettlementNote(draft.PaymentCollectionMethod)</strong>
-            </div>
-            @if (draft.PaymentCollectionMethod == Randevoo.Domain.Enums.EventPaymentCollectionMethod.OrganizerManualTransfer && !string.IsNullOrWhiteSpace(draft.OrganizerPaymentInstructions))
-            {
-                <div class="detail-block payment-instructions-block">
-                    <span>اطلاعات پرداخت برگزارکننده</span>
-                    <strong>@draft.OrganizerPaymentInstructions</strong>
-                </div>
-            }
         </div>
     </section>
 
@@ -150,6 +123,7 @@
                     <div class="planner-title">@Model.PlannerProfile.Title</div>
                     <p>@Model.PlannerProfile.Resume</p>
                     <div class="planner-metrics">
+                        <div class="detail-block"><span>شهر فعالیت</span><strong>@Model.PlannerProfile.City</strong></div>
                         <div class="detail-block"><span>میانگین امتیاز</span><strong>@DisplayFormatter.ToPersianDigits(Model.PlannerProfile.AverageRating.ToString("0.0"))</strong></div>
                         <div class="detail-block"><span>رویداد برگزارشده</span><strong>@DisplayFormatter.Count(Model.PlannerProfile.HostedEventCount)</strong></div>
                     </div>

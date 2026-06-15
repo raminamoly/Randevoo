@@ -28,11 +28,14 @@ public class DetailsModel : PageModel
     public SupportSubmitterFinanceContext? FinanceContext { get; private set; }
     public IReadOnlyList<SupportSubmitterEventBookingItem> EventBookings { get; private set; } = Array.Empty<SupportSubmitterEventBookingItem>();
     public IReadOnlyList<(long Id, string DisplayName)> SupportUsers { get; private set; } = Array.Empty<(long Id, string DisplayName)>();
+    public IReadOnlyList<SupportTicketLookupOption> TicketStatuses { get; private set; } = Array.Empty<SupportTicketLookupOption>();
     public MockUser CurrentUser => _session.CurrentUser ?? throw new InvalidOperationException("حساب جاری شناسایی نشد.");
-    public bool CanManage => CurrentUser.Role is AdminRole.Admin or AdminRole.SupportTeam;
+    public bool CanManage => CurrentUser.Role is AdminRole.Admin or AdminRole.SupportTeam || Ticket.RecipientPlannerUserId == CurrentUser.Id;
+    public bool CanViewSubmitterContext => CurrentUser.Role is AdminRole.Admin or AdminRole.SupportTeam;
+    public bool CanUseSystemTicketsPage => CurrentUser.Role is AdminRole.Admin or AdminRole.SupportTeam;
     public bool IsAdmin => CurrentUser.Role == AdminRole.Admin;
-    public IReadOnlyList<SelectListItem> StatusOptions => Enum.GetValues<SupportTicketStatus>()
-        .Select(status => new SelectListItem(SupportTicketUiFormatter.FormatStatus(status), ((int)status).ToString()))
+    public IReadOnlyList<SelectListItem> StatusOptions => TicketStatuses
+        .Select(status => new SelectListItem(status.TitleFa, status.Id.ToString(), Ticket.TicketStatusId == status.Id))
         .ToList();
 
     [BindProperty]
@@ -75,7 +78,7 @@ public class DetailsModel : PageModel
     {
         try
         {
-            await _supportApi.ChangeStatusAsync(CurrentUser, id, StatusInput.Status, StatusInput.Note, cancellationToken);
+            await _supportApi.ChangeStatusAsync(CurrentUser, id, StatusInput.TicketStatusId, StatusInput.Note, cancellationToken);
             StatusMessage = "وضعیت تیکت تغییر کرد.";
         }
         catch (Exception ex) when (ex is InvalidOperationException or Randevoo.Domain.Exceptions.DomainException)
@@ -104,7 +107,9 @@ public class DetailsModel : PageModel
     private async Task LoadAsync(long id, CancellationToken cancellationToken)
     {
         Ticket = await _supportApi.GetTicketAsync(CurrentUser, id, cancellationToken);
-        if (CanManage)
+        TicketStatuses = await _supportApi.GetTicketStatusesAsync(cancellationToken);
+        StatusInput.TicketStatusId = Ticket.TicketStatusId;
+        if (CanViewSubmitterContext)
         {
             FinanceContext = await _supportApi.GetSubmitterFinanceAsync(CurrentUser, id, cancellationToken);
             EventBookings = await _supportApi.GetSubmitterEventsAsync(CurrentUser, id, cancellationToken);
@@ -112,7 +117,7 @@ public class DetailsModel : PageModel
         }
         else
         {
-            PreviousTickets = (await _supportApi.GetTicketsAsync(CurrentUser, null, null, null, null, cancellationToken: cancellationToken))
+            PreviousTickets = (await _supportApi.GetTicketsAsync(CurrentUser, null, null, null, null, null, cancellationToken: cancellationToken))
                 .Where(item => item.SubmitterUserId == Ticket.Submitter.UserId && item.Id != Ticket.Id)
                 .Take(10)
                 .ToList();

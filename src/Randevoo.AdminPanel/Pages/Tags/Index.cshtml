@@ -2,6 +2,8 @@
 @model Randevoo.AdminPanel.Pages.Tags.IndexModel
 @{
     ViewData["Title"] = "تگ های رویداد";
+    var editorExpanded = Model.IsEditing || !ViewData.ModelState.IsValid;
+    var editorCollapseId = "tagEditorPanel";
 }
 
 <section class="page-header">
@@ -16,39 +18,57 @@
 }
 
 <div class="settings-editor-stack">
-    <section class="glass-panel p-4">
-        <form method="post">
-            <input type="hidden" asp-for="Id" />
-            <div asp-validation-summary="ModelOnly" class="alert alert-danger border-0 mb-3"></div>
-
-            <h2 class="section-title">@((Model.IsEditing) ? "ویرایش تگ" : "ایجاد تگ")</h2>
-
-            <div class="row g-3 align-items-end">
-                <div class="col-lg-5">
-                    <label asp-for="Input.Name" class="form-label">نام</label>
-                    <input asp-for="Input.Name" class="form-control" />
-                    <span asp-validation-for="Input.Name" class="text-danger small"></span>
-                    <div class="help-tip">این نام در فرم ساخت و ویرایش رویداد نمایش داده می شود.</div>
-                </div>
-
-                <div class="col-lg-3">
-                    <div class="form-check form-switch settings-editor-switch">
-                        <input asp-for="Input.IsActive" class="form-check-input" />
-                        <label asp-for="Input.IsActive" class="form-check-label">فعال</label>
-                    </div>
-                </div>
-
-                <div class="col-lg-4">
-                    <div class="d-flex flex-wrap gap-2 justify-content-lg-end">
-                        <button type="submit" class="btn btn-primary">ذخیره تگ</button>
-                        @if (Model.IsEditing)
-                        {
-                            <a asp-page="/Tags/Index" class="btn btn-outline-secondary">ثبت تگ جدید</a>
-                        }
-                    </div>
-                </div>
+    <section class="glass-panel base-data-editor-shell">
+        <div class="base-data-editor-bar">
+            <div>
+                <span class="base-data-editor-kicker">پنل ایجاد و ویرایش</span>
+                <h2 class="section-title mb-0">@((Model.IsEditing) ? "ویرایش تگ" : "ایجاد تگ")</h2>
             </div>
-        </form>
+            <button class="btn btn-primary base-data-editor-toggle"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#@editorCollapseId"
+                    aria-expanded="@(editorExpanded.ToString().ToLowerInvariant())"
+                    aria-controls="@editorCollapseId">
+                <i class="bi @(Model.IsEditing ? "bi-pencil-square" : "bi-plus-lg")"></i>
+                <span>@(Model.IsEditing ? "نمایش فرم ویرایش" : "افزودن تگ")</span>
+            </button>
+        </div>
+
+        <div id="@editorCollapseId" class="collapse @(editorExpanded ? "show" : string.Empty)">
+            <div class="base-data-editor-body">
+                <form method="post">
+                    <input type="hidden" asp-for="Id" />
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger border-0 mb-3"></div>
+
+                    <div class="row g-3 align-items-end">
+                        <div class="col-lg-5">
+                            <label asp-for="Input.Name" class="form-label">نام</label>
+                            <input asp-for="Input.Name" class="form-control" />
+                            <span asp-validation-for="Input.Name" class="text-danger small"></span>
+                            <div class="help-tip">این نام در فرم ساخت و ویرایش رویداد نمایش داده می شود.</div>
+                        </div>
+
+                        <div class="col-lg-3">
+                            <div class="form-check form-switch settings-editor-switch">
+                                <input asp-for="Input.IsActive" class="form-check-input" />
+                                <label asp-for="Input.IsActive" class="form-check-label">فعال</label>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-4">
+                            <div class="d-flex flex-wrap gap-2 justify-content-lg-end">
+                                <button type="submit" class="btn btn-primary">ذخیره تگ</button>
+                                @if (Model.IsEditing)
+                                {
+                                    <a asp-page="/Tags/Index" class="btn btn-outline-secondary">ثبت تگ جدید</a>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
     </section>
 
     <section class="glass-panel p-4">

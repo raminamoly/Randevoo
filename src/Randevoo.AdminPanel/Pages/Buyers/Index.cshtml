@@ -1,0 +1,208 @@
+@page
+@model Randevoo.AdminPanel.Pages.Buyers.IndexModel
+@using Randevoo.Domain.Enums
+@{
+    ViewData["Title"] = Model.EventId.HasValue ? "خریداران بلیت این رویداد" : "خریداران بلیت";
+}
+
+<section class="page-header">
+    <div>
+        <h1>خریداران بلیت</h1>
+        <p class="text-muted mb-0">نمای سفارش‌های خرید بلیت و ارتباط مستقیم هر سفارش با شرکت‌کنندگان همان رویداد.</p>
+    </div>
+    <a asp-page="/Participants/Index" asp-route-EventId="@Model.EventId" class="btn btn-outline-secondary">
+        <i class="bi bi-person-lines-fill"></i>فهرست شرکت‌کنندگان
+    </a>
+</section>
+
+<section class="metric-grid mb-4">
+    <article class="metric-card">
+        <span>کل سفارش‌ها</span>
+        <strong>@DisplayFormatter.Count(Model.Result.Summary.TotalOrders)</strong>
+    </article>
+    <article class="metric-card">
+        <span>پرداخت شده</span>
+        <strong>@DisplayFormatter.Count(Model.Result.Summary.PaidOrders)</strong>
+    </article>
+    <article class="metric-card">
+        <span>در انتظار پرداخت</span>
+        <strong>@DisplayFormatter.Count(Model.Result.Summary.PendingOrders)</strong>
+    </article>
+    <article class="metric-card">
+        <span>بلیت‌های فعال</span>
+        <strong>@DisplayFormatter.Count(Model.Result.Summary.TicketCount)</strong>
+    </article>
+    <article class="metric-card">
+        <span>جمع ریالی گزارش</span>
+        <strong>@DisplayFormatter.ReportingMoney(Model.Result.Summary.ReportingNetAmountIrr, Model.IsRtl)</strong>
+    </article>
+</section>
+
+<form method="get" class="glass-panel p-4 mb-4 filter-panel">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
+        <div>
+            <h2 class="section-title mb-1">فیلتر خریداران</h2>
+            <p class="text-muted small mb-0">فهرست بر اساس سفارش خرید ساخته شده، نه تک بلیت.</p>
+        </div>
+        <button class="btn btn-outline-secondary btn-sm filter-toggle-button" type="button" data-bs-toggle="collapse" data-bs-target="#buyerFilterPanel" aria-expanded="@(Model.HasActiveFilters.ToString().ToLowerInvariant())" aria-controls="buyerFilterPanel">
+            <i class="bi bi-funnel"></i>فیلترها
+        </button>
+    </div>
+    <div id="buyerFilterPanel" class="collapse @(Model.HasActiveFilters ? "show" : string.Empty)">
+        <input type="hidden" name="PageNumber" value="1" />
+        @if (Model.BuyerUserId.HasValue)
+        {
+            <input type="hidden" asp-for="BuyerUserId" />
+        }
+        @if (Model.TicketOrderId.HasValue)
+        {
+            <input type="hidden" asp-for="TicketOrderId" />
+        }
+        <div class="row g-3 align-items-end">
+            <div class="col-xl-3 col-lg-4">
+                <label asp-for="Search" class="form-label">جستجو</label>
+                <input asp-for="Search" class="form-control" placeholder="نام، کد رویداد، موبایل یا شماره سفارش" />
+            </div>
+            <div class="col-xl-3 col-lg-4">
+                <label asp-for="EventId" class="form-label">رویداد</label>
+                <select asp-for="EventId" asp-items="Model.EventOptions" class="form-select">
+                    <option value="">همه رویدادها</option>
+                </select>
+            </div>
+            <div class="col-xl-2 col-lg-3">
+                <label asp-for="PaymentStatus" class="form-label">وضعیت پرداخت</label>
+                <select asp-for="PaymentStatus" class="form-select">
+                    <option value="">همه</option>
+                    <option value="@TicketOrderPaymentStatus.Pending">در انتظار پرداخت</option>
+                    <option value="@TicketOrderPaymentStatus.Paid">پرداخت شده</option>
+                    <option value="@TicketOrderPaymentStatus.Rejected">رد شده</option>
+                    <option value="@TicketOrderPaymentStatus.Refunded">بازگشت خورده</option>
+                </select>
+            </div>
+            <div class="col-xl-2 col-lg-3">
+                <label asp-for="Sort" class="form-label">مرتب‌سازی</label>
+                <select asp-for="Sort" class="form-select">
+                    <option value="created-desc">جدیدتر</option>
+                    <option value="created-asc">قدیمی‌تر</option>
+                    <option value="amount-desc">مبلغ بیشتر</option>
+                    <option value="amount-asc">مبلغ کمتر</option>
+                    <option value="event">نام رویداد</option>
+                </select>
+            </div>
+            <div class="col-xl-2 col-lg-3">
+                <label asp-for="PageSize" class="form-label">تعداد در صفحه</label>
+                <select asp-for="PageSize" class="form-select">
+                    <option value="25">۲۵</option>
+                    <option value="50">۵۰</option>
+                    <option value="100">۱۰۰</option>
+                </select>
+            </div>
+            <div class="col-12 d-flex justify-content-end gap-2">
+                <a asp-page="/Buyers/Index" class="btn btn-outline-secondary">پاک کردن</a>
+                <button type="submit" class="btn btn-primary"><i class="bi bi-search"></i>اعمال فیلتر</button>
+            </div>
+        </div>
+    </div>
+</form>
+
+<section class="glass-panel p-4">
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+        <div>
+            <h2 class="section-title mb-1">سفارش‌ها</h2>
+            <p class="text-muted small mb-0">@DisplayFormatter.Count(Model.Result.TotalCount) سفارش مطابق فیلتر فعلی</p>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table align-middle">
+            <thead>
+                <tr>
+                    <th>سفارش</th>
+                    <th>خریدار</th>
+                    <th>رویداد</th>
+                    <th>بلیت‌ها</th>
+                    <th>مبلغ</th>
+                    <th>روش پرداخت</th>
+                    <th>وضعیت</th>
+                    <th>تاریخ</th>
+                    <th>عملیات</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model.Result.Items)
+                {
+                    <tr>
+                        <td>
+                            <div class="fw-semibold">#@DisplayFormatter.Count((int)item.OrderId)</div>
+                            @if (!string.IsNullOrWhiteSpace(item.DiscountCode))
+                            {
+                                <div class="text-muted small" dir="ltr">@item.DiscountCode</div>
+                            }
+                        </td>
+                        <td>
+                            <div class="fw-semibold">@item.BuyerName</div>
+                            <div class="text-muted small" dir="ltr">@item.BuyerMobile</div>
+                        </td>
+                        <td>
+                            <div class="fw-semibold">@item.EventTitle</div>
+                            <div class="text-muted small">@item.EventPlannerName</div>
+                        </td>
+                        <td>@DisplayFormatter.Count(item.TicketCount)</td>
+                        <td>
+                            <div>@DisplayFormatter.CurrencyMoney(item.NetAmount, item.CurrencyCode, Model.IsRtl)</div>
+                            @if (item.DiscountAmount > 0)
+                            {
+                                <div class="text-muted small">تخفیف: @DisplayFormatter.CurrencyMoney(item.DiscountAmount, item.CurrencyCode, Model.IsRtl)</div>
+                            }
+                            <div class="text-muted small">@DisplayFormatter.ReportingMoney(item.ReportingNetAmountIrr, Model.IsRtl)</div>
+                        </td>
+                        <td>@DisplayFormatter.PaymentCollectionMethod(item.PaymentCollectionMethod)</td>
+                        <td>
+                            <span class="status-badge @IndexModel.PaymentStatusClass(item.PaymentStatus)">@IndexModel.PaymentStatusLabel(item.PaymentStatus)</span>
+                        </td>
+                        <td>@PersianDateFormatter.FormatDateTime(item.CreatedAtUtc, Model.IsRtl)</td>
+                        <td class="table-action-cell">
+                            <div class="d-flex flex-wrap gap-2">
+                                <a asp-page="/Participants/Index" asp-route-TicketOrderId="@item.OrderId" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-person-lines-fill"></i>شرکت‌کنندگان سفارش
+                                </a>
+                                <a asp-page="/Participants/Index" asp-route-BuyerUserId="@item.BuyerUserId" asp-route-EventId="@item.EventId" class="btn btn-sm btn-outline-secondary">
+                                    <i class="bi bi-link-45deg"></i>همه بلیت‌های این خریدار
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    @if (Model.Result.Items.Count == 0)
+    {
+        <div class="empty-state">برای فیلتر فعلی سفارشی پیدا نشد.</div>
+    }
+
+    <nav class="d-flex justify-content-between align-items-center flex-wrap gap-3 mt-4">
+        <a class="btn btn-outline-secondary @(Model.HasPreviousPage ? string.Empty : "disabled")"
+           asp-page="/Buyers/Index"
+           asp-route-EventId="@Model.EventId"
+           asp-route-BuyerUserId="@Model.BuyerUserId"
+           asp-route-TicketOrderId="@Model.TicketOrderId"
+           asp-route-Search="@Model.Search"
+           asp-route-PaymentStatus="@Model.PaymentStatus"
+           asp-route-Sort="@Model.Sort"
+           asp-route-PageSize="@Model.PageSize"
+           asp-route-PageNumber="@(Model.PageNumber - 1)">قبلی</a>
+        <span class="text-muted small">صفحه @DisplayFormatter.Count(Model.PageNumber) از @DisplayFormatter.Count(Model.TotalPages)</span>
+        <a class="btn btn-outline-secondary @(Model.HasNextPage ? string.Empty : "disabled")"
+           asp-page="/Buyers/Index"
+           asp-route-EventId="@Model.EventId"
+           asp-route-BuyerUserId="@Model.BuyerUserId"
+           asp-route-TicketOrderId="@Model.TicketOrderId"
+           asp-route-Search="@Model.Search"
+           asp-route-PaymentStatus="@Model.PaymentStatus"
+           asp-route-Sort="@Model.Sort"
+           asp-route-PageSize="@Model.PageSize"
+           asp-route-PageNumber="@(Model.PageNumber + 1)">بعدی</a>
+    </nav>
+</section>

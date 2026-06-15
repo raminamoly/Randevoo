@@ -70,6 +70,49 @@ public class DatingEventTests
     }
 
     [Fact]
+    public void SellTicket_AllowsBuyerToPurchaseForDifferentParticipant()
+    {
+        var datingEvent = CreateEvent(
+            "Buyer participant split",
+            DateTime.UtcNow.AddDays(3),
+            DateTime.UtcNow.AddDays(3).AddHours(3));
+        datingEvent.ApproveByAdmin();
+        datingEvent.OpenForSell();
+
+        var buyer = new User("+989122000010");
+        var participant = new User("+989122000011");
+        var participantProfile = new UserProfile(
+            participant,
+            "Actual participant",
+            DateOnly.FromDateTime(DateTime.UtcNow).AddYears(-28),
+            Gender.Male,
+            new Location("Iran", "Tehran", new Coordinates(35.6895m, 51.3890m)),
+            new Height(180));
+
+        var order = new TicketOrder(
+            datingEvent,
+            buyer,
+            100m,
+            0m,
+            100m,
+            10m,
+            EventPaymentCollectionMethod.PlatformGateway,
+            "IRR",
+            1m,
+            DateTime.UtcNow,
+            null,
+            null,
+            TicketOrderPaymentStatus.Paid,
+            TicketOrderStatus.Confirmed);
+
+        var ticket = datingEvent.SellTicket(order, participant, participantProfile);
+
+        Assert.Same(buyer, ticket.TicketOrder.BuyerUser);
+        Assert.Same(participant, ticket.ParticipantUser);
+        Assert.Contains(ticket, order.Tickets);
+    }
+
+    [Fact]
     public void NewEvent_DefaultsTicketCurrenciesToIrr()
     {
         var datingEvent = CreateEvent("Currency default", DateTime.UtcNow.AddDays(2), DateTime.UtcNow.AddDays(2).AddHours(2));
@@ -149,7 +192,7 @@ public class DatingEventTests
         var datingEvent = CreateEvent("New event", DateTime.UtcNow.AddDays(2), DateTime.UtcNow.AddDays(2).AddHours(2));
 
         Assert.Equal(EventReviewStatus.NotSubmitted, datingEvent.ReviewStatus);
-        Assert.Equal(EventOperationalStatus.Draft, datingEvent.ResolveOperationalStatus(DateTime.UtcNow));
+        Assert.Equal(EventOperationalStatus.SaleClosed, datingEvent.ResolveOperationalStatus(DateTime.UtcNow));
     }
 
     [Fact]
@@ -163,7 +206,7 @@ public class DatingEventTests
 
         Assert.Equal(EventReviewStatus.PendingReview, datingEvent.ReviewStatus);
         Assert.False(datingEvent.IsOpenForSell);
-        Assert.Equal(EventOperationalStatus.Draft, datingEvent.ResolveOperationalStatus(DateTime.UtcNow));
+        Assert.Equal(EventOperationalStatus.SaleClosed, datingEvent.ResolveOperationalStatus(DateTime.UtcNow));
     }
 
     [Fact]
@@ -176,21 +219,24 @@ public class DatingEventTests
 
         Assert.Equal(EventReviewStatus.Approved, datingEvent.ReviewStatus);
         Assert.False(datingEvent.IsOpenForSell);
-        Assert.Equal(EventOperationalStatus.Draft, datingEvent.ResolveOperationalStatus(DateTime.UtcNow));
+        Assert.Equal(EventOperationalStatus.SaleClosed, datingEvent.ResolveOperationalStatus(DateTime.UtcNow));
     }
 
     [Fact]
-    public void RejectByAdmin_SetsReviewStatusToRejectedAndClosesSale()
+    public void RejectByAdmin_ReturnsEventToDraftAndClosesSale()
     {
         var datingEvent = CreateEvent("Rejected event", DateTime.UtcNow.AddDays(2), DateTime.UtcNow.AddDays(2).AddHours(2));
         datingEvent.ApproveByAdmin();
         datingEvent.OpenForSell();
 
-        datingEvent.RejectByAdmin();
+        datingEvent.RejectByAdmin("نیاز به اصلاح زمان‌بندی دارد.");
 
-        Assert.Equal(EventReviewStatus.Rejected, datingEvent.ReviewStatus);
+        Assert.Equal(EventReviewStatus.NotSubmitted, datingEvent.ReviewStatus);
+        Assert.Equal(EventApprovalStatus.Draft, datingEvent.ApprovalStatus);
+        Assert.Equal(EventSaleStatus.Closed, datingEvent.SaleStatus);
+        Assert.Equal("نیاز به اصلاح زمان‌بندی دارد.", datingEvent.AdminReviewNote);
         Assert.False(datingEvent.IsOpenForSell);
-        Assert.Equal(EventOperationalStatus.Draft, datingEvent.ResolveOperationalStatus(DateTime.UtcNow));
+        Assert.Equal(EventOperationalStatus.SaleClosed, datingEvent.ResolveOperationalStatus(DateTime.UtcNow));
     }
 
     [Fact]
@@ -220,7 +266,7 @@ public class DatingEventTests
         var datingEvent = CreateEvent("Past event", DateTime.UtcNow.AddDays(-2), DateTime.UtcNow.AddDays(-2).AddHours(2));
         datingEvent.ApproveByAdmin();
 
-        Assert.Equal(EventOperationalStatus.Closed, datingEvent.ResolveOperationalStatus(DateTime.UtcNow));
+        Assert.Equal(EventOperationalStatus.Completed, datingEvent.ResolveOperationalStatus(DateTime.UtcNow));
     }
 
     private static DatingEvent CreateEvent(

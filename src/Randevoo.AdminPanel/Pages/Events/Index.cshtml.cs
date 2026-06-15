@@ -7,6 +7,7 @@ using Randevoo.AdminPanel.Models.Common;
 using Randevoo.AdminPanel.Models.Events;
 using Randevoo.AdminPanel.Services.ApiClients;
 using Randevoo.AdminPanel.Services.State;
+using DomainEventApprovalStatus = Randevoo.Domain.Enums.EventApprovalStatus;
 
 namespace Randevoo.AdminPanel.Pages.Events;
 
@@ -36,14 +37,14 @@ public class IndexModel : PageModel
 
     public string PageDescription => IsArchive
         ? "رویدادهای تمام شده یا لغو شده را با فیلتر و صفحه بندی سمت سرور بررسی کنید."
-        : "رویدادهای فعال، در حال فروش یا در حال آماده سازی را با فیلتر و صفحه بندی سمت سرور مدیریت کنید.";
+        : "رویدادهای فروش بسته، فروش باز یا در حال آماده‌سازی را با فیلتر و صفحه‌بندی سمت سرور مدیریت کنید.";
 
     public bool HasActiveFilters => !string.IsNullOrWhiteSpace(Search)
         || TagId is not null
         || !string.IsNullOrWhiteSpace(City)
         || EventModeId is not null
         || OperationalStatus is not null
-        || ReviewStatus is not null
+        || ApprovalStatus is not null
         || !string.IsNullOrWhiteSpace(FromDate)
         || !string.IsNullOrWhiteSpace(ToDate)
         || !string.Equals(Sort, "updated-desc", StringComparison.OrdinalIgnoreCase);
@@ -67,7 +68,7 @@ public class IndexModel : PageModel
     public EventOperationalStatus? OperationalStatus { get; set; }
 
     [BindProperty(SupportsGet = true)]
-    public EventReviewStatus? ReviewStatus { get; set; }
+    public DomainEventApprovalStatus? ApprovalStatus { get; set; }
 
     [BindProperty(SupportsGet = true)]
     public string? FromDate { get; set; }
@@ -91,6 +92,12 @@ public class IndexModel : PageModel
 
     public bool HasNextPage => PageNumber < TotalPages;
 
+    [TempData]
+    public string? StatusMessage { get; set; }
+
+    [TempData]
+    public string? ErrorMessage { get; set; }
+
     public SelectList TagOptions { get; private set; } = new(Array.Empty<object>());
 
     public SelectList CityOptions { get; private set; } = new(Array.Empty<object>());
@@ -99,7 +106,7 @@ public class IndexModel : PageModel
 
     public SelectList OperationalStatusOptions { get; private set; } = new(Array.Empty<object>());
 
-    public SelectList ReviewStatusOptions { get; private set; } = new(Array.Empty<object>());
+    public SelectList ApprovalStatusOptions { get; private set; } = new(Array.Empty<object>());
 
     public SelectList SortOptions { get; private set; } = new(Array.Empty<object>());
 
@@ -119,7 +126,7 @@ public class IndexModel : PageModel
             City = City,
             EventModeId = EventModeId,
             OperationalStatus = OperationalStatus,
-            ReviewStatus = ReviewStatus,
+            ApprovalStatus = ApprovalStatus,
             FromDateUtc = hasFromDate ? fromDate : null,
             ToDateUtc = hasToDate ? toDate : null,
             Sort = Sort,
@@ -131,6 +138,43 @@ public class IndexModel : PageModel
         TotalCount = result.TotalCount;
         PageNumber = Math.Clamp(PageNumber, 1, TotalPages);
         Events = result.Items;
+    }
+
+    public async Task<IActionResult> OnGetCancellationPreviewAsync(long id)
+    {
+        var current = _session.CurrentUser ?? throw new InvalidOperationException("حساب جاری شناسایی نشد.");
+        var preview = await _eventsApi.PreviewCancellationAsync(id, current);
+        return new JsonResult(preview);
+    }
+
+    public async Task<IActionResult> OnPostChangeStatusAsync(long id, EventStatusTransitionAction action, string? note, string? publicMessage, bool cancellationConfirmed, string? returnUrl)
+    {
+        var current = _session.CurrentUser ?? throw new InvalidOperationException("حساب جاری شناسایی نشد.");
+
+        try
+        {
+            if (action == EventStatusTransitionAction.CancelEvent)
+            {
+                await _eventsApi.CancelEventWithChecklistAsync(
+                    id,
+                    current,
+                    note ?? string.Empty,
+                    publicMessage ?? string.Empty,
+                    cancellationConfirmed);
+            }
+            else
+            {
+                await _eventsApi.ApplyStatusTransitionAsync(id, current, action, note);
+            }
+
+            StatusMessage = "وضعیت رویداد با موفقیت تغییر کرد.";
+        }
+        catch (InvalidOperationException ex)
+        {
+            ErrorMessage = ex.Message;
+        }
+
+        return RedirectToSafeReturnUrl(returnUrl);
     }
 
     private async Task LoadFilterOptionsAsync()
@@ -147,20 +191,21 @@ public class IndexModel : PageModel
         var operationalStatuses = IsArchive
             ? new[]
             {
-                new { Value = EventOperationalStatus.Closed.ToString(), Text = "تمام شده" },
+                new { Value = EventOperationalStatus.Completed.ToString(), Text = "تمام شده" },
                 new { Value = EventOperationalStatus.Cancelled.ToString(), Text = "لغو شده" }
             }
             : new[]
             {
-                new { Value = EventOperationalStatus.Draft.ToString(), Text = "پیش‌نویس" },
-                new { Value = EventOperationalStatus.Selling.ToString(), Text = "در حال فروش" }
+                new { Value = EventOperationalStatus.SaleClosed.ToString(), Text = "فروش بسته" },
+                new { Value = EventOperationalStatus.SaleOpen.ToString(), Text = "فروش باز" }
             };
         OperationalStatusOptions = new SelectList(operationalStatuses, "Value", "Text", OperationalStatus?.ToString());
-        ReviewStatusOptions = new SelectList(
-            await _locationsApi.GetReviewStatusesAsync(),
-            nameof(SystemLookupOption.Value),
-            nameof(SystemLookupOption.DisplayNameFa),
-            ReviewStatus?.ToString());
+        ApprovalStatusOptions = new SelectList(new[]
+        {
+            new { Value = DomainEventApprovalStatus.Draft.ToString(), Text = "پیش‌نویس" },
+            new { Value = DomainEventApprovalStatus.PendingReview.ToString(), Text = "در انتظار بررسی مدیر" },
+            new { Value = DomainEventApprovalStatus.Approved.ToString(), Text = "تایید شده" }
+        }, "Value", "Text", ApprovalStatus?.ToString());
         SortOptions = new SelectList(new[]
         {
             new { Value = "updated-desc", Text = "آخرین تغییر" },
@@ -176,16 +221,37 @@ public class IndexModel : PageModel
     {
         if (Scope == EventListScope.Archive)
         {
-            if (OperationalStatus is EventOperationalStatus.Draft or EventOperationalStatus.Selling)
+            if (OperationalStatus is EventOperationalStatus.SaleClosed or EventOperationalStatus.SaleOpen)
                 OperationalStatus = null;
             return;
         }
 
-        if (OperationalStatus is EventOperationalStatus.Closed or EventOperationalStatus.Cancelled)
+        if (OperationalStatus is EventOperationalStatus.Completed or EventOperationalStatus.Cancelled)
             OperationalStatus = null;
     }
 
     public string GetOperationalStatusClass(EventOperationalStatus status) => DisplayFormatter.OperationalStatusClass(status);
 
-    public string GetReviewStatusClass(EventReviewStatus status) => DisplayFormatter.ReviewStatusClass(status);
+    public string GetProfileStatusClass(DomainEventApprovalStatus status) => DisplayFormatter.ApprovalStatusClass(status);
+
+    public EventStatusTransitionModalViewModel CreateStatusTransitionModal(DatingEvent datingEvent)
+    {
+        var current = _session.CurrentUser ?? throw new InvalidOperationException("حساب جاری شناسایی نشد.");
+        return new EventStatusTransitionModalViewModel
+        {
+            Event = datingEvent,
+            Options = EventStatusTransitionCatalog.GetOptions(datingEvent, current.Role),
+            EmptyMessage = EventStatusTransitionCatalog.GetEmptyMessage(datingEvent),
+            ReturnUrl = Request.Path + Request.QueryString,
+            CancellationPreviewUrl = Url.Page(null, "CancellationPreview", new { id = datingEvent.Id }) ?? string.Empty
+        };
+    }
+
+    private IActionResult RedirectToSafeReturnUrl(string? returnUrl)
+    {
+        if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl))
+            return LocalRedirect(returnUrl);
+
+        return RedirectToPage();
+    }
 }

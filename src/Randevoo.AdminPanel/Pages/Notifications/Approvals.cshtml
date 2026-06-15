@@ -1,0 +1,50 @@
+@page
+@model Randevoo.AdminPanel.Pages.Notifications.ApprovalsModel
+@{
+    ViewData["Title"] = "تایید پیام‌ها";
+}
+
+<div class="page-heading">
+    <div>
+        <h1>تایید پیام‌ها</h1>
+        <p>پیام‌های حساس یا پیامک‌های درخواستی قبل از ارسال نهایی اینجا بررسی می‌شوند.</p>
+    </div>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(Model.StatusMessage))
+{
+    <div class="alert alert-info">@Model.StatusMessage</div>
+}
+
+<div class="content-card">
+    <div class="vstack gap-3">
+        @foreach (var item in Model.Notifications)
+        {
+            <article class="notification-row">
+                <div>
+                    <div class="notification-row-head">
+                        <span class="fw-semibold">@item.Title</span>
+                        <span class="notification-pill">@item.TypeLabel</span>
+                        <span class="notification-pill priority">@item.PriorityLabel</span>
+                        <span class="notification-pill">گیرنده‌ها: @item.RecipientCount</span>
+                    </div>
+                    <div class="text-muted small">@item.CreatedByName - @item.CreatedAtUtc.ToLocalTime().ToString("yyyy/MM/dd HH:mm")</div>
+                    <p class="mb-2 mt-2">@item.Body</p>
+                    <form method="post" class="row g-2">
+                        <div class="col-md-8">
+                            <input asp-for="ReviewInput.ReviewNote" class="form-control" placeholder="یادداشت بررسی" />
+                        </div>
+                        <div class="col-md-4 d-flex gap-2">
+                            <button asp-page-handler="Approve" asp-route-id="@item.Id" class="btn btn-primary" type="submit">تایید</button>
+                            <button asp-page-handler="Reject" asp-route-id="@item.Id" class="btn btn-outline-danger" type="submit">رد</button>
+                        </div>
+                    </form>
+                </div>
+            </article>
+        }
+    </div>
+    @if (Model.Notifications.Count == 0)
+    {
+        <div class="empty-state">پیام در انتظار تایید وجود ندارد.</div>
+    }
+</div>

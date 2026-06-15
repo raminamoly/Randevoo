@@ -63,6 +63,8 @@ public sealed class EventDraftInput
 
     public string? OrganizerPaymentInstructions { get; set; }
 
+    public long? OrganizerPaymentAccountId { get; set; }
+
     public int CapacityMale { get; set; } = 40;
 
     public int CapacityFemale { get; set; } = 40;

@@ -2,7 +2,6 @@
 @model Randevoo.AdminPanel.Pages.Events.EditModel
 @{
     ViewData["Title"] = Model.IsNew ? "ساخت رویداد" : "ویرایش رویداد";
-    var actionText = Model.IsNew ? "ساخت رویداد" : "ذخیره تغییرات";
     var currentCurrencyTitle = Model.CurrencyOptions.FirstOrDefault(item => item.Value == Model.Input.MaleTicketCurrencyCode)?.Text
         ?? Model.Input.MaleTicketCurrencyCode;
 }
@@ -13,10 +12,23 @@
     </div>
     @if (!Model.IsNew)
     {
-        <a asp-page="/Events/Details" asp-route-id="@Model.ExistingEventId" class="btn btn-outline-secondary">
-            <i class="bi bi-eye"></i>
-            <span>پروفایل رویداد</span>
-        </a>
+        <div class="d-flex flex-wrap gap-2">
+            <button class="btn btn-outline-primary" type="button" data-bs-toggle="modal" data-bs-target="#eventStatusGuideModal">
+                <i class="bi bi-info-circle"></i>
+                <span>راهنمای وضعیت</span>
+            </button>
+            <a asp-page="/Events/Details" asp-route-id="@Model.ExistingEventId" class="btn btn-outline-secondary">
+                <i class="bi bi-eye"></i>
+                <span>پروفایل رویداد</span>
+            </a>
+        </div>
+    }
+    else
+    {
+        <button class="btn btn-outline-primary" type="button" data-bs-toggle="modal" data-bs-target="#eventStatusGuideModal">
+            <i class="bi bi-info-circle"></i>
+            <span>راهنمای وضعیت</span>
+        </button>
     }
 </section>
 
@@ -28,22 +40,26 @@
     <input type="hidden" asp-for="Input.Latitude" />
     <input type="hidden" asp-for="Input.Longitude" />
     <input type="hidden" asp-for="Input.OrganizerCommissionPercent" />
+    <input type="hidden" asp-for="SubmitAction" value="draft" data-event-submit-action />
 
     <div asp-validation-summary="ModelOnly" class="alert alert-danger border-0 mb-4"></div>
 
     <div class="event-edit-actionbar event-wizard-actionbar">
         <div class="event-edit-status">
             <div class="event-status-row">
-                <span>وضعیت</span>
+                <span>وضعیت عملیاتی</span>
                 <span class="status-badge @Model.StatusClass">@DisplayFormatter.OperationalStatus(Model.StatusValue)</span>
             </div>
             <div class="event-status-row">
-                <span>بررسی مدیر</span>
-                <span class="status-badge @Model.ReviewStatusClass">@DisplayFormatter.ReviewStatus(Model.ReviewStatusValue)</span>
+                <span>وضعیت پروفایل</span>
+                <span class="status-badge @Model.ProfileStatusClass">@DisplayFormatter.ProfileStatus(Model.ProfileStatusValue)</span>
             </div>
-            @if (!string.IsNullOrWhiteSpace(Model.ReviewNote))
+            @if (!Model.IsNew)
             {
-                <div class="alert alert-warning border-0 mb-0">@Model.ReviewNote</div>
+                <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#eventProfileReviewHistoryModal-@Model.ExistingEventId">
+                    <i class="bi bi-clock-history"></i>
+                    بررسی‌های مدیر
+                </button>
             }
         </div>
         <div class="event-edit-actions">
@@ -62,7 +78,7 @@
         </button>
         <button type="button" class="event-wizard-step" data-event-wizard-target="audience">
             <span class="event-wizard-step-index">3</span>
-            <span class="event-wizard-step-label">مخاطب و بلیت</span>
+            <span class="event-wizard-step-label">مخاطبان</span>
         </button>
         <button type="button" class="event-wizard-step" data-event-wizard-target="content">
             <span class="event-wizard-step-index">4</span>
@@ -72,8 +88,12 @@
             <span class="event-wizard-step-index">5</span>
             <span class="event-wizard-step-label">تصاویر</span>
         </button>
-        <button type="button" class="event-wizard-step" data-event-wizard-target="review">
+        <button type="button" class="event-wizard-step" data-event-wizard-target="finance">
             <span class="event-wizard-step-index">6</span>
+            <span class="event-wizard-step-label">مالی</span>
+        </button>
+        <button type="button" class="event-wizard-step" data-event-wizard-target="review">
+            <span class="event-wizard-step-index">7</span>
             <span class="event-wizard-step-label">مرور و ثبت</span>
         </button>
     </nav>
@@ -93,7 +113,7 @@
             {
                 <div class="col-md-6">
                     <label asp-for="AssignedPlannerId" class="form-label">برگزارکننده</label>
-                    <select asp-for="AssignedPlannerId" class="form-select" asp-items="Model.PlannerOptions">
+                    <select asp-for="AssignedPlannerId" class="form-select" asp-items="Model.PlannerOptions" data-searchable-select="true" data-search-placeholder="جستجوی برگزارکننده">
                         <option value="">انتخاب برگزارکننده</option>
                     </select>
                     <span asp-validation-for="AssignedPlannerId" class="text-danger small"></span>
@@ -101,7 +121,7 @@
             }
             <div class="col-md-6">
                 <label asp-for="Input.EventTypeId" class="form-label">نوع رویداد</label>
-                <select asp-for="Input.EventTypeId" class="form-select" asp-items="Model.EventTypeOptions"></select>
+                <select asp-for="Input.EventTypeId" class="form-select" asp-items="Model.EventTypeOptions" data-searchable-select="true" data-search-placeholder="جستجوی نوع رویداد"></select>
                 <span asp-validation-for="Input.EventTypeId" class="text-danger small"></span>
             </div>
             <div class="col-12">
@@ -140,17 +160,25 @@
             </div>
             <div class="col-md-6" data-location-section="true">
                 <label asp-for="Input.Country" class="form-label">کشور</label>
-                <select asp-for="Input.Country" class="form-select" asp-items="Model.CountryOptions" data-country-cascade="true"></select>
+                <select asp-for="Input.Country" class="form-select" asp-items="Model.CountryOptions" data-country-cascade="true" data-searchable-select="true" data-search-placeholder="جستجوی کشور"></select>
                 <span asp-validation-for="Input.Country" class="text-danger small"></span>
             </div>
             <div class="col-md-6" data-location-section="true">
                 <label asp-for="Input.City" class="form-label">شهر</label>
-                <select asp-for="Input.City" class="form-select" asp-items="Model.CityOptions" data-city-cascade="true"></select>
+                <select asp-for="Input.City" class="form-select" asp-items="Model.CityOptions" data-city-cascade="true" data-searchable-select="true" data-search-placeholder="جستجوی شهر"></select>
                 <span asp-validation-for="Input.City" class="text-danger small"></span>
             </div>
             <div class="col-md-6" data-location-section="true">
                 <label asp-for="Input.Region" class="form-label">منطقه</label>
-                <input asp-for="Input.Region" class="form-control" />
+                <input asp-for="Input.Region" class="form-control" list="regionSuggestions" placeholder="مثلاً پردیس" />
+                <datalist id="regionSuggestions">
+                    <option value="مرکز شهر"></option>
+                    <option value="شمال"></option>
+                    <option value="جنوب"></option>
+                    <option value="شرق"></option>
+                    <option value="غرب"></option>
+                    <option value="پردیس"></option>
+                </datalist>
             </div>
             <div class="col-12" data-location-section="true">
                 <label asp-for="Input.Address" class="form-label">آدرس</label>
@@ -215,12 +243,21 @@
                 <input asp-for="EndTimeText" class="form-control" type="time" />
                 <span asp-validation-for="EndTimeText" class="text-danger small"></span>
             </div>
+            <div class="col-12">
+                <div class="event-duration-panel" data-event-duration-panel="true">
+                    <div>
+                        <span>مدت رویداد</span>
+                        <strong data-event-duration-value="true">برای محاسبه مدت، شروع و پایان را کامل کنید.</strong>
+                    </div>
+                    <i class="bi bi-clock-history"></i>
+                </div>
+            </div>
         </div>
     </section>
 
-    <section class="event-wizard-panel" data-event-wizard-panel="audience" aria-label="مخاطب و بلیت">
+    <section class="event-wizard-panel" data-event-wizard-panel="audience" aria-label="مخاطبان">
         <div class="event-wizard-panel-head">
-            <h2 class="section-title">مخاطب و بلیت</h2>
+            <h2 class="section-title">مخاطبان</h2>
         </div>
 
         <div class="row g-3">
@@ -264,21 +301,29 @@
                                 </div>
                                 <div class="gender-ticket-field">
                                     <label asp-for="Input.MaleTicketCurrencyCode" class="form-label">واحد پول رویداد</label>
-                                    <input type="hidden" asp-for="Input.MaleTicketCurrencyCode" data-event-currency-source="true" />
-                                    <select id="EventCurrencyDisplaySelect" class="form-select" disabled aria-label="واحد پول رویداد">
-                                        @foreach (var option in Model.CurrencyOptions)
-                                        {
-                                            if (string.Equals(option.Value, Model.Input.MaleTicketCurrencyCode, StringComparison.OrdinalIgnoreCase))
+                                    @if (Model.IsEventCurrencyLocked)
+                                    {
+                                        <input type="hidden" asp-for="Input.MaleTicketCurrencyCode" data-event-currency-source="true" />
+                                        <select id="EventCurrencyDisplaySelect" class="form-select" disabled aria-label="واحد پول رویداد">
+                                            @foreach (var option in Model.CurrencyOptions)
                                             {
-                                                <option value="@option.Value" selected>@option.Text</option>
+                                                if (string.Equals(option.Value, Model.Input.MaleTicketCurrencyCode, StringComparison.OrdinalIgnoreCase))
+                                                {
+                                                    <option value="@option.Value" selected>@option.Text</option>
+                                                }
+                                                else
+                                                {
+                                                    <option value="@option.Value">@option.Text</option>
+                                                }
                                             }
-                                            else
-                                            {
-                                                <option value="@option.Value">@option.Text</option>
-                                            }
-                                        }
-                                    </select>
-                                    <div class="form-text">ارز رویداد از ارز کاری برگزارکننده خوانده می‌شود و بعد از شروع فعالیت مالی تغییر نمی‌کند.</div>
+                                        </select>
+                                        <div class="form-text">به دلیل وجود خرید، رسید یا تراکنش مالی، ارز این رویداد قابل تغییر نیست.</div>
+                                    }
+                                    else
+                                    {
+                                        <select asp-for="Input.MaleTicketCurrencyCode" class="form-select" asp-items="Model.CurrencyOptions" data-event-currency-source="true"></select>
+                                        <div class="form-text">ارز قیمت‌گذاری بلیت‌ها و پرداخت‌های این رویداد. بعد از اولین فعالیت مالی قفل می‌شود.</div>
+                                    }
                                     <span asp-validation-for="Input.MaleTicketCurrencyCode" class="text-danger small"></span>
                                 </div>
                             </div>
@@ -333,79 +378,6 @@
                     </section>
                 </div>
             </div>
-
-            <div class="col-12">
-                <section class="payment-method-panel" data-payment-method-panel="true">
-                    <div class="payment-method-head">
-                        <div>
-                            <h3>روش دریافت هزینه رویداد</h3>
-                            <p>مشخص کنید پول اول به حساب پلتفرم می‌آید یا مستقیم به حساب برگزارکننده و سیستم چطور سهم‌ها را حساب کند.</p>
-                        </div>
-                        <button type="button" class="btn btn-outline-primary btn-sm" data-financial-calc-button="true">
-                            <i class="bi bi-calculator"></i>
-                            <span>محاسبه</span>
-                        </button>
-                    </div>
-
-                    <div class="payment-method-options" role="radiogroup" aria-label="روش دریافت هزینه رویداد">
-                        <label class="payment-method-option">
-                            <input asp-for="Input.PaymentCollectionMethod" id="PaymentCollectionMethod_PlatformGateway" type="radio" value="@Randevoo.Domain.Enums.EventPaymentCollectionMethod.PlatformGateway" />
-                            <span>
-                                <strong>پرداخت آنلاین از طریق درگاه پلتفرم</strong>
-                                <small>پرداخت خودکار تایید می‌شود و سهم برگزارکننده پس از کسر کمیسیون قابل برداشت است.</small>
-                            </span>
-                        </label>
-                        <label class="payment-method-option">
-                            <input asp-for="Input.PaymentCollectionMethod" id="PaymentCollectionMethod_PlatformManualTransfer" type="radio" value="@Randevoo.Domain.Enums.EventPaymentCollectionMethod.PlatformManualTransfer" />
-                            <span>
-                                <strong>واریز به حساب پلتفرم و تایید توسط پشتیبانی</strong>
-                                <small>شرکت‌کننده رسید می‌فرستد؛ بعد از تایید پشتیبانی، سهم برگزارکننده قابل برداشت می‌شود.</small>
-                            </span>
-                        </label>
-                        <label class="payment-method-option">
-                            <input asp-for="Input.PaymentCollectionMethod" id="PaymentCollectionMethod_OrganizerManualTransfer" type="radio" value="@Randevoo.Domain.Enums.EventPaymentCollectionMethod.OrganizerManualTransfer" />
-                            <span>
-                                <strong>واریز مستقیم به حساب برگزارکننده و تایید توسط برگزارکننده</strong>
-                                <small>پول مستقیم نزد برگزارکننده می‌ماند و کمیسیون پلتفرم به عنوان بدهی او ثبت می‌شود.</small>
-                            </span>
-                        </label>
-                    </div>
-                    <span asp-validation-for="Input.PaymentCollectionMethod" class="text-danger small"></span>
-
-                    <div class="organizer-payment-instructions mt-3" data-organizer-payment-instructions="true">
-                        <label asp-for="Input.OrganizerPaymentInstructions" class="form-label">اطلاعات پرداخت برگزارکننده</label>
-                        <textarea asp-for="Input.OrganizerPaymentInstructions"
-                                  class="form-control"
-                                  rows="4"
-                                  maxlength="1200"
-                                  placeholder="شماره کارت، شماره حساب، IBAN، اطلاعات Visa/MasterCard یا توضیحات پرداخت مستقیم را وارد کنید."></textarea>
-                        <span asp-validation-for="Input.OrganizerPaymentInstructions" class="text-danger small"></span>
-                    </div>
-
-                    <div class="financial-preview-grid mt-3" data-financial-preview="audience">
-                        <div class="financial-preview-item">
-                            <span>فروش کل احتمالی</span>
-                            <strong data-financial-value="gross-total">0</strong>
-                            <small data-financial-value="gross-total-irr">0</small>
-                        </div>
-                        <div class="financial-preview-item">
-                            <span>کمیسیون پلتفرم</span>
-                            <strong data-financial-value="platform-commission-total">0</strong>
-                            <small data-financial-value="platform-commission-total-irr">0</small>
-                        </div>
-                        <div class="financial-preview-item">
-                            <span>سهم خالص برگزارکننده</span>
-                            <strong data-financial-value="organizer-net-total">0</strong>
-                            <small data-financial-value="organizer-net-total-irr">0</small>
-                        </div>
-                        <div class="financial-preview-item financial-preview-note">
-                            <span>اثر روی حساب برگزارکننده</span>
-                            <strong data-financial-value="settlement-effect">ثبت نشده</strong>
-                        </div>
-                    </div>
-                    <div class="help-tip mt-2" data-financial-value="settlement-note"></div>
-                </section>
-            </div>
         </div>
     </section>
 
@@ -422,7 +394,7 @@
                      data-tag-select-target="#Input_TagIds"
                      data-tag-picker-target="#eventTagPicker"
                      data-tag-preview-target="#eventTagPreview">
-                    <select id="eventTagPicker" class="form-select tag-combo-picker">
+                    <select id="eventTagPicker" class="form-select tag-combo-picker" data-searchable-select="true" data-search-placeholder="جستجوی تگ">
                         <option value="">انتخاب تگ از لیست</option>
                         @foreach (var item in Model.TagOptions)
                         {
@@ -537,26 +509,125 @@
         </div>
     </section>
 
+    <section class="event-wizard-panel" data-event-wizard-panel="finance" aria-label="مالی">
+        <div class="event-wizard-panel-head">
+            <h2 class="section-title">مالی</h2>
+        </div>
+
+        <section class="payment-method-panel" data-payment-method-panel="true">
+            <div class="payment-method-head">
+                <div>
+                    <h3>روش دریافت هزینه رویداد</h3>
+                    <p>مشخص کنید پول اول به حساب پلتفرم می‌آید یا مستقیم به حساب برگزارکننده و سیستم چطور سهم‌ها را حساب کند.</p>
+                </div>
+                <button type="button" class="btn btn-outline-primary btn-sm" data-financial-calc-button="true">
+                    <i class="bi bi-calculator"></i>
+                    <span>محاسبه</span>
+                </button>
+            </div>
+
+            <div class="payment-method-options" role="radiogroup" aria-label="روش دریافت هزینه رویداد">
+                <label class="payment-method-option">
+                    <input asp-for="Input.PaymentCollectionMethod" id="PaymentCollectionMethod_PlatformGateway" type="radio" value="@Randevoo.Domain.Enums.EventPaymentCollectionMethod.PlatformGateway" />
+                    <span>
+                        <strong>پرداخت آنلاین از طریق درگاه پلتفرم</strong>
+                        <small>پرداخت خودکار تایید می‌شود و سهم برگزارکننده پس از کسر کمیسیون قابل برداشت است.</small>
+                    </span>
+                </label>
+                <label class="payment-method-option">
+                    <input asp-for="Input.PaymentCollectionMethod" id="PaymentCollectionMethod_PlatformManualTransfer" type="radio" value="@Randevoo.Domain.Enums.EventPaymentCollectionMethod.PlatformManualTransfer" />
+                    <span>
+                        <strong>واریز به حساب پلتفرم و تایید توسط پشتیبانی</strong>
+                        <small>شرکت‌کننده رسید می‌فرستد؛ بعد از تایید پشتیبانی، سهم برگزارکننده قابل برداشت می‌شود.</small>
+                    </span>
+                </label>
+                <label class="payment-method-option">
+                    <input asp-for="Input.PaymentCollectionMethod" id="PaymentCollectionMethod_OrganizerManualTransfer" type="radio" value="@Randevoo.Domain.Enums.EventPaymentCollectionMethod.OrganizerManualTransfer" />
+                    <span>
+                        <strong>واریز مستقیم به حساب برگزارکننده و تایید توسط برگزارکننده</strong>
+                        <small>پول مستقیم نزد برگزارکننده می‌ماند و کمیسیون پلتفرم به عنوان بدهی او ثبت می‌شود.</small>
+                    </span>
+                </label>
+            </div>
+            <span asp-validation-for="Input.PaymentCollectionMethod" class="text-danger small"></span>
+
+            <div class="organizer-payment-instructions mt-3" data-organizer-payment-instructions="true">
+                <label asp-for="Input.OrganizerPaymentAccountId" class="form-label">حساب دریافت وجه برگزارکننده</label>
+                <select asp-for="Input.OrganizerPaymentAccountId"
+                        class="form-select"
+                        asp-items="Model.OrganizerPaymentAccountOptions"
+                        data-organizer-payment-account-select="true"
+                        data-searchable-select="true"
+                        data-search-placeholder="جستجوی حساب دریافت وجه">
+                    <option value="">انتخاب حساب</option>
+                </select>
+                @if (!string.IsNullOrWhiteSpace(Model.OrganizerPaymentAccountWarning))
+                {
+                    <div class="form-text organizer-payment-warning" data-organizer-payment-warning="true">@Model.OrganizerPaymentAccountWarning</div>
+                }
+                else
+                {
+                    <div class="form-text organizer-payment-warning d-none" data-organizer-payment-warning="true"></div>
+                }
+                <span asp-validation-for="Input.OrganizerPaymentAccountId" class="text-danger small"></span>
+            </div>
+
+            <div class="financial-preview-grid mt-3" data-financial-preview="finance">
+                <div class="financial-preview-item">
+                    <span>فروش کل احتمالی</span>
+                    <strong data-financial-value="gross-total">0</strong>
+                    <small data-financial-value="gross-total-irr">0</small>
+                </div>
+                <div class="financial-preview-item">
+                    <span>کمیسیون پلتفرم</span>
+                    <strong data-financial-value="platform-commission-total">0</strong>
+                    <small data-financial-value="platform-commission-total-irr">0</small>
+                </div>
+                <div class="financial-preview-item">
+                    <span>سهم خالص برگزارکننده</span>
+                    <strong data-financial-value="organizer-net-total">0</strong>
+                    <small data-financial-value="organizer-net-total-irr">0</small>
+                </div>
+                <div class="financial-preview-item financial-preview-note">
+                    <span>اثر روی حساب برگزارکننده</span>
+                    <strong data-financial-value="settlement-effect">ثبت نشده</strong>
+                </div>
+            </div>
+            <div class="help-tip mt-2" data-financial-value="settlement-note"></div>
+        </section>
+    </section>
+
     <section class="event-wizard-panel" data-event-wizard-panel="review" aria-label="مرور و ثبت">
         <div class="event-wizard-panel-head">
             <h2 class="section-title">مرور و ثبت</h2>
+            <button type="button" class="btn btn-outline-primary btn-sm" data-event-review-print="true">
+                <i class="bi bi-printer"></i>
+                <span>چاپ مرور</span>
+            </button>
         </div>
 
-        <div class="event-review-summary event-review-summary-wide" data-event-review-summary="true">
+        <div class="event-review-summary event-review-summary-wide event-review-print-area" data-event-review-summary="true">
             <div class="detail-block"><span>عنوان</span><strong data-review-value="title">@(string.IsNullOrWhiteSpace(Model.Input.Title) ? "ثبت نشده" : Model.Input.Title)</strong></div>
+            <div class="detail-block"><span>برگزارکننده</span><strong data-review-value="planner">@(Model.PlannerOptions.FirstOrDefault(item => item.Value == Model.AssignedPlannerId?.ToString())?.Text ?? "ثبت نشده")</strong></div>
             <div class="detail-block"><span>نوع</span><strong data-review-value="event-type">@(string.IsNullOrWhiteSpace(Model.Input.EventTypeName) ? "انتخاب‌شده در فرم" : Model.Input.EventTypeName)</strong></div>
             <div class="detail-block"><span>نحوه برگزاری</span><strong data-review-value="event-mode">@(string.IsNullOrWhiteSpace(Model.Input.EventModeName) ? (Model.Input.IsOnline ? "آنلاین" : "حضوری") : Model.Input.EventModeName)</strong></div>
             <div class="detail-block"><span>محل / آنلاین</span><strong data-review-value="delivery-detail">@(Model.Input.IsOnline ? (string.IsNullOrWhiteSpace(Model.Input.OnlinePlatformName) ? "آنلاین" : Model.Input.OnlinePlatformName) : $"{Model.Input.Country}، {Model.Input.City}")</strong></div>
+            <div class="detail-block"><span>آدرس</span><strong data-review-value="address">@(string.IsNullOrWhiteSpace(Model.Input.Address) ? "ثبت نشده" : Model.Input.Address)</strong></div>
             <div class="detail-block"><span>شروع</span><strong data-review-value="start">@PersianDateFormatter.FormatDateTime(Model.Input.StartAtUtc.UtcDateTime, Model.IsRtl)</strong></div>
             <div class="detail-block"><span>پایان</span><strong data-review-value="end">@PersianDateFormatter.FormatDateTime(Model.Input.EndAtUtc.UtcDateTime, Model.IsRtl)</strong></div>
+            <div class="detail-block"><span>مدت</span><strong data-review-value="duration">ثبت نشده</strong></div>
             <div class="detail-block"><span>آقایان</span><strong data-review-value="male-ticket">@DisplayFormatter.TicketMoney(Model.Input.MaleTicketPrice, Model.Input.MaleTicketCurrencyCode, Model.IsRtl)</strong></div>
             <div class="detail-block"><span>خانم‌ها</span><strong data-review-value="female-ticket">@DisplayFormatter.TicketMoney(Model.Input.FemaleTicketPrice, Model.Input.FemaleTicketCurrencyCode, Model.IsRtl)</strong></div>
             <div class="detail-block"><span>ظرفیت</span><strong data-review-value="capacity">@($"{Model.Input.CapacityMale} آقا / {Model.Input.CapacityFemale} خانم")</strong></div>
             <div class="detail-block"><span>بازه سنی</span><strong data-review-value="age-range">@($"{Model.Input.AgeRangeForMale} آقا / {Model.Input.AgeRangeForFemale} خانم")</strong></div>
+            <div class="detail-block"><span>حداقل تحصیل</span><strong data-review-value="education">ثبت نشده</strong></div>
             <div class="detail-block"><span>لایک مجاز</span><strong data-review-value="like-limit">@Model.Input.LikeLimit</strong></div>
             <div class="detail-block"><span>تگ‌ها</span><strong data-review-value="tags">@(Model.Input.Tags.Count == 0 ? "ثبت نشده" : string.Join("، ", Model.Input.Tags))</strong></div>
             <div class="detail-block"><span>تصاویر</span><strong data-review-value="images">0 / 3</strong></div>
             <div class="detail-block"><span>روش دریافت هزینه</span><strong data-review-value="payment-method">ثبت نشده</strong></div>
+            <div class="detail-block detail-block-wide"><span>حساب دریافت وجه برگزارکننده</span><strong data-review-value="organizer-payment">ثبت نشده</strong></div>
+            <div class="detail-block detail-block-wide"><span>راهنمای آنلاین</span><strong data-review-value="online-instructions">ثبت نشده</strong></div>
+            <div class="detail-block detail-block-wide"><span>توضیحات</span><strong data-review-value="description">ثبت نشده</strong></div>
         </div>
 
         <div class="financial-review-panel mt-4" data-financial-preview="review">
@@ -604,12 +675,22 @@
             <span>بعدی</span>
             <i class="bi bi-chevron-left"></i>
         </button>
-        <button type="submit" class="btn btn-primary d-none" data-event-wizard-submit="true">
+        <button type="submit" class="btn btn-outline-primary d-none" data-event-wizard-submit="true" data-submit-mode="draft">
+            <i class="bi bi-save"></i>
+            <span>ذخیره پیش‌نویس</span>
+        </button>
+        <button type="submit" class="btn btn-primary d-none" data-event-wizard-submit="true" data-submit-mode="submit">
             <i class="bi bi-check2-circle"></i>
-            <span>@actionText</span>
+            <span>ثبت و ارسال برای مدیر</span>
         </button>
     </div>
 </form>
+
+@if (!Model.IsNew)
+{
+    <partial name="_ProfileReviewHistoryModal" model="Model.ProfileReviewHistoryModal" />
+}
+<partial name="_EventStatusGuideModal" />
 
 @section Head {
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -628,6 +709,7 @@
             onlineModeId: '1',
             cityOptions: @Html.Raw(Model.CityOptionsJson),
             currencyRates: @Html.Raw(Model.CurrencyRatesJson),
+            organizerPaymentAccounts: @Html.Raw(Model.OrganizerPaymentAccountOptionsJson),
             latitudeSelector: '#Input_Latitude',
             longitudeSelector: '#Input_Longitude'
         };

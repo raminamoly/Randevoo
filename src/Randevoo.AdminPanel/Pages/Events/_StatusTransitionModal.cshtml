@@ -1,0 +1,130 @@
+@model EventStatusTransitionModalViewModel
+
+@{
+    var modalId = $"eventStatusTransitionModal-{Model.Event.Id}";
+    var actionGroupName = $"statusTransitionAction-{Model.Event.Id}";
+    var confirmId = $"statusTransitionConfirm-{Model.Event.Id}";
+}
+
+<div class="modal fade event-status-transition-modal" id="@modalId" tabindex="-1" aria-labelledby="@(modalId)-label" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <form method="post"
+                  asp-page-handler="@Model.HandlerName"
+                  class="event-status-transition-form"
+                  data-cancellation-action="@EventStatusTransitionAction.CancelEvent"
+                  data-cancellation-preview-url="@Model.CancellationPreviewUrl">
+                <input type="hidden" name="id" value="@Model.Event.Id" />
+                <input type="hidden" name="returnUrl" value="@Model.ReturnUrl" />
+                <div class="modal-header">
+                    <div>
+                        <span class="event-status-guide-kicker">تغییر کنترل‌شده وضعیت</span>
+                        <h2 class="modal-title" id="@(modalId)-label">@Model.Event.DisplayTitle</h2>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="بستن"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="event-current-status-grid event-current-status-grid-simple">
+                        <div>
+                            <span>وضعیت عملیاتی فعلی</span>
+                            <strong>@DisplayFormatter.OperationalStatus(Model.Event.OperationalStatus)</strong>
+                        </div>
+                    </div>
+
+                    @if (Model.Options.Count == 0)
+                    {
+                        <div class="event-transition-empty">
+                            <i class="bi bi-lock"></i>
+                            <strong>برای وضعیت فعلی، عملیاتی در دسترس شما نیست.</strong>
+                            <span>@(Model.EmptyMessage ?? "اگر فکر می‌کنید این رویداد باید تغییر کند، از مسیر پشتیبانی یا مدیر سیستم پیگیری کنید.")</span>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="event-transition-option-list">
+                            @foreach (var option in Model.Options)
+                            {
+                                var optionId = $"{actionGroupName}-{option.Action}";
+                                <label class="event-transition-option @option.ToneCssClass" for="@optionId">
+                                    <input id="@optionId"
+                                           type="radio"
+                                           name="action"
+                                           value="@option.Action"
+                                           data-description="@option.Description"
+                                           data-target="@option.TargetLabel"
+                                           data-confirmation="@option.ConfirmationText"
+                                           data-requires-note="@option.RequiresNote.ToString().ToLowerInvariant()"
+                                           data-note-label="@option.NoteLabel"
+                                           data-note-placeholder="@option.NotePlaceholder"
+                                           data-is-cancellation="@((option.Action == EventStatusTransitionAction.CancelEvent).ToString().ToLowerInvariant())" />
+                                    <span class="event-transition-option-icon"><i class="bi @option.IconCssClass"></i></span>
+                                    <span>
+                                        <strong>@option.Title</strong>
+                                        <small>@option.TargetLabel</small>
+                                    </span>
+                                </label>
+                            }
+                        </div>
+
+                        <div class="event-transition-impact" data-transition-impact hidden>
+                            <span>تایید تغییر</span>
+                            <strong data-transition-target></strong>
+                            <p data-transition-description></p>
+                        </div>
+
+                        <div class="event-cancellation-preview" data-cancellation-preview hidden>
+                            <div class="event-cancellation-preview-state" data-cancellation-preview-state>
+                                <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+                                <span>در حال بررسی اثرات لغو این رویداد...</span>
+                            </div>
+                            <div data-cancellation-preview-content hidden>
+                                <div class="event-cancellation-summary" data-cancellation-summary></div>
+                                <div class="event-cancellation-metrics" data-cancellation-metrics></div>
+                                <div class="event-cancellation-list event-cancellation-blockers" data-cancellation-blockers hidden>
+                                    <strong>موارد مسدودکننده</strong>
+                                    <ul></ul>
+                                </div>
+                                <div class="event-cancellation-list event-cancellation-consequences" data-cancellation-consequences>
+                                    <strong>بعد از تایید این اتفاق‌ها ثبت می‌شود</strong>
+                                    <ul></ul>
+                                </div>
+                                <div class="event-cancellation-list event-cancellation-warnings" data-cancellation-warnings hidden>
+                                    <strong>نکات قابل توجه</strong>
+                                    <ul></ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="event-transition-note" data-transition-note-wrapper hidden>
+                            <label class="form-label" for="transition-note-@Model.Event.Id" data-transition-note-label>توضیحات</label>
+                            <textarea id="transition-note-@Model.Event.Id" class="form-control" name="note" rows="3" data-transition-note></textarea>
+                        </div>
+
+                        <div class="event-transition-note" data-cancellation-message-wrapper hidden>
+                            <label class="form-label" for="transition-public-message-@Model.Event.Id">متن اطلاع‌رسانی به خریداران و شرکت‌کنندگان</label>
+                            <textarea id="transition-public-message-@Model.Event.Id"
+                                      class="form-control"
+                                      name="publicMessage"
+                                      rows="3"
+                                      maxlength="480"
+                                      data-cancellation-message
+                                      placeholder="متنی که برای اطلاع‌رسانی لغو رویداد ارسال می‌شود."></textarea>
+                            <div class="form-text">حداکثر ۴۸۰ کاراکتر، مناسب برای صف پیامک.</div>
+                        </div>
+
+                        <div class="form-check event-transition-confirm">
+                            <input class="form-check-input" type="checkbox" name="cancellationConfirmed" value="true" id="@confirmId" data-transition-confirm />
+                            <label class="form-check-label" for="@confirmId" data-transition-confirm-label>
+                                تایید می‌کنم این تغییر وضعیت ثبت شود.
+                            </label>
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">انصراف</button>
+                    <button type="submit" class="btn btn-primary" data-transition-submit disabled>ثبت تغییر وضعیت</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

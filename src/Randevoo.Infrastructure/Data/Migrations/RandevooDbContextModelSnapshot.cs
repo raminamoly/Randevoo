@@ -22,6 +22,9 @@ namespace Randevoo.Infrastructure.Data.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.HasSequence<int>("EventCodeSequence", "dbo")
+                .StartsAt(1200L);
+
             modelBuilder.Entity("Randevoo.Domain.Entities.AuditLog", b =>
                 {
                     b.Property<long>("Id")
@@ -251,6 +254,9 @@ namespace Randevoo.Infrastructure.Data.Migrations
                         .HasColumnType("nvarchar(3)")
                         .HasDefaultValue("IRR");
 
+                    b.Property<long?>("TicketOrderId")
+                        .HasColumnType("bigint");
+
                     b.Property<int>("Type")
                         .HasColumnType("int");
 
@@ -267,6 +273,8 @@ namespace Randevoo.Infrastructure.Data.Migrations
                     b.HasIndex("CurrencyCode");
 
                     b.HasIndex("ExchangeRateId");
+
+                    b.HasIndex("TicketOrderId");
 
                     b.HasIndex("UserId");
 
@@ -396,6 +404,56 @@ namespace Randevoo.Infrastructure.Data.Migrations
                             IsActive = true,
                             IsDeleted = false,
                             Name = "EventPlannerIncomeReversal"
+                        },
+                        new
+                        {
+                            Id = 9L,
+                            CreatedAt = new DateTime(2026, 6, 11, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DisplayNameFa = "بستانکاری تسویه رویداد",
+                            DisplayOrder = 9,
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "EventSettlementCredit"
+                        },
+                        new
+                        {
+                            Id = 10L,
+                            CreatedAt = new DateTime(2026, 6, 11, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DisplayNameFa = "برگشت بستانکاری رویداد",
+                            DisplayOrder = 10,
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "EventSettlementReversal"
+                        },
+                        new
+                        {
+                            Id = 11L,
+                            CreatedAt = new DateTime(2026, 6, 11, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DisplayNameFa = "شناسایی کمیسیون پلتفرم",
+                            DisplayOrder = 11,
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "PlatformCommissionRecognized"
+                        },
+                        new
+                        {
+                            Id = 12L,
+                            CreatedAt = new DateTime(2026, 6, 14, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DisplayNameFa = "اعتبار کیف پول بابت رسید دستی",
+                            DisplayOrder = 12,
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "ManualReceiptWalletCredit"
+                        },
+                        new
+                        {
+                            Id = 13L,
+                            CreatedAt = new DateTime(2026, 6, 14, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DisplayNameFa = "بدهی برگزارکننده بابت رسید دستی",
+                            DisplayOrder = 13,
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "OrganizerManualReceiptLiability"
                         });
                 });
 
@@ -791,6 +849,11 @@ namespace Randevoo.Infrastructure.Data.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<int>("DecimalPlaces")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(2);
+
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime2");
 
@@ -829,6 +892,7 @@ namespace Randevoo.Infrastructure.Data.Migrations
                             Id = 1L,
                             Code = "IRR",
                             CreatedAt = new DateTime(2026, 6, 8, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DecimalPlaces = 0,
                             DisplayNameFa = "ریال ایران",
                             DisplayOrder = 1,
                             IsActive = true,
@@ -840,6 +904,7 @@ namespace Randevoo.Infrastructure.Data.Migrations
                             Id = 2L,
                             Code = "EUR",
                             CreatedAt = new DateTime(2026, 6, 8, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DecimalPlaces = 2,
                             DisplayNameFa = "یورو",
                             DisplayOrder = 2,
                             IsActive = true,
@@ -851,6 +916,7 @@ namespace Randevoo.Infrastructure.Data.Migrations
                             Id = 3L,
                             Code = "USD",
                             CreatedAt = new DateTime(2026, 6, 8, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DecimalPlaces = 2,
                             DisplayNameFa = "دلار آمریکا",
                             DisplayOrder = 3,
                             IsActive = true,
@@ -862,6 +928,7 @@ namespace Randevoo.Infrastructure.Data.Migrations
                             Id = 4L,
                             Code = "CAD",
                             CreatedAt = new DateTime(2026, 6, 8, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DecimalPlaces = 2,
                             DisplayNameFa = "دلار کانادا",
                             DisplayOrder = 4,
                             IsActive = true,
@@ -873,6 +940,7 @@ namespace Randevoo.Infrastructure.Data.Migrations
                             Id = 5L,
                             Code = "GBP",
                             CreatedAt = new DateTime(2026, 6, 8, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DecimalPlaces = 2,
                             DisplayNameFa = "پوند انگلیس",
                             DisplayOrder = 5,
                             IsActive = true,
@@ -884,6 +952,7 @@ namespace Randevoo.Infrastructure.Data.Migrations
                             Id = 6L,
                             Code = "AED",
                             CreatedAt = new DateTime(2026, 6, 8, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DecimalPlaces = 2,
                             DisplayNameFa = "درهم امارات",
                             DisplayOrder = 6,
                             IsActive = true,
@@ -895,6 +964,7 @@ namespace Randevoo.Infrastructure.Data.Migrations
                             Id = 7L,
                             Code = "TRY",
                             CreatedAt = new DateTime(2026, 6, 8, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DecimalPlaces = 2,
                             DisplayNameFa = "لیر ترکیه",
                             DisplayOrder = 7,
                             IsActive = true,
@@ -916,14 +986,49 @@ namespace Randevoo.Infrastructure.Data.Migrations
                         .HasMaxLength(300)
                         .HasColumnType("nvarchar(300)");
 
+                    b.Property<string>("AdminReviewNote")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int>("ApprovalStatus")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.Property<DateTime?>("ApprovedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("ApprovedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("CancellationReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime?>("CancelledAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("CancelledByUserId")
+                        .HasColumnType("bigint");
+
                     b.Property<long?>("CityId")
                         .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("CompletedAtUtc")
+                        .HasColumnType("datetime2");
 
                     b.Property<long?>("CountryId")
                         .HasColumnType("bigint");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("CurrencyCode")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(3)
+                        .HasColumnType("nvarchar(3)")
+                        .HasDefaultValue("IRR");
 
                     b.Property<DateTime>("DateTimeEnd")
                         .HasColumnType("datetime2");
@@ -936,6 +1041,11 @@ namespace Randevoo.Infrastructure.Data.Migrations
 
                     b.Property<int>("EducationLevelRestriction")
                         .HasColumnType("int");
+
+                    b.Property<int>("EventCode")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValueSql("NEXT VALUE FOR dbo.EventCodeSequence");
 
                     b.Property<string>("EventDescriptionHtml")
                         .IsRequired()
@@ -992,6 +1102,11 @@ namespace Randevoo.Infrastructure.Data.Migrations
                     b.Property<bool>("IsOpenForSell")
                         .HasColumnType("bit");
 
+                    b.Property<int>("LifecycleStatus")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
                     b.Property<int>("MaleCapacity")
                         .HasColumnType("int");
 
@@ -1024,6 +1139,9 @@ namespace Randevoo.Infrastructure.Data.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<long?>("OrganizerPaymentAccountId")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("OrganizerPaymentInstructions")
                         .HasMaxLength(1200)
                         .HasColumnType("nvarchar(1200)");
@@ -1036,6 +1154,11 @@ namespace Randevoo.Infrastructure.Data.Migrations
                     b.Property<int>("ReviewStatus")
                         .HasColumnType("int");
 
+                    b.Property<int>("SaleStatus")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(150)
@@ -1046,9 +1169,18 @@ namespace Randevoo.Infrastructure.Data.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ApprovedByUserId");
+
+                    b.HasIndex("CancelledByUserId");
+
                     b.HasIndex("CityId");
 
                     b.HasIndex("CountryId");
+
+                    b.HasIndex("CurrencyCode");
+
+                    b.HasIndex("EventCode")
+                        .IsUnique();
 
                     b.HasIndex("EventModeId");
 
@@ -1064,6 +1196,10 @@ namespace Randevoo.Infrastructure.Data.Migrations
 
                     b.HasIndex("OnlineEventPlatformId");
 
+                    b.HasIndex("OrganizerPaymentAccountId");
+
+                    b.HasIndex("ApprovalStatus", "DateTimeStart");
+
                     b.HasIndex("DateTimeStart", "Id");
 
                     b.HasIndex("IsCancelled", "DateTimeEnd");
@@ -1073,6 +1209,8 @@ namespace Randevoo.Infrastructure.Data.Migrations
                     b.HasIndex("UpdatedAt", "Id");
 
                     b.HasIndex("IsCancelled", "IsOpenForSell", "DateTimeEnd");
+
+                    b.HasIndex("LifecycleStatus", "SaleStatus", "DateTimeEnd");
 
                     b.ToTable("DatingEvents");
                 });
@@ -1169,6 +1307,218 @@ namespace Randevoo.Infrastructure.Data.Migrations
                             Rank = 4,
                             Title = "دکترای حرفه ای / PHD / پزشک / دندان پزشک"
                         });
+                });
+
+            modelBuilder.Entity("Randevoo.Domain.Entities.EventApprovalStatusLookup", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DisplayNameFa")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("EventApprovalStatuses", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1L,
+                            CreatedAt = new DateTime(2026, 6, 11, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DisplayNameFa = "پیش‌نویس",
+                            DisplayOrder = 1,
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "Draft"
+                        },
+                        new
+                        {
+                            Id = 2L,
+                            CreatedAt = new DateTime(2026, 6, 11, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DisplayNameFa = "در انتظار بررسی مدیر",
+                            DisplayOrder = 2,
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "PendingReview"
+                        },
+                        new
+                        {
+                            Id = 3L,
+                            CreatedAt = new DateTime(2026, 6, 11, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DisplayNameFa = "تایید شده",
+                            DisplayOrder = 3,
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "Approved"
+                        });
+                });
+
+            modelBuilder.Entity("Randevoo.Domain.Entities.EventCancellationRequest", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long>("DatingEventId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("ExecutedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("PreviewJson")
+                        .HasMaxLength(8000)
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PublicMessage")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime>("RequestedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long>("RequestedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("ReviewNote")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime?>("ReviewedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("ReviewedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RequestedByUserId");
+
+                    b.HasIndex("ReviewedByUserId");
+
+                    b.HasIndex("DatingEventId", "Status", "RequestedAtUtc");
+
+                    b.ToTable("EventCancellationRequests");
+                });
+
+            modelBuilder.Entity("Randevoo.Domain.Entities.EventChangeRequest", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("AfterJson")
+                        .IsRequired()
+                        .HasMaxLength(8000)
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("BeforeJson")
+                        .IsRequired()
+                        .HasMaxLength(8000)
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long>("DatingEventId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime>("RequestedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long>("RequestedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("ReviewNote")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime?>("ReviewedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("ReviewedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RequestedByUserId");
+
+                    b.HasIndex("ReviewedByUserId");
+
+                    b.HasIndex("DatingEventId", "Status", "RequestedAtUtc");
+
+                    b.ToTable("EventChangeRequests");
                 });
 
             modelBuilder.Entity("Randevoo.Domain.Entities.EventChatBlock", b =>
@@ -1499,6 +1849,82 @@ namespace Randevoo.Infrastructure.Data.Migrations
                     b.ToTable("EventFaqs", (string)null);
                 });
 
+            modelBuilder.Entity("Randevoo.Domain.Entities.EventLifecycleStatusLookup", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DisplayNameFa")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("EventLifecycleStatuses", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1L,
+                            CreatedAt = new DateTime(2026, 6, 11, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DisplayNameFa = "فعال",
+                            DisplayOrder = 1,
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "Active"
+                        },
+                        new
+                        {
+                            Id = 2L,
+                            CreatedAt = new DateTime(2026, 6, 11, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DisplayNameFa = "لغو شده",
+                            DisplayOrder = 2,
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "Cancelled"
+                        },
+                        new
+                        {
+                            Id = 3L,
+                            CreatedAt = new DateTime(2026, 6, 11, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DisplayNameFa = "تمام شده",
+                            DisplayOrder = 3,
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "Completed"
+                        });
+                });
+
             modelBuilder.Entity("Randevoo.Domain.Entities.EventLike", b =>
                 {
                     b.Property<long>("Id")
@@ -1790,6 +2216,92 @@ namespace Randevoo.Infrastructure.Data.Migrations
                     b.ToTable("EventPlannerProfiles");
                 });
 
+            modelBuilder.Entity("Randevoo.Domain.Entities.EventRequestStatusLookup", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DisplayNameFa")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("EventRequestStatuses", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1L,
+                            CreatedAt = new DateTime(2026, 6, 11, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DisplayNameFa = "در انتظار بررسی",
+                            DisplayOrder = 1,
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "Pending"
+                        },
+                        new
+                        {
+                            Id = 2L,
+                            CreatedAt = new DateTime(2026, 6, 11, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DisplayNameFa = "تایید شده",
+                            DisplayOrder = 2,
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "Approved"
+                        },
+                        new
+                        {
+                            Id = 3L,
+                            CreatedAt = new DateTime(2026, 6, 11, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DisplayNameFa = "رد شده",
+                            DisplayOrder = 3,
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "Rejected"
+                        },
+                        new
+                        {
+                            Id = 4L,
+                            CreatedAt = new DateTime(2026, 6, 11, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DisplayNameFa = "لغو شده",
+                            DisplayOrder = 4,
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "Cancelled"
+                        });
+                });
+
             modelBuilder.Entity("Randevoo.Domain.Entities.EventReviewStatusLookup", b =>
                 {
                     b.Property<long>("Id")
@@ -1874,6 +2386,153 @@ namespace Randevoo.Infrastructure.Data.Migrations
                             IsDeleted = false,
                             Name = "Rejected"
                         });
+                });
+
+            modelBuilder.Entity("Randevoo.Domain.Entities.EventSaleStatusLookup", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DisplayNameFa")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("EventSaleStatuses", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1L,
+                            CreatedAt = new DateTime(2026, 6, 11, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DisplayNameFa = "فروش بسته",
+                            DisplayOrder = 1,
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "Closed"
+                        },
+                        new
+                        {
+                            Id = 2L,
+                            CreatedAt = new DateTime(2026, 6, 11, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DisplayNameFa = "در حال فروش",
+                            DisplayOrder = 2,
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "Open"
+                        });
+                });
+
+            modelBuilder.Entity("Randevoo.Domain.Entities.EventSettlementRequest", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long>("DatingEventId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("GrossAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<long?>("OrganizerCreditTransactionId")
+                        .HasColumnType("bigint");
+
+                    b.Property<decimal>("OrganizerIncomeAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("PlatformCommissionAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("ReportingOrganizerIncomeIrr")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("RequestNote")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime>("RequestedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long>("RequestedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("ReviewNote")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime?>("ReviewedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("ReviewedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("ValidTicketCount")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrganizerCreditTransactionId");
+
+                    b.HasIndex("RequestedByUserId");
+
+                    b.HasIndex("ReviewedByUserId");
+
+                    b.HasIndex("DatingEventId", "Status", "RequestedAtUtc");
+
+                    b.ToTable("EventSettlementRequests");
                 });
 
             modelBuilder.Entity("Randevoo.Domain.Entities.EventSurveyRating", b =>
@@ -2076,6 +2735,9 @@ namespace Randevoo.Infrastructure.Data.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<long>("TicketOrderId")
+                        .HasColumnType("bigint");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
@@ -2089,6 +2751,8 @@ namespace Randevoo.Infrastructure.Data.Migrations
                     b.HasIndex("EventDiscountCodeId");
 
                     b.HasIndex("ExchangeRateId");
+
+                    b.HasIndex("TicketOrderId");
 
                     b.HasIndex("UserId");
 
@@ -2230,6 +2894,296 @@ namespace Randevoo.Infrastructure.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Randevoo.Domain.Entities.EventWorkflowActionTypeLookup", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DisplayNameFa")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("EventWorkflowActionTypes", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1L,
+                            CreatedAt = new DateTime(2026, 6, 11, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DisplayNameFa = "ذخیره پیش‌نویس",
+                            DisplayOrder = 1,
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "DraftSaved"
+                        },
+                        new
+                        {
+                            Id = 2L,
+                            CreatedAt = new DateTime(2026, 6, 11, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DisplayNameFa = "ارسال برای بررسی",
+                            DisplayOrder = 2,
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "SubmittedForReview"
+                        },
+                        new
+                        {
+                            Id = 3L,
+                            CreatedAt = new DateTime(2026, 6, 11, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DisplayNameFa = "تایید رویداد",
+                            DisplayOrder = 3,
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "Approved"
+                        },
+                        new
+                        {
+                            Id = 4L,
+                            CreatedAt = new DateTime(2026, 6, 11, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DisplayNameFa = "بازگشت برای اصلاح",
+                            DisplayOrder = 4,
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "ReturnedToDraft"
+                        },
+                        new
+                        {
+                            Id = 5L,
+                            CreatedAt = new DateTime(2026, 6, 11, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DisplayNameFa = "باز شدن فروش",
+                            DisplayOrder = 5,
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "SaleOpened"
+                        },
+                        new
+                        {
+                            Id = 6L,
+                            CreatedAt = new DateTime(2026, 6, 11, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DisplayNameFa = "بسته شدن فروش",
+                            DisplayOrder = 6,
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "SaleClosed"
+                        },
+                        new
+                        {
+                            Id = 7L,
+                            CreatedAt = new DateTime(2026, 6, 11, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DisplayNameFa = "درخواست تغییر",
+                            DisplayOrder = 7,
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "ChangeRequested"
+                        },
+                        new
+                        {
+                            Id = 8L,
+                            CreatedAt = new DateTime(2026, 6, 11, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DisplayNameFa = "تایید تغییر",
+                            DisplayOrder = 8,
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "ChangeApproved"
+                        },
+                        new
+                        {
+                            Id = 9L,
+                            CreatedAt = new DateTime(2026, 6, 11, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DisplayNameFa = "رد تغییر",
+                            DisplayOrder = 9,
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "ChangeRejected"
+                        },
+                        new
+                        {
+                            Id = 10L,
+                            CreatedAt = new DateTime(2026, 6, 11, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DisplayNameFa = "درخواست لغو",
+                            DisplayOrder = 10,
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "CancellationRequested"
+                        },
+                        new
+                        {
+                            Id = 11L,
+                            CreatedAt = new DateTime(2026, 6, 11, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DisplayNameFa = "لغو رویداد",
+                            DisplayOrder = 11,
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "Cancelled"
+                        },
+                        new
+                        {
+                            Id = 12L,
+                            CreatedAt = new DateTime(2026, 6, 11, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DisplayNameFa = "اتمام رویداد",
+                            DisplayOrder = 12,
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "Completed"
+                        },
+                        new
+                        {
+                            Id = 13L,
+                            CreatedAt = new DateTime(2026, 6, 11, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DisplayNameFa = "درخواست تسویه رویداد",
+                            DisplayOrder = 13,
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "SettlementRequested"
+                        },
+                        new
+                        {
+                            Id = 14L,
+                            CreatedAt = new DateTime(2026, 6, 11, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DisplayNameFa = "تایید تسویه رویداد",
+                            DisplayOrder = 14,
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "SettlementApproved"
+                        },
+                        new
+                        {
+                            Id = 15L,
+                            CreatedAt = new DateTime(2026, 6, 11, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DisplayNameFa = "رد تسویه رویداد",
+                            DisplayOrder = 15,
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "SettlementRejected"
+                        },
+                        new
+                        {
+                            Id = 16L,
+                            CreatedAt = new DateTime(2026, 6, 11, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DisplayNameFa = "بستانکاری برگزارکننده",
+                            DisplayOrder = 16,
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "OrganizerCredited"
+                        },
+                        new
+                        {
+                            Id = 17L,
+                            CreatedAt = new DateTime(2026, 6, 11, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DisplayNameFa = "درخواست برداشت",
+                            DisplayOrder = 17,
+                            IsActive = true,
+                            IsDeleted = false,
+                            Name = "WithdrawalRequested"
+                        });
+                });
+
+            modelBuilder.Entity("Randevoo.Domain.Entities.EventWorkflowLog", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<int>("ActionType")
+                        .HasColumnType("int");
+
+                    b.Property<long?>("ActorUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("AfterJson")
+                        .HasMaxLength(8000)
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("BeforeJson")
+                        .HasMaxLength(8000)
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long>("DatingEventId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("FromApprovalStatus")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("FromLifecycleStatus")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("FromSaleStatus")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("MetadataJson")
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int?>("ToApprovalStatus")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ToLifecycleStatus")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ToSaleStatus")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActionType");
+
+                    b.HasIndex("ActorUserId");
+
+                    b.HasIndex("DatingEventId", "CreatedAt");
+
+                    b.ToTable("EventWorkflowLogs");
+                });
+
             modelBuilder.Entity("Randevoo.Domain.Entities.GenderLookup", b =>
                 {
                     b.Property<long>("Id")
@@ -2338,6 +3292,159 @@ namespace Randevoo.Infrastructure.Data.Migrations
                     b.ToTable("Interests");
                 });
 
+            modelBuilder.Entity("Randevoo.Domain.Entities.ManualPaymentReceipt", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CurrencyCode")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(3)
+                        .HasColumnType("nvarchar(3)")
+                        .HasDefaultValue("IRR");
+
+                    b.Property<long>("DatingEventId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("DestinationType")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("DiscountAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("DiscountCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<long?>("EventDiscountCodeId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("EventTicketId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("ExchangeRateCapturedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<long?>("ExchangeRateId")
+                        .HasColumnType("bigint");
+
+                    b.Property<decimal>("ExchangeRateToIrr")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)")
+                        .HasDefaultValue(1m);
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<decimal>("OriginalAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<long>("ParticipantUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("PayerNote")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int>("PaymentCollectionMethod")
+                        .HasColumnType("int");
+
+                    b.Property<long>("PlannerUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("RejectReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<decimal>("ReportingAmountIrr")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("ReportingCurrencyCode")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(3)
+                        .HasColumnType("nvarchar(3)")
+                        .HasDefaultValue("IRR");
+
+                    b.Property<DateTime?>("ReviewedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("ReviewedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("SubmittedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<long?>("TicketOrderId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("TrackingNumber")
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UploadedFilePath")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<long?>("WalletCreditTransactionId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CurrencyCode");
+
+                    b.HasIndex("DatingEventId");
+
+                    b.HasIndex("EventDiscountCodeId");
+
+                    b.HasIndex("EventTicketId");
+
+                    b.HasIndex("ExchangeRateId");
+
+                    b.HasIndex("ParticipantUserId");
+
+                    b.HasIndex("PlannerUserId");
+
+                    b.HasIndex("ReviewedByUserId");
+
+                    b.HasIndex("TicketOrderId");
+
+                    b.HasIndex("WalletCreditTransactionId");
+
+                    b.HasIndex("DestinationType", "Status", "SubmittedAtUtc");
+
+                    b.ToTable("ManualPaymentReceipts", (string)null);
+                });
+
             modelBuilder.Entity("Randevoo.Domain.Entities.ModerationReport", b =>
                 {
                     b.Property<long>("Id")
@@ -2406,6 +3513,521 @@ namespace Randevoo.Infrastructure.Data.Migrations
                     b.HasIndex("Status");
 
                     b.ToTable("ModerationReports");
+                });
+
+            modelBuilder.Entity("Randevoo.Domain.Entities.Notification", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<int>("ApprovalStatus")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long>("CreatedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("DatingEventId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("Priority")
+                        .HasColumnType("int");
+
+                    b.Property<long?>("ReferenceId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("ReferenceType")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("ReviewNote")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime?>("ReviewedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("ReviewedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(180)
+                        .HasColumnType("nvarchar(180)");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("DatingEventId");
+
+                    b.HasIndex("ReviewedByUserId");
+
+                    b.HasIndex("ApprovalStatus", "CreatedAt");
+
+                    b.HasIndex("ReferenceType", "ReferenceId");
+
+                    b.HasIndex("Type", "CreatedAt");
+
+                    b.ToTable("Notifications", (string)null);
+                });
+
+            modelBuilder.Entity("Randevoo.Domain.Entities.NotificationMessageTypeLookup", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("AllowedSenderRoles")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("AllowedTargets")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("DefaultPriority")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DescriptionFa")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("DisplayNameFa")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("RequiresApproval")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("SupportsSms")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.HasIndex("IsActive", "DisplayOrder");
+
+                    b.ToTable("NotificationMessageTypes", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1L,
+                            AllowedSenderRoles = "Admin,PlatformSupportTeam",
+                            AllowedTargets = "User,EventParticipants,EventBuyers,Planners",
+                            Code = "System",
+                            CreatedAt = new DateTime(2026, 6, 15, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DefaultPriority = 0,
+                            DescriptionFa = "پیام‌های خودکار سیستم برای اطلاع‌رسانی داخلی.",
+                            DisplayNameFa = "پیام سیستمی",
+                            DisplayOrder = 10,
+                            IsActive = true,
+                            IsDeleted = false,
+                            RequiresApproval = false,
+                            SupportsSms = false,
+                            Type = 0
+                        },
+                        new
+                        {
+                            Id = 2L,
+                            AllowedSenderRoles = "Admin,PlatformSupportTeam",
+                            AllowedTargets = "User,Planners",
+                            Code = "AdminToPlanner",
+                            CreatedAt = new DateTime(2026, 6, 15, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DefaultPriority = 0,
+                            DescriptionFa = "پیام مدیریتی یا عملیاتی برای برگزارکننده‌ها.",
+                            DisplayNameFa = "پیام مدیر به برگزارکننده",
+                            DisplayOrder = 20,
+                            IsActive = true,
+                            IsDeleted = false,
+                            RequiresApproval = false,
+                            SupportsSms = false,
+                            Type = 1
+                        },
+                        new
+                        {
+                            Id = 3L,
+                            AllowedSenderRoles = "EventPlanner",
+                            AllowedTargets = "EventParticipants,EventBuyers,User",
+                            Code = "PlannerToParticipant",
+                            CreatedAt = new DateTime(2026, 6, 15, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DefaultPriority = 1,
+                            DescriptionFa = "پیام برگزارکننده فقط برای شرکت‌کنندگان یا خریداران رویدادهای خودش.",
+                            DisplayNameFa = "پیام برگزارکننده به شرکت‌کننده",
+                            DisplayOrder = 30,
+                            IsActive = true,
+                            IsDeleted = false,
+                            RequiresApproval = true,
+                            SupportsSms = true,
+                            Type = 2
+                        },
+                        new
+                        {
+                            Id = 4L,
+                            AllowedSenderRoles = "Admin,PlatformSupportTeam",
+                            AllowedTargets = "User,EventParticipants,EventBuyers",
+                            Code = "AdminToUser",
+                            CreatedAt = new DateTime(2026, 6, 15, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DefaultPriority = 0,
+                            DescriptionFa = "پیام مستقیم مدیر یا پشتیبان به یک کاربر یا گروه مجاز.",
+                            DisplayNameFa = "پیام مدیر به کاربر",
+                            DisplayOrder = 40,
+                            IsActive = true,
+                            IsDeleted = false,
+                            RequiresApproval = false,
+                            SupportsSms = false,
+                            Type = 3
+                        },
+                        new
+                        {
+                            Id = 5L,
+                            AllowedSenderRoles = "Admin,PlatformSupportTeam,EventPlanner",
+                            AllowedTargets = "EventParticipants,EventBuyers",
+                            Code = "EventUpdate",
+                            CreatedAt = new DateTime(2026, 6, 15, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DefaultPriority = 1,
+                            DescriptionFa = "اطلاع‌رسانی تغییرات زمان، مکان یا جزئیات رویداد.",
+                            DisplayNameFa = "اطلاع‌رسانی رویداد",
+                            DisplayOrder = 50,
+                            IsActive = true,
+                            IsDeleted = false,
+                            RequiresApproval = true,
+                            SupportsSms = true,
+                            Type = 4
+                        },
+                        new
+                        {
+                            Id = 6L,
+                            AllowedSenderRoles = "Admin,PlatformSupportTeam",
+                            AllowedTargets = "User,EventParticipants,EventBuyers,Planners",
+                            Code = "Finance",
+                            CreatedAt = new DateTime(2026, 6, 15, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DefaultPriority = 1,
+                            DescriptionFa = "اطلاع‌رسانی مالی، رسید، تسویه یا وضعیت پرداخت.",
+                            DisplayNameFa = "پیام مالی",
+                            DisplayOrder = 60,
+                            IsActive = true,
+                            IsDeleted = false,
+                            RequiresApproval = false,
+                            SupportsSms = false,
+                            Type = 5
+                        },
+                        new
+                        {
+                            Id = 7L,
+                            AllowedSenderRoles = "Admin,PlatformSupportTeam",
+                            AllowedTargets = "User,EventParticipants,EventBuyers",
+                            Code = "Refund",
+                            CreatedAt = new DateTime(2026, 6, 15, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DefaultPriority = 1,
+                            DescriptionFa = "اطلاع‌رسانی مربوط به درخواست یا نتیجه بازگشت وجه.",
+                            DisplayNameFa = "بازگشت وجه",
+                            DisplayOrder = 70,
+                            IsActive = true,
+                            IsDeleted = false,
+                            RequiresApproval = false,
+                            SupportsSms = false,
+                            Type = 6
+                        });
+                });
+
+            modelBuilder.Entity("Randevoo.Domain.Entities.NotificationPriorityLookup", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DescriptionFa")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<string>("DisplayNameFa")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("Priority")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.ToTable("NotificationPriorities", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1L,
+                            Code = "Normal",
+                            CreatedAt = new DateTime(2026, 6, 15, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DescriptionFa = "پیام اطلاع‌رسانی معمولی.",
+                            DisplayNameFa = "عادی",
+                            DisplayOrder = 10,
+                            IsActive = true,
+                            IsDeleted = false,
+                            Priority = 0
+                        },
+                        new
+                        {
+                            Id = 2L,
+                            Code = "Important",
+                            CreatedAt = new DateTime(2026, 6, 15, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DescriptionFa = "پیامی که بهتر است کاربر زودتر ببیند.",
+                            DisplayNameFa = "مهم",
+                            DisplayOrder = 20,
+                            IsActive = true,
+                            IsDeleted = false,
+                            Priority = 1
+                        },
+                        new
+                        {
+                            Id = 3L,
+                            Code = "Critical",
+                            CreatedAt = new DateTime(2026, 6, 15, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DescriptionFa = "پیام حساس درباره تغییر مهم، مالی یا لغو.",
+                            DisplayNameFa = "فوری",
+                            DisplayOrder = 30,
+                            IsActive = true,
+                            IsDeleted = false,
+                            Priority = 2
+                        });
+                });
+
+            modelBuilder.Entity("Randevoo.Domain.Entities.NotificationRecipient", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<int>("Channel")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DeliveredAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("FailureReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<long>("NotificationId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("ReadAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long>("RecipientUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReadAtUtc");
+
+                    b.HasIndex("NotificationId", "RecipientUserId", "Channel")
+                        .IsUnique();
+
+                    b.HasIndex("RecipientUserId", "Status", "CreatedAt");
+
+                    b.ToTable("NotificationRecipients", (string)null);
+                });
+
+            modelBuilder.Entity("Randevoo.Domain.Entities.NotificationTemplate", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("BodyTemplate")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("Priority")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("RequiresApproval")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("TitleTemplate")
+                        .IsRequired()
+                        .HasMaxLength(180)
+                        .HasColumnType("nvarchar(180)");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.HasIndex("Type", "IsActive");
+
+                    b.ToTable("NotificationTemplates", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1L,
+                            BodyTemplate = "رویداد {EventTitle} لغو شد و مبلغ پرداختی به کیف پول شما اضافه می‌شود.",
+                            Code = "event-cancelled",
+                            CreatedAt = new DateTime(2026, 6, 14, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            IsDeleted = false,
+                            Priority = 2,
+                            RequiresApproval = false,
+                            TitleTemplate = "لغو رویداد",
+                            Type = 4
+                        },
+                        new
+                        {
+                            Id = 2L,
+                            BodyTemplate = "درخواست بازگشت وجه شما برای {EventTitle} تایید و مبلغ به کیف پول اضافه شد.",
+                            Code = "refund-approved",
+                            CreatedAt = new DateTime(2026, 6, 14, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            IsDeleted = false,
+                            Priority = 1,
+                            RequiresApproval = false,
+                            TitleTemplate = "بازگشت وجه تایید شد",
+                            Type = 6
+                        },
+                        new
+                        {
+                            Id = 3L,
+                            BodyTemplate = "رسید پرداخت شما برای رویداد لغوشده {EventTitle} تایید شد و مبلغ به کیف پول اضافه شد.",
+                            Code = "manual-receipt-wallet-credit",
+                            CreatedAt = new DateTime(2026, 6, 14, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            IsDeleted = false,
+                            Priority = 1,
+                            RequiresApproval = false,
+                            TitleTemplate = "رسید پرداخت به کیف پول منتقل شد",
+                            Type = 5
+                        });
                 });
 
             modelBuilder.Entity("Randevoo.Domain.Entities.OnlineEventPlatform", b =>
@@ -2564,6 +4186,9 @@ namespace Randevoo.Infrastructure.Data.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
+                    b.Property<long?>("TicketOrderId")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("TrackingCode")
                         .IsRequired()
                         .HasMaxLength(120)
@@ -2587,12 +4212,124 @@ namespace Randevoo.Infrastructure.Data.Migrations
 
                     b.HasIndex("ExchangeRateId");
 
+                    b.HasIndex("TicketOrderId");
+
                     b.HasIndex("TrackingCode")
                         .IsUnique();
 
                     b.HasIndex("UserId");
 
                     b.ToTable("OnlinePayments");
+                });
+
+            modelBuilder.Entity("Randevoo.Domain.Entities.PermissionAction", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Entity")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<string>("EntityLabel")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)")
+                        .HasDefaultValue("");
+
+                    b.Property<string>("GroupKey")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)")
+                        .HasDefaultValue("");
+
+                    b.Property<string>("GroupLabel")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)")
+                        .HasDefaultValue("");
+
+                    b.Property<string>("HandlerName")
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeprecated")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsSystemAction")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("Label")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<string>("PagePath")
+                        .HasMaxLength(160)
+                        .HasColumnType("nvarchar(160)");
+
+                    b.Property<string>("RiskLevel")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasDefaultValue("Low");
+
+                    b.Property<string>("UiSurface")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)")
+                        .HasDefaultValue("Manual");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RiskLevel");
+
+                    b.HasIndex("Entity", "Action")
+                        .IsUnique();
+
+                    b.HasIndex("GroupKey", "DisplayOrder");
+
+                    b.ToTable("PermissionActions", (string)null);
                 });
 
             modelBuilder.Entity("Randevoo.Domain.Entities.PlannerBankAccount", b =>
@@ -2816,6 +4553,52 @@ namespace Randevoo.Infrastructure.Data.Migrations
                     b.ToTable("RefreshTokens");
                 });
 
+            modelBuilder.Entity("Randevoo.Domain.Entities.RoleOperationPermission", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<bool>("Allowed")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Entity")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("Role")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Entity", "Action");
+
+                    b.HasIndex("Role", "Entity", "Action")
+                        .IsUnique();
+
+                    b.ToTable("RoleOperationPermissions", (string)null);
+                });
+
             modelBuilder.Entity("Randevoo.Domain.Entities.SmsQueueItem", b =>
                 {
                     b.Property<long>("Id")
@@ -2906,11 +4689,17 @@ namespace Randevoo.Infrastructure.Data.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<long?>("DatingEventId")
+                        .HasColumnType("bigint");
+
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
+
+                    b.Property<long?>("RecipientPlannerUserId")
+                        .HasColumnType("bigint");
 
                     b.Property<int>("Status")
                         .HasColumnType("int");
@@ -2920,6 +4709,21 @@ namespace Randevoo.Infrastructure.Data.Migrations
 
                     b.Property<long>("SubmitterUserId")
                         .HasColumnType("bigint");
+
+                    b.Property<long>("TicketRecipientTypeId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasDefaultValue(1L);
+
+                    b.Property<long>("TicketStatusId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasDefaultValue(1L);
+
+                    b.Property<long>("TicketTypeId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasDefaultValue(3L);
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -2933,9 +4737,19 @@ namespace Randevoo.Infrastructure.Data.Migrations
 
                     b.HasIndex("AssignedSupportUserId");
 
+                    b.HasIndex("DatingEventId");
+
+                    b.HasIndex("RecipientPlannerUserId");
+
                     b.HasIndex("SubmitterUserId");
 
+                    b.HasIndex("TicketRecipientTypeId");
+
+                    b.HasIndex("TicketTypeId");
+
                     b.HasIndex("Status", "Category", "CreatedAt");
+
+                    b.HasIndex("TicketStatusId", "TicketTypeId", "TicketRecipientTypeId", "CreatedAt");
 
                     b.ToTable("SupportTickets", (string)null);
                 });
@@ -3172,6 +4986,50 @@ namespace Randevoo.Infrastructure.Data.Migrations
                     b.ToTable("SupportTicketMessages", (string)null);
                 });
 
+            modelBuilder.Entity("Randevoo.Domain.Entities.SupportTicketRecipientTypeLookup", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DisplayNameFa")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("SupportTicketRecipientTypes", (string)null);
+                });
+
             modelBuilder.Entity("Randevoo.Domain.Entities.SupportTicketStatusLookup", b =>
                 {
                     b.Property<long>("Id")
@@ -3318,6 +5176,276 @@ namespace Randevoo.Infrastructure.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Randevoo.Domain.Entities.TicketOrder", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime?>("ApprovedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("ApprovedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("BuyerUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CurrencyCode")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(3)
+                        .HasColumnType("nvarchar(3)")
+                        .HasDefaultValue("IRR");
+
+                    b.Property<long>("DatingEventId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("DiscountAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("DiscountCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<long?>("EventDiscountCodeId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("ExchangeRateCapturedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<long?>("ExchangeRateId")
+                        .HasColumnType("bigint");
+
+                    b.Property<decimal>("ExchangeRateToIrr")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)")
+                        .HasDefaultValue(1m);
+
+                    b.Property<decimal>("GrossAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<decimal>("NetAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("OrderStatus")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("OrganizerIncomeAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("PaidAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("PaymentCollectionMethod")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PaymentStatus")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("PlatformCommissionAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("ReportingCurrencyCode")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(3)
+                        .HasColumnType("nvarchar(3)")
+                        .HasDefaultValue("IRR");
+
+                    b.Property<decimal>("ReportingDiscountAmountIrr")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("ReportingGrossAmountIrr")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("ReportingNetAmountIrr")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("ReportingOrganizerIncomeIrr")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("ReportingPlatformCommissionIrr")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApprovedByUserId");
+
+                    b.HasIndex("BuyerUserId");
+
+                    b.HasIndex("CurrencyCode");
+
+                    b.HasIndex("DatingEventId");
+
+                    b.HasIndex("EventDiscountCodeId");
+
+                    b.HasIndex("ExchangeRateId");
+
+                    b.HasIndex("OrderStatus", "CreatedAt");
+
+                    b.HasIndex("PaymentStatus", "CreatedAt");
+
+                    b.ToTable("TicketOrders", (string)null);
+                });
+
+            modelBuilder.Entity("Randevoo.Domain.Entities.TicketRefundRequest", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<decimal>("ApprovedAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<long>("BuyerUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CurrencyCode")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(3)
+                        .HasColumnType("nvarchar(3)")
+                        .HasDefaultValue("IRR");
+
+                    b.Property<long>("DatingEventId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long>("EventTicketId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("ExchangeRateCapturedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<long?>("ExchangeRateId")
+                        .HasColumnType("bigint");
+
+                    b.Property<decimal>("ExchangeRateToIrr")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)")
+                        .HasDefaultValue(1m);
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<long>("ParticipantUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<decimal>("ReportingApprovedAmountIrr")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("ReportingRequestedAmountIrr")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("RequestReason")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<decimal>("RequestedAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("RequestedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<long>("RequestedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("ReviewNote")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime?>("ReviewedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("ReviewedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<long>("TicketOrderId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("WalletCreditTransactionId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BuyerUserId");
+
+                    b.HasIndex("DatingEventId");
+
+                    b.HasIndex("EventTicketId");
+
+                    b.HasIndex("ExchangeRateId");
+
+                    b.HasIndex("ParticipantUserId");
+
+                    b.HasIndex("RequestedByUserId");
+
+                    b.HasIndex("ReviewedByUserId");
+
+                    b.HasIndex("TicketOrderId");
+
+                    b.HasIndex("WalletCreditTransactionId");
+
+                    b.HasIndex("Status", "RequestedAtUtc");
+
+                    b.ToTable("TicketRefundRequests", (string)null);
+                });
+
             modelBuilder.Entity("Randevoo.Domain.Entities.User", b =>
                 {
                     b.Property<long>("Id")
@@ -3396,6 +5524,61 @@ namespace Randevoo.Infrastructure.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("Users");
+                });
+
+            modelBuilder.Entity("Randevoo.Domain.Entities.UserOperationPermissionOverride", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<bool>("Allowed")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Entity")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<DateTime?>("ExpiresAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ExpiresAtUtc");
+
+                    b.HasIndex("Entity", "Action");
+
+                    b.HasIndex("UserId", "Entity", "Action")
+                        .IsUnique();
+
+                    b.ToTable("UserOperationPermissionOverrides", (string)null);
                 });
 
             modelBuilder.Entity("Randevoo.Domain.Entities.UserProfile", b =>
@@ -3818,9 +6001,16 @@ namespace Randevoo.Infrastructure.Data.Migrations
                         .HasForeignKey("ExchangeRateId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("Randevoo.Domain.Entities.TicketOrder", "TicketOrder")
+                        .WithMany()
+                        .HasForeignKey("TicketOrderId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("BalanceAccount");
 
                     b.Navigation("ExchangeRate");
+
+                    b.Navigation("TicketOrder");
                 });
 
             modelBuilder.Entity("Randevoo.Domain.Entities.City", b =>
@@ -3836,6 +6026,16 @@ namespace Randevoo.Infrastructure.Data.Migrations
 
             modelBuilder.Entity("Randevoo.Domain.Entities.DatingEvent", b =>
                 {
+                    b.HasOne("Randevoo.Domain.Entities.User", "ApprovedByUser")
+                        .WithMany()
+                        .HasForeignKey("ApprovedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Randevoo.Domain.Entities.User", "CancelledByUser")
+                        .WithMany()
+                        .HasForeignKey("CancelledByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("Randevoo.Domain.Entities.City", "City")
                         .WithMany()
                         .HasForeignKey("CityId")
@@ -3872,6 +6072,11 @@ namespace Randevoo.Infrastructure.Data.Migrations
                     b.HasOne("Randevoo.Domain.Entities.OnlineEventPlatform", "OnlineEventPlatform")
                         .WithMany()
                         .HasForeignKey("OnlineEventPlatformId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Randevoo.Domain.Entities.PlannerBankAccount", "OrganizerPaymentAccount")
+                        .WithMany()
+                        .HasForeignKey("OrganizerPaymentAccountId")
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.OwnsOne("Randevoo.Domain.ValueObjects.AgeRange", "AgeRangeForFemale", b1 =>
@@ -3966,6 +6171,10 @@ namespace Randevoo.Infrastructure.Data.Migrations
                     b.Navigation("AgeRangeForMale")
                         .IsRequired();
 
+                    b.Navigation("ApprovedByUser");
+
+                    b.Navigation("CancelledByUser");
+
                     b.Navigation("City");
 
                     b.Navigation("Country");
@@ -3982,6 +6191,60 @@ namespace Randevoo.Infrastructure.Data.Migrations
                     b.Navigation("MinimumEducationLevel");
 
                     b.Navigation("OnlineEventPlatform");
+
+                    b.Navigation("OrganizerPaymentAccount");
+                });
+
+            modelBuilder.Entity("Randevoo.Domain.Entities.EventCancellationRequest", b =>
+                {
+                    b.HasOne("Randevoo.Domain.Entities.DatingEvent", "DatingEvent")
+                        .WithMany()
+                        .HasForeignKey("DatingEventId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Randevoo.Domain.Entities.User", "RequestedByUser")
+                        .WithMany()
+                        .HasForeignKey("RequestedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Randevoo.Domain.Entities.User", "ReviewedByUser")
+                        .WithMany()
+                        .HasForeignKey("ReviewedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("DatingEvent");
+
+                    b.Navigation("RequestedByUser");
+
+                    b.Navigation("ReviewedByUser");
+                });
+
+            modelBuilder.Entity("Randevoo.Domain.Entities.EventChangeRequest", b =>
+                {
+                    b.HasOne("Randevoo.Domain.Entities.DatingEvent", "DatingEvent")
+                        .WithMany()
+                        .HasForeignKey("DatingEventId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Randevoo.Domain.Entities.User", "RequestedByUser")
+                        .WithMany()
+                        .HasForeignKey("RequestedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Randevoo.Domain.Entities.User", "ReviewedByUser")
+                        .WithMany()
+                        .HasForeignKey("ReviewedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("DatingEvent");
+
+                    b.Navigation("RequestedByUser");
+
+                    b.Navigation("ReviewedByUser");
                 });
 
             modelBuilder.Entity("Randevoo.Domain.Entities.EventChatBlock", b =>
@@ -4142,6 +6405,39 @@ namespace Randevoo.Infrastructure.Data.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Randevoo.Domain.Entities.EventSettlementRequest", b =>
+                {
+                    b.HasOne("Randevoo.Domain.Entities.DatingEvent", "DatingEvent")
+                        .WithMany()
+                        .HasForeignKey("DatingEventId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Randevoo.Domain.Entities.BalanceTransaction", "OrganizerCreditTransaction")
+                        .WithMany()
+                        .HasForeignKey("OrganizerCreditTransactionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Randevoo.Domain.Entities.User", "RequestedByUser")
+                        .WithMany()
+                        .HasForeignKey("RequestedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Randevoo.Domain.Entities.User", "ReviewedByUser")
+                        .WithMany()
+                        .HasForeignKey("ReviewedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("DatingEvent");
+
+                    b.Navigation("OrganizerCreditTransaction");
+
+                    b.Navigation("RequestedByUser");
+
+                    b.Navigation("ReviewedByUser");
+                });
+
             modelBuilder.Entity("Randevoo.Domain.Entities.EventSurveyRating", b =>
                 {
                     b.HasOne("Randevoo.Domain.Entities.EventSurveyResponse", "EventSurveyResponse")
@@ -4209,6 +6505,12 @@ namespace Randevoo.Infrastructure.Data.Migrations
                         .HasForeignKey("ExchangeRateId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("Randevoo.Domain.Entities.TicketOrder", "TicketOrder")
+                        .WithMany("Tickets")
+                        .HasForeignKey("TicketOrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("Randevoo.Domain.Entities.User", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
@@ -4221,7 +6523,96 @@ namespace Randevoo.Infrastructure.Data.Migrations
 
                     b.Navigation("ExchangeRate");
 
+                    b.Navigation("TicketOrder");
+
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Randevoo.Domain.Entities.EventWorkflowLog", b =>
+                {
+                    b.HasOne("Randevoo.Domain.Entities.User", "ActorUser")
+                        .WithMany()
+                        .HasForeignKey("ActorUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Randevoo.Domain.Entities.DatingEvent", "DatingEvent")
+                        .WithMany()
+                        .HasForeignKey("DatingEventId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ActorUser");
+
+                    b.Navigation("DatingEvent");
+                });
+
+            modelBuilder.Entity("Randevoo.Domain.Entities.ManualPaymentReceipt", b =>
+                {
+                    b.HasOne("Randevoo.Domain.Entities.DatingEvent", "DatingEvent")
+                        .WithMany()
+                        .HasForeignKey("DatingEventId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Randevoo.Domain.Entities.EventDiscountCode", "EventDiscountCode")
+                        .WithMany()
+                        .HasForeignKey("EventDiscountCodeId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Randevoo.Domain.Entities.EventTicket", "EventTicket")
+                        .WithMany()
+                        .HasForeignKey("EventTicketId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Randevoo.Domain.Entities.CurrencyExchangeRate", "ExchangeRate")
+                        .WithMany()
+                        .HasForeignKey("ExchangeRateId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Randevoo.Domain.Entities.User", "ParticipantUser")
+                        .WithMany()
+                        .HasForeignKey("ParticipantUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Randevoo.Domain.Entities.User", "PlannerUser")
+                        .WithMany()
+                        .HasForeignKey("PlannerUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Randevoo.Domain.Entities.User", "ReviewedByUser")
+                        .WithMany()
+                        .HasForeignKey("ReviewedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Randevoo.Domain.Entities.TicketOrder", "TicketOrder")
+                        .WithMany()
+                        .HasForeignKey("TicketOrderId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Randevoo.Domain.Entities.BalanceTransaction", "WalletCreditTransaction")
+                        .WithMany()
+                        .HasForeignKey("WalletCreditTransactionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("DatingEvent");
+
+                    b.Navigation("EventDiscountCode");
+
+                    b.Navigation("EventTicket");
+
+                    b.Navigation("ExchangeRate");
+
+                    b.Navigation("ParticipantUser");
+
+                    b.Navigation("PlannerUser");
+
+                    b.Navigation("ReviewedByUser");
+
+                    b.Navigation("TicketOrder");
+
+                    b.Navigation("WalletCreditTransaction");
                 });
 
             modelBuilder.Entity("Randevoo.Domain.Entities.ModerationReport", b =>
@@ -4264,6 +6655,50 @@ namespace Randevoo.Infrastructure.Data.Migrations
                     b.Navigation("ReviewedByAdminUser");
                 });
 
+            modelBuilder.Entity("Randevoo.Domain.Entities.Notification", b =>
+                {
+                    b.HasOne("Randevoo.Domain.Entities.User", "CreatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Randevoo.Domain.Entities.DatingEvent", "DatingEvent")
+                        .WithMany()
+                        .HasForeignKey("DatingEventId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Randevoo.Domain.Entities.User", "ReviewedByUser")
+                        .WithMany()
+                        .HasForeignKey("ReviewedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("CreatedByUser");
+
+                    b.Navigation("DatingEvent");
+
+                    b.Navigation("ReviewedByUser");
+                });
+
+            modelBuilder.Entity("Randevoo.Domain.Entities.NotificationRecipient", b =>
+                {
+                    b.HasOne("Randevoo.Domain.Entities.Notification", "Notification")
+                        .WithMany("Recipients")
+                        .HasForeignKey("NotificationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Randevoo.Domain.Entities.User", "RecipientUser")
+                        .WithMany()
+                        .HasForeignKey("RecipientUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Notification");
+
+                    b.Navigation("RecipientUser");
+                });
+
             modelBuilder.Entity("Randevoo.Domain.Entities.OnlinePayment", b =>
                 {
                     b.HasOne("Randevoo.Domain.Entities.BalanceTransaction", "BalanceTransaction")
@@ -4286,6 +6721,11 @@ namespace Randevoo.Infrastructure.Data.Migrations
                         .HasForeignKey("ExchangeRateId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("Randevoo.Domain.Entities.TicketOrder", "TicketOrder")
+                        .WithMany()
+                        .HasForeignKey("TicketOrderId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("Randevoo.Domain.Entities.User", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
@@ -4299,6 +6739,8 @@ namespace Randevoo.Infrastructure.Data.Migrations
                     b.Navigation("EventTicket");
 
                     b.Navigation("ExchangeRate");
+
+                    b.Navigation("TicketOrder");
 
                     b.Navigation("User");
                 });
@@ -4383,15 +6825,53 @@ namespace Randevoo.Infrastructure.Data.Migrations
                         .HasForeignKey("AssignedSupportUserId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("Randevoo.Domain.Entities.DatingEvent", "DatingEvent")
+                        .WithMany()
+                        .HasForeignKey("DatingEventId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Randevoo.Domain.Entities.User", "RecipientPlannerUser")
+                        .WithMany()
+                        .HasForeignKey("RecipientPlannerUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("Randevoo.Domain.Entities.User", "SubmitterUser")
                         .WithMany()
                         .HasForeignKey("SubmitterUserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("Randevoo.Domain.Entities.SupportTicketRecipientTypeLookup", "TicketRecipientType")
+                        .WithMany()
+                        .HasForeignKey("TicketRecipientTypeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Randevoo.Domain.Entities.SupportTicketStatusLookup", "TicketStatus")
+                        .WithMany()
+                        .HasForeignKey("TicketStatusId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Randevoo.Domain.Entities.SupportTicketCategoryLookup", "TicketType")
+                        .WithMany()
+                        .HasForeignKey("TicketTypeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.Navigation("AssignedSupportUser");
 
+                    b.Navigation("DatingEvent");
+
+                    b.Navigation("RecipientPlannerUser");
+
                     b.Navigation("SubmitterUser");
+
+                    b.Navigation("TicketRecipientType");
+
+                    b.Navigation("TicketStatus");
+
+                    b.Navigation("TicketType");
                 });
 
             modelBuilder.Entity("Randevoo.Domain.Entities.SupportTicketAttachment", b =>
@@ -4448,6 +6928,129 @@ namespace Randevoo.Infrastructure.Data.Migrations
                     b.Navigation("SenderUser");
 
                     b.Navigation("SupportTicket");
+                });
+
+            modelBuilder.Entity("Randevoo.Domain.Entities.TicketOrder", b =>
+                {
+                    b.HasOne("Randevoo.Domain.Entities.User", "ApprovedByUser")
+                        .WithMany()
+                        .HasForeignKey("ApprovedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Randevoo.Domain.Entities.User", "BuyerUser")
+                        .WithMany()
+                        .HasForeignKey("BuyerUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Randevoo.Domain.Entities.DatingEvent", "DatingEvent")
+                        .WithMany()
+                        .HasForeignKey("DatingEventId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Randevoo.Domain.Entities.EventDiscountCode", "EventDiscountCode")
+                        .WithMany()
+                        .HasForeignKey("EventDiscountCodeId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Randevoo.Domain.Entities.CurrencyExchangeRate", "ExchangeRate")
+                        .WithMany()
+                        .HasForeignKey("ExchangeRateId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("ApprovedByUser");
+
+                    b.Navigation("BuyerUser");
+
+                    b.Navigation("DatingEvent");
+
+                    b.Navigation("EventDiscountCode");
+
+                    b.Navigation("ExchangeRate");
+                });
+
+            modelBuilder.Entity("Randevoo.Domain.Entities.TicketRefundRequest", b =>
+                {
+                    b.HasOne("Randevoo.Domain.Entities.User", "BuyerUser")
+                        .WithMany()
+                        .HasForeignKey("BuyerUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Randevoo.Domain.Entities.DatingEvent", "DatingEvent")
+                        .WithMany()
+                        .HasForeignKey("DatingEventId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Randevoo.Domain.Entities.EventTicket", "EventTicket")
+                        .WithMany()
+                        .HasForeignKey("EventTicketId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Randevoo.Domain.Entities.CurrencyExchangeRate", "ExchangeRate")
+                        .WithMany()
+                        .HasForeignKey("ExchangeRateId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Randevoo.Domain.Entities.User", "ParticipantUser")
+                        .WithMany()
+                        .HasForeignKey("ParticipantUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Randevoo.Domain.Entities.User", "RequestedByUser")
+                        .WithMany()
+                        .HasForeignKey("RequestedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Randevoo.Domain.Entities.User", "ReviewedByUser")
+                        .WithMany()
+                        .HasForeignKey("ReviewedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Randevoo.Domain.Entities.TicketOrder", "TicketOrder")
+                        .WithMany()
+                        .HasForeignKey("TicketOrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Randevoo.Domain.Entities.BalanceTransaction", "WalletCreditTransaction")
+                        .WithMany()
+                        .HasForeignKey("WalletCreditTransactionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("BuyerUser");
+
+                    b.Navigation("DatingEvent");
+
+                    b.Navigation("EventTicket");
+
+                    b.Navigation("ExchangeRate");
+
+                    b.Navigation("ParticipantUser");
+
+                    b.Navigation("RequestedByUser");
+
+                    b.Navigation("ReviewedByUser");
+
+                    b.Navigation("TicketOrder");
+
+                    b.Navigation("WalletCreditTransaction");
+                });
+
+            modelBuilder.Entity("Randevoo.Domain.Entities.UserOperationPermissionOverride", b =>
+                {
+                    b.HasOne("Randevoo.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Randevoo.Domain.Entities.UserProfile", b =>
@@ -4622,6 +7225,11 @@ namespace Randevoo.Infrastructure.Data.Migrations
                     b.Navigation("Ratings");
                 });
 
+            modelBuilder.Entity("Randevoo.Domain.Entities.Notification", b =>
+                {
+                    b.Navigation("Recipients");
+                });
+
             modelBuilder.Entity("Randevoo.Domain.Entities.SupportTicket", b =>
                 {
                     b.Navigation("History");
@@ -4637,6 +7245,11 @@ namespace Randevoo.Infrastructure.Data.Migrations
             modelBuilder.Entity("Randevoo.Domain.Entities.Tag", b =>
                 {
                     b.Navigation("EventTags");
+                });
+
+            modelBuilder.Entity("Randevoo.Domain.Entities.TicketOrder", b =>
+                {
+                    b.Navigation("Tickets");
                 });
 
             modelBuilder.Entity("Randevoo.Domain.Entities.User", b =>

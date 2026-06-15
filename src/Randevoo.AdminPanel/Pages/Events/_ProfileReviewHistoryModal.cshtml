@@ -1,0 +1,50 @@
+@model EventProfileReviewHistoryModalViewModel
+
+@{
+    var modalId = $"eventProfileReviewHistoryModal-{Model.EventId}";
+}
+
+<div class="modal fade event-profile-review-modal" id="@modalId" tabindex="-1" aria-labelledby="@(modalId)-label" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <span class="event-status-guide-kicker">رفت‌وبرگشت مدیر</span>
+                    <h2 class="modal-title" id="@(modalId)-label">@Model.EventTitle</h2>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="بستن"></button>
+            </div>
+            <div class="modal-body">
+                @if (Model.Entries.Count == 0)
+                {
+                    <div class="event-transition-empty">
+                        <i class="bi bi-inbox"></i>
+                        <strong>هنوز بررسی مدیریتی ثبت نشده است.</strong>
+                        <span>بعد از ارسال، تایید یا رد پروفایل رویداد، اینجا تاریخچه آن نمایش داده می‌شود.</span>
+                    </div>
+                }
+                else
+                {
+                    <div class="event-profile-review-timeline">
+                        @foreach (var entry in Model.Entries)
+                        {
+                            <article class="event-profile-review-entry">
+                                <div>
+                                    <strong>@entry.Summary</strong>
+                                    <span>@entry.ActorName در @PersianDateFormatter.Format(entry.CreatedAtUtc, true)</span>
+                                </div>
+                                @if (!string.IsNullOrWhiteSpace(entry.Details))
+                                {
+                                    <p>@entry.Details</p>
+                                }
+                            </article>
+                        }
+                    </div>
+                }
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">بستن</button>
+            </div>
+        </div>
+    </div>
+</div>

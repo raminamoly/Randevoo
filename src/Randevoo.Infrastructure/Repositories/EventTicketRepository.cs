@@ -20,6 +20,9 @@ public class EventTicketRepository : IEventTicketRepository
             .Include(t => t.DatingEvent)
             .Include(t => t.User)
             .ThenInclude(u => u.Profile)
+            .Include(t => t.TicketOrder)
+            .ThenInclude(order => order.BuyerUser)
+            .ThenInclude(user => user.Profile)
             .FirstOrDefaultAsync(t => t.Id == id, cancellationToken);
     }
 
@@ -29,6 +32,9 @@ public class EventTicketRepository : IEventTicketRepository
             .Include(t => t.DatingEvent)
             .Include(t => t.User)
             .ThenInclude(u => u.Profile)
+            .Include(t => t.TicketOrder)
+            .ThenInclude(order => order.BuyerUser)
+            .ThenInclude(user => user.Profile)
             .FirstOrDefaultAsync(t => t.DatingEventId == eventId && t.UserId == userId, cancellationToken);
     }
 
@@ -36,6 +42,8 @@ public class EventTicketRepository : IEventTicketRepository
     {
         return await _db.EventTickets
             .Include(t => t.DatingEvent)
+            .Include(t => t.TicketOrder)
+            .ThenInclude(order => order.BuyerUser)
             .Where(t => t.UserId == userId)
             .OrderByDescending(t => t.DatingEvent.DateTimeStart)
             .ToListAsync(cancellationToken);
@@ -46,6 +54,9 @@ public class EventTicketRepository : IEventTicketRepository
         return await _db.EventTickets
             .Include(t => t.User)
             .ThenInclude(u => u.Profile)
+            .Include(t => t.TicketOrder)
+            .ThenInclude(order => order.BuyerUser)
+            .ThenInclude(user => user.Profile)
             .Where(t => t.DatingEventId == eventId)
             .OrderBy(t => t.CreatedAt)
             .ToListAsync(cancellationToken);

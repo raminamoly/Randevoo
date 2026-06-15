@@ -12,6 +12,8 @@ public class OnlinePayment : BaseEntity, IAggregateRoot
     public DatingEvent? DatingEvent { get; private set; }
     public long? EventTicketId { get; private set; }
     public EventTicket? EventTicket { get; private set; }
+    public long? TicketOrderId { get; private set; }
+    public TicketOrder? TicketOrder { get; private set; }
     public long? BalanceTransactionId { get; private set; }
     public BalanceTransaction? BalanceTransaction { get; private set; }
     public decimal Amount { get; private set; }
@@ -42,7 +44,8 @@ public class OnlinePayment : BaseEntity, IAggregateRoot
         decimal? reportingAmountIrr = null,
         decimal exchangeRateToIrr = 1m,
         DateTime? exchangeRateCapturedAtUtc = null,
-        long? exchangeRateId = null)
+        long? exchangeRateId = null,
+        TicketOrder? ticketOrder = null)
     {
         User = GuardAgainst.Object.Null(user, nameof(user));
         UserId = user.Id;
@@ -60,6 +63,8 @@ public class OnlinePayment : BaseEntity, IAggregateRoot
         DatingEventId = datingEvent?.Id;
         EventTicket = eventTicket;
         EventTicketId = eventTicket?.Id;
+        TicketOrder = ticketOrder;
+        TicketOrderId = ticketOrder is not null && ticketOrder.Id > 0 ? ticketOrder.Id : null;
         BalanceTransaction = balanceTransaction;
         BalanceTransactionId = balanceTransaction?.Id;
         Status = GuardAgainst.Number.AgainstInvalidEnum<OnlinePaymentStatus>((int)status, nameof(status));

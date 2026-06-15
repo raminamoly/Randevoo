@@ -1,8 +1,12 @@
+using Randevoo.AdminPanel.Services.State;
+
 namespace Randevoo.AdminPanel.Models.Events;
 
 public sealed class DatingEvent
 {
     public long Id { get; set; }
+
+    public int EventCode { get; set; }
 
     public long PlannerUserId { get; set; }
 
@@ -16,9 +20,15 @@ public sealed class DatingEvent
 
     public List<EventChangeLogEntry> ChangeLog { get; set; } = new();
 
-    public EventOperationalStatus OperationalStatus { get; set; } = EventOperationalStatus.Draft;
+    public EventOperationalStatus OperationalStatus { get; set; } = EventOperationalStatus.SaleClosed;
 
     public EventReviewStatus ReviewStatus { get; set; } = EventReviewStatus.NotSubmitted;
+
+    public Randevoo.Domain.Enums.EventApprovalStatus ApprovalStatus { get; set; } = Randevoo.Domain.Enums.EventApprovalStatus.Draft;
+
+    public Randevoo.Domain.Enums.EventSaleStatus SaleStatus { get; set; } = Randevoo.Domain.Enums.EventSaleStatus.Closed;
+
+    public Randevoo.Domain.Enums.EventLifecycleStatus LifecycleStatus { get; set; } = Randevoo.Domain.Enums.EventLifecycleStatus.Active;
 
     public EventOperationalStatus Status
     {
@@ -37,6 +47,12 @@ public sealed class DatingEvent
     public DateTimeOffset UpdatedAtUtc { get; set; } = DateTimeOffset.UtcNow;
 
     public bool IsVisibleToEndUsers { get; set; }
+
+    public bool IsCurrencyLocked { get; set; }
+
+    public string DisplayCode => $"#{DisplayFormatter.Count(EventCode)}";
+
+    public string DisplayTitleWithCode => $"{DisplayTitle} {DisplayCode}";
 
     public string DisplayTitle => Pending?.Draft.Title is { Length: > 0 } pendingTitle ? pendingTitle : Live.Title;
 

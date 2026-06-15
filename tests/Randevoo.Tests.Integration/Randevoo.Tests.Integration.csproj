@@ -20,6 +20,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Randevoo.WebApi\Randevoo.WebApi.csproj" />
+    <ProjectReference Include="..\..\src\Randevoo.AdminPanel\Randevoo.AdminPanel.csproj" Aliases="AdminPanel" />
     <ProjectReference Include="..\..\src\Randevoo.Infrastructure\Randevoo.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\Randevoo.Domain\Randevoo.Domain.csproj" />
   </ItemGroup>

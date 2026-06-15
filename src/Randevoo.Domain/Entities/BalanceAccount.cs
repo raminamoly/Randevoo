@@ -47,12 +47,13 @@ public class BalanceAccount : BaseEntity, IAggregateRoot
         decimal reportingAmountIrr,
         decimal exchangeRateToIrr,
         DateTime exchangeRateCapturedAtUtc,
-        long? exchangeRateId = null)
+        long? exchangeRateId = null,
+        TicketOrder? ticketOrder = null)
     {
         ValidateAmount(amount);
         ValidateAmount(reportingAmountIrr);
         Balance += reportingAmountIrr;
-        AddTransaction(amount, type, description, datingEventId, referenceType, referenceId, createdByUserId, currencyCode, reportingAmountIrr, exchangeRateToIrr, exchangeRateCapturedAtUtc, exchangeRateId);
+        AddTransaction(amount, type, description, datingEventId, referenceType, referenceId, createdByUserId, currencyCode, reportingAmountIrr, exchangeRateToIrr, exchangeRateCapturedAtUtc, exchangeRateId, ticketOrder);
         UpdateTimestamp();
     }
 
@@ -78,7 +79,8 @@ public class BalanceAccount : BaseEntity, IAggregateRoot
         decimal reportingAmountIrr,
         decimal exchangeRateToIrr,
         DateTime exchangeRateCapturedAtUtc,
-        long? exchangeRateId = null)
+        long? exchangeRateId = null,
+        TicketOrder? ticketOrder = null)
     {
         ValidateAmount(amount);
         ValidateAmount(reportingAmountIrr);
@@ -86,7 +88,7 @@ public class BalanceAccount : BaseEntity, IAggregateRoot
             throw new BusinessRuleViolationException("Insufficient balance", "User balance is lower than the requested amount");
 
         Balance -= reportingAmountIrr;
-        AddTransaction(-amount, type, description, datingEventId, referenceType, referenceId, createdByUserId, currencyCode, -reportingAmountIrr, exchangeRateToIrr, exchangeRateCapturedAtUtc, exchangeRateId);
+        AddTransaction(-amount, type, description, datingEventId, referenceType, referenceId, createdByUserId, currencyCode, -reportingAmountIrr, exchangeRateToIrr, exchangeRateCapturedAtUtc, exchangeRateId, ticketOrder);
         UpdateTimestamp();
     }
 
@@ -107,12 +109,13 @@ public class BalanceAccount : BaseEntity, IAggregateRoot
         decimal reportingAmountIrr,
         decimal exchangeRateToIrr,
         DateTime exchangeRateCapturedAtUtc,
-        long? exchangeRateId = null)
+        long? exchangeRateId = null,
+        TicketOrder? ticketOrder = null)
     {
         ValidateAmount(amount);
         ValidateAmount(reportingAmountIrr);
         Balance -= reportingAmountIrr;
-        AddTransaction(-amount, type, description, datingEventId, referenceType, referenceId, createdByUserId, currencyCode, -reportingAmountIrr, exchangeRateToIrr, exchangeRateCapturedAtUtc, exchangeRateId);
+        AddTransaction(-amount, type, description, datingEventId, referenceType, referenceId, createdByUserId, currencyCode, -reportingAmountIrr, exchangeRateToIrr, exchangeRateCapturedAtUtc, exchangeRateId, ticketOrder);
         UpdateTimestamp();
     }
 
@@ -128,7 +131,8 @@ public class BalanceAccount : BaseEntity, IAggregateRoot
         decimal? reportingAmountIrr = null,
         decimal exchangeRateToIrr = 1m,
         DateTime? exchangeRateCapturedAtUtc = null,
-        long? exchangeRateId = null)
+        long? exchangeRateId = null,
+        TicketOrder? ticketOrder = null)
     {
         var transaction = new BalanceTransaction(
             this,
@@ -142,6 +146,7 @@ public class BalanceAccount : BaseEntity, IAggregateRoot
             exchangeRateCapturedAtUtc ?? DateTime.UtcNow,
             exchangeRateId);
         transaction.SetReference(referenceType, referenceId, createdByUserId);
+        transaction.SetTicketOrder(ticketOrder);
         _transactions.Add(transaction);
     }
 

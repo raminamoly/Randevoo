@@ -20,7 +20,7 @@ public class ListSupportTicketsHandler : IRequestHandler<ListSupportTicketsQuery
     {
         var requester = await _users.GetByIdAsync(request.RequesterUserId, cancellationToken)
             ?? throw new NotFoundException("User", request.RequesterUserId);
-        var tickets = await _tickets.ListAsync(requester.Id, requester.Role, request.Status, request.Category, request.SubmitterRole, request.AssigneeUserId, request.CreatedFromUtc, request.CreatedToUtc, request.Limit, cancellationToken);
+        var tickets = await _tickets.ListAsync(requester.Id, requester.Role, request.TicketStatusId, request.TicketTypeId, request.TicketRecipientTypeId, request.SubmitterRole, request.AssigneeUserId, request.CreatedFromUtc, request.CreatedToUtc, request.Limit, cancellationToken);
         return tickets.Select(SupportTicketDtoMapper.ToListItem).ToList();
     }
 }

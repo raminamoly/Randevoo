@@ -6,6 +6,7 @@ using Randevoo.AdminPanel.Models.Common;
 using Randevoo.AdminPanel.Services.ApiClients;
 using Randevoo.AdminPanel.Services.Auth;
 using Randevoo.AdminPanel.Services.Infrastructure;
+using Randevoo.AdminPanel.Services.Permissions;
 using Randevoo.AdminPanel.Services.State;
 using Randevoo.Infrastructure;
 using Randevoo.Infrastructure.Data;
@@ -17,7 +18,6 @@ builder.Services.AddRazorPages(options =>
 {
     options.Conventions.AllowAnonymousToPage("/Index");
     options.Conventions.AllowAnonymousToFolder("/Account");
-    options.Conventions.AllowAnonymousToPage("/Settings/Index");
     options.Conventions.AuthorizeFolder("/Dashboard");
     options.Conventions.AuthorizeFolder("/Events");
     options.Conventions.AuthorizeFolder("/EventTypes");
@@ -25,10 +25,13 @@ builder.Services.AddRazorPages(options =>
     options.Conventions.AuthorizeFolder("/Tags");
     options.Conventions.AuthorizeFolder("/Finance");
     options.Conventions.AuthorizeFolder("/Support", Policies.AdminPlannerOrSupport);
+    options.Conventions.AuthorizeFolder("/Participants", Policies.AdminPlannerOrSupport);
+    options.Conventions.AuthorizeFolder("/Buyers", Policies.AdminPlannerOrSupport);
+    options.Conventions.AuthorizeFolder("/Notifications", Policies.AdminPlannerOrSupport);
     options.Conventions.AuthorizeFolder("/Logs");
     options.Conventions.AuthorizeFolder("/Users");
     options.Conventions.AuthorizeFolder("/UserProfiles");
-    options.Conventions.AuthorizeFolder("/Settings");
+    options.Conventions.AuthorizeFolder("/Settings", Policies.AdminOnly);
 });
 
 builder.Services.AddHttpContextAccessor();
@@ -59,8 +62,10 @@ builder.Services.AddScoped<IDashboardApiClient, DatabaseDashboardApiClient>();
 builder.Services.AddScoped<IAdminAnalyticsApiClient, DatabaseAdminAnalyticsApiClient>();
 builder.Services.AddScoped<IPlannerProfilesApiClient, DatabasePlannerProfilesApiClient>();
 builder.Services.AddScoped<IFinanceApiClient, DatabaseFinanceApiClient>();
+builder.Services.AddScoped<INotificationsApiClient, DatabaseNotificationsApiClient>();
 builder.Services.AddScoped<ILocationsApiClient, DatabaseLocationsApiClient>();
 builder.Services.AddScoped<ISupportTicketsApiClient, DatabaseSupportTicketsApiClient>();
+builder.Services.AddScoped<IOperationPermissionService, DatabaseOperationPermissionService>();
 
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
@@ -100,6 +105,8 @@ if (builder.Configuration.GetValue<bool>("SampleData:Enabled"))
 {
     await app.Services.MigrateAndSeedSampleDataAsync();
 }
+
+await app.Services.SyncOperationPermissionCatalogAsync();
 
 if (!app.Environment.IsDevelopment())
 {
