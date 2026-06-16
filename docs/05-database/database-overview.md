@@ -9,7 +9,7 @@ This document was generated from the current repository snapshot. It references 
 ## Important source files
 - `src/Randevoo.Infrastructure/Data/RandevooDbContext.cs`
 
-EF Core is the persistence layer. `RandevooDbContext` exposes 54 DbSets, migrations under `Infrastructure/Data/Migrations`, repositories under `Infrastructure/Repositories`, and seed data in `RandevooSampleDataSeeder`.
+EF Core is the persistence layer. `RandevooDbContext` exposes 54 DbSets, migrations under `Infrastructure/Data/Migrations`, repositories under `Infrastructure/Repositories`, and startup initialization in `RandevooDatabaseInitializer`.
 
 | DbSet | Entity | Source |
 | --- | --- | --- |

@@ -1,0 +1,381 @@
+@page
+@model Randevoo.AdminPanel.Pages.SpecialOperations.IndexModel
+@using Randevoo.AdminPanel.Services.State
+@{
+    ViewData["Title"] = "عملیات ویژه";
+}
+
+<section class="page-header">
+    <div>
+        <h1>عملیات ویژه</h1>
+        <p class="text-muted mb-0">اینجا برای کارهای استثنایی پشتیبانی است؛ کارهایی که نباید با دستکاری مستقیم دیتابیس انجام شوند.</p>
+    </div>
+</section>
+
+@if (!string.IsNullOrWhiteSpace(Model.StatusMessage))
+{
+    <div class="alert alert-info">@Model.StatusMessage</div>
+}
+@if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+{
+    <div class="alert alert-danger">@Model.ErrorMessage</div>
+}
+
+<div class="alert alert-warning border-0 mb-4">
+    <div class="fw-semibold mb-2"><i class="bi bi-exclamation-triangle"></i> قبل از اجرای هر عملیات</div>
+    <div class="small lh-lg">
+        ابتدا فرم را پر کنید و دکمه پیش‌نمایش را بزنید. پیش‌نمایش نشان می‌دهد دقیقاً کدام کاربر، بلیت، سفارش، موجودی کیف پول و رویداد تغییر می‌کند. اجرای نهایی فقط بعد از پیش‌نمایش فعال می‌شود و هر عملیات با دلیل، شماره تیکت پشتیبانی و کلید جلوگیری از اجرای تکراری در تاریخچه ثبت می‌شود.
+    </div>
+</div>
+
+<div class="glass-panel p-4">
+    <ul class="nav nav-pills gap-2 mb-4" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link @(Model.ActiveTab == "ticket" ? "active" : string.Empty)" data-bs-toggle="pill" data-bs-target="#ticketOps" type="button" role="tab">
+                <i class="bi bi-ticket-perforated"></i> بلیت
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link @(Model.ActiveTab == "issue" ? "active" : string.Empty)" data-bs-toggle="pill" data-bs-target="#issueOps" type="button" role="tab">
+                <i class="bi bi-bag-plus"></i> صدور دستی
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link @(Model.ActiveTab == "wallet-credit" ? "active" : string.Empty)" data-bs-toggle="pill" data-bs-target="#walletCreditOps" type="button" role="tab">
+                <i class="bi bi-plus-circle"></i> شارژ کیف پول
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link @(Model.ActiveTab == "wallet-debit" ? "active" : string.Empty)" data-bs-toggle="pill" data-bs-target="#walletDebitOps" type="button" role="tab">
+                <i class="bi bi-dash-circle"></i> کسر کیف پول
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link @(Model.ActiveTab == "reports" ? "active" : string.Empty)" data-bs-toggle="pill" data-bs-target="#reportedUsersOps" type="button" role="tab">
+                <i class="bi bi-flag"></i> کاربران ریپورت‌شده
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link @(Model.ActiveTab == "history" ? "active" : string.Empty)" data-bs-toggle="pill" data-bs-target="#historyOps" type="button" role="tab">
+                <i class="bi bi-clock-history"></i> تاریخچه
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content">
+        <div class="tab-pane fade @(Model.ActiveTab == "ticket" ? "show active" : string.Empty)" id="ticketOps" role="tabpanel">
+            <div class="alert alert-light border mb-4">
+                <h2 class="section-title mb-2">کنسل کردن بلیت و برگشت مبلغ به کیف پول</h2>
+                <p class="small text-muted mb-2">برای وقتی است که کاربر با پشتیبانی تماس گرفته و می‌خواهد بلیتی که قبلاً خریده لغو شود.</p>
+                <ul class="small mb-0 lh-lg">
+                    <li>بلیت انتخاب‌شده Refund می‌شود و دیگر برای ورود، چت، نظرسنجی یا حضور در رویداد معتبر نیست.</li>
+                    <li>مبلغ همان بلیت به کیف پول خریدار سفارش برمی‌گردد؛ مبلغ دستی وارد نمی‌شود.</li>
+                    <li>اگر همه بلیت‌های سفارش برگشت خورده باشند، وضعیت سفارش هم Refund می‌شود.</li>
+                    <li>هیچ تماس بانکی یا برگشت وجه درگاه در این عملیات انجام نمی‌شود؛ فقط کیف پول داخل سیستم شارژ می‌شود.</li>
+                </ul>
+            </div>
+            @if (Model.CanCancelTicket)
+            {
+                <form method="post" class="row g-3 align-items-end">
+                    <input asp-for="CancelTicketInput.IdempotencyKey" type="hidden" />
+                    <div class="col-md-3">
+                        <label asp-for="CancelTicketInput.TicketId" class="form-label">شناسه بلیت</label>
+                        <input asp-for="CancelTicketInput.TicketId" class="form-control" />
+                        <div class="form-text">شناسه بلیت دقیق کاربر؛ از لیست خریداران یا تاریخچه مالی قابل پیدا کردن است.</div>
+                        <span asp-validation-for="CancelTicketInput.TicketId" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-3">
+                        <label asp-for="CancelTicketInput.BuyerUserId" class="form-label">شناسه خریدار</label>
+                        <input asp-for="CancelTicketInput.BuyerUserId" class="form-control" />
+                        <div class="form-text">برای جلوگیری از اشتباه، شناسه خریدار باید با سفارش بلیت تطابق داشته باشد.</div>
+                        <span asp-validation-for="CancelTicketInput.BuyerUserId" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-3">
+                        <label asp-for="CancelTicketInput.SupportTicketNumber" class="form-label">شماره تیکت پشتیبانی</label>
+                        <input asp-for="CancelTicketInput.SupportTicketNumber" class="form-control" />
+                        <div class="form-text">اگر کار از مسیر تماس یا تیکت آمده، شماره پیگیری را اینجا ثبت کنید.</div>
+                    </div>
+                    <div class="col-12">
+                        <label asp-for="CancelTicketInput.Reason" class="form-label">دلیل عملیات</label>
+                        <textarea asp-for="CancelTicketInput.Reason" class="form-control" rows="2"></textarea>
+                        <div class="form-text">این متن در لاگ عملیات ویژه ذخیره می‌شود؛ دلیل را طوری بنویسید که بعداً قابل بررسی باشد.</div>
+                        <span asp-validation-for="CancelTicketInput.Reason" class="text-danger small"></span>
+                    </div>
+                    <div class="col-12">
+                        <button asp-page-handler="PreviewCancelTicket" class="btn btn-outline-primary" type="submit">
+                            <i class="bi bi-search"></i> پیش‌نمایش
+                        </button>
+                    </div>
+                </form>
+            }
+            else
+            {
+                <div class="empty-state">به عملیات کنسل بلیت و برگشت کیف پول دسترسی ندارید.</div>
+            }
+        </div>
+
+        <div class="tab-pane fade @(Model.ActiveTab == "issue" ? "show active" : string.Empty)" id="issueOps" role="tabpanel">
+            <div class="alert alert-light border mb-4">
+                <h2 class="section-title mb-2">صدور دستی بلیت با کسر از کیف پول</h2>
+                <p class="small text-muted mb-2">برای مواردی است که پشتیبانی باید از طرف کاربر بلیت رویداد را ثبت کند، اما پول از کیف پول خود کاربر کم شود.</p>
+                <ul class="small mb-0 lh-lg">
+                    <li>سیستم دوباره ظرفیت، باز بودن فروش، محدودیت سن/تحصیلات، جنسیت و تکراری نبودن بلیت را بررسی می‌کند.</li>
+                    <li>قیمت بلیت براساس جنسیت و قیمت فعلی رویداد محاسبه می‌شود؛ مبلغ دستی وارد نمی‌شود.</li>
+                    <li>یک سفارش پرداخت‌شده، یک بلیت معتبر و یک تراکنش کسر کیف پول ثبت می‌شود.</li>
+                    <li>اگر موجودی کیف پول کافی نباشد یا ظرفیت پر باشد، عملیات اجرا نمی‌شود.</li>
+                </ul>
+            </div>
+            @if (Model.CanManualIssue)
+            {
+                <form method="post" class="row g-3 align-items-end">
+                    <input asp-for="ManualIssueInput.IdempotencyKey" type="hidden" />
+                    <div class="col-md-4">
+                        <label asp-for="ManualIssueInput.UserId" class="form-label">شناسه کاربر</label>
+                        <input asp-for="ManualIssueInput.UserId" class="form-control" />
+                        <div class="form-text">هم خریدار و هم شرکت‌کننده همین کاربر خواهد بود.</div>
+                        <span asp-validation-for="ManualIssueInput.UserId" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="ManualIssueInput.EventId" class="form-label">شناسه رویداد</label>
+                        <input asp-for="ManualIssueInput.EventId" class="form-control" />
+                        <div class="form-text">بلیت برای همین رویداد صادر می‌شود و ظرفیت همان رویداد مصرف می‌شود.</div>
+                        <span asp-validation-for="ManualIssueInput.EventId" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="ManualIssueInput.SupportTicketNumber" class="form-label">شماره تیکت پشتیبانی</label>
+                        <input asp-for="ManualIssueInput.SupportTicketNumber" class="form-control" />
+                        <div class="form-text">برای اتصال این عملیات به درخواست پشتیبانی.</div>
+                    </div>
+                    <div class="col-12">
+                        <label asp-for="ManualIssueInput.Reason" class="form-label">دلیل عملیات</label>
+                        <textarea asp-for="ManualIssueInput.Reason" class="form-control" rows="2"></textarea>
+                        <div class="form-text">مثلاً پرداخت تلفنی تایید شده، مشکل کاربر در خرید آنلاین، یا اصلاح خطای عملیاتی.</div>
+                        <span asp-validation-for="ManualIssueInput.Reason" class="text-danger small"></span>
+                    </div>
+                    <div class="col-12">
+                        <button asp-page-handler="PreviewManualIssue" class="btn btn-outline-primary" type="submit">
+                            <i class="bi bi-search"></i> پیش‌نمایش
+                        </button>
+                    </div>
+                </form>
+            }
+            else
+            {
+                <div class="empty-state">به عملیات صدور دستی بلیت دسترسی ندارید.</div>
+            }
+        </div>
+
+        <div class="tab-pane fade @(Model.ActiveTab == "wallet-credit" ? "show active" : string.Empty)" id="walletCreditOps" role="tabpanel">
+            <div class="alert alert-light border mb-4">
+                <h2 class="section-title mb-2">شارژ دستی کیف پول</h2>
+                <p class="small text-muted mb-2">برای مواردی است که باید به صورت استثنایی به کیف پول کاربر اعتبار اضافه شود؛ مثل جبران خطای عملیاتی، اعتبار هدیه تاییدشده، یا اصلاح مغایرت داخلی.</p>
+                <ul class="small mb-0 lh-lg">
+                    <li>یک تراکنش مثبت با نوع «شارژ دستی کیف پول» در دفتر کل کیف پول ثبت می‌شود.</li>
+                    <li>موجودی کیف پول کاربر به اندازه مبلغ واردشده افزایش پیدا می‌کند.</li>
+                    <li>بلیت، سفارش، ظرفیت رویداد یا پرداخت بانکی تغییر نمی‌کند.</li>
+                    <li>این عملیات جایگزین Refund درگاه نیست؛ فقط اعتبار داخل کیف پول را زیاد می‌کند.</li>
+                </ul>
+            </div>
+            @if (Model.CanWalletCredit)
+            {
+                <form method="post" class="row g-3">
+                    <input asp-for="WalletCreditInput.IdempotencyKey" type="hidden" />
+                    <div class="col-md-4">
+                        <label asp-for="WalletCreditInput.UserId" class="form-label">شناسه کاربر</label>
+                        <input asp-for="WalletCreditInput.UserId" class="form-control" />
+                        <div class="form-text">کیف پول همین کاربر شارژ می‌شود.</div>
+                        <span asp-validation-for="WalletCreditInput.UserId" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="WalletCreditInput.Amount" class="form-label">مبلغ</label>
+                        <input asp-for="WalletCreditInput.Amount" class="form-control" />
+                        <div class="form-text">مبلغ مثبت به ریال ایران ثبت می‌شود.</div>
+                        <span asp-validation-for="WalletCreditInput.Amount" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="WalletCreditInput.SupportTicketNumber" class="form-label">شماره تیکت پشتیبانی</label>
+                        <input asp-for="WalletCreditInput.SupportTicketNumber" class="form-control" />
+                        <div class="form-text">برای ردیابی علت شارژ دستی.</div>
+                    </div>
+                    <div class="col-12">
+                        <label asp-for="WalletCreditInput.Reason" class="form-label">دلیل عملیات</label>
+                        <textarea asp-for="WalletCreditInput.Reason" class="form-control" rows="2"></textarea>
+                        <div class="form-text">دلیل باید واضح کند چرا پول دستی به کیف پول اضافه شده است.</div>
+                        <span asp-validation-for="WalletCreditInput.Reason" class="text-danger small"></span>
+                    </div>
+                    <div class="col-12">
+                        <button asp-page-handler="PreviewWalletCredit" class="btn btn-outline-primary" type="submit">
+                            <i class="bi bi-search"></i> پیش‌نمایش
+                        </button>
+                    </div>
+                </form>
+            }
+            else
+            {
+                <div class="empty-state">به شارژ دستی کیف پول دسترسی ندارید.</div>
+            }
+        </div>
+
+        <div class="tab-pane fade @(Model.ActiveTab == "wallet-debit" ? "show active" : string.Empty)" id="walletDebitOps" role="tabpanel">
+            <div class="alert alert-light border mb-4">
+                <h2 class="section-title mb-2">کسر دستی کیف پول</h2>
+                <p class="small text-muted mb-2">برای اصلاح موارد نادر است که باید از موجودی کیف پول کاربر کم شود؛ مثلاً برگشت اعتبار اشتباهی یا اصلاح تراکنش داخلی.</p>
+                <ul class="small mb-0 lh-lg">
+                    <li>یک تراکنش منفی با نوع «کسر دستی کیف پول» در دفتر کل کیف پول ثبت می‌شود.</li>
+                    <li>موجودی کیف پول کاربر به اندازه مبلغ واردشده کاهش پیدا می‌کند.</li>
+                    <li>سیستم اجازه منفی شدن کیف پول را نمی‌دهد؛ اگر موجودی کافی نباشد عملیات اجرا نمی‌شود.</li>
+                    <li>بلیت، سفارش، ظرفیت رویداد یا پرداخت بانکی تغییر نمی‌کند.</li>
+                </ul>
+            </div>
+            @if (Model.CanWalletDebit)
+            {
+                <form method="post" class="row g-3">
+                    <input asp-for="WalletDebitInput.IdempotencyKey" type="hidden" />
+                    <div class="col-md-4">
+                        <label asp-for="WalletDebitInput.UserId" class="form-label">شناسه کاربر</label>
+                        <input asp-for="WalletDebitInput.UserId" class="form-control" />
+                        <div class="form-text">از کیف پول همین کاربر کسر می‌شود.</div>
+                        <span asp-validation-for="WalletDebitInput.UserId" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="WalletDebitInput.Amount" class="form-label">مبلغ</label>
+                        <input asp-for="WalletDebitInput.Amount" class="form-control" />
+                        <div class="form-text">مبلغ مثبت وارد کنید؛ سیستم آن را به شکل کسر ثبت می‌کند.</div>
+                        <span asp-validation-for="WalletDebitInput.Amount" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="WalletDebitInput.SupportTicketNumber" class="form-label">شماره تیکت پشتیبانی</label>
+                        <input asp-for="WalletDebitInput.SupportTicketNumber" class="form-control" />
+                        <div class="form-text">برای ردیابی علت کسر دستی.</div>
+                    </div>
+                    <div class="col-12">
+                        <label asp-for="WalletDebitInput.Reason" class="form-label">دلیل عملیات</label>
+                        <textarea asp-for="WalletDebitInput.Reason" class="form-control" rows="2"></textarea>
+                        <div class="form-text">دلیل باید واضح کند چرا از کیف پول کاربر کم شده است.</div>
+                        <span asp-validation-for="WalletDebitInput.Reason" class="text-danger small"></span>
+                    </div>
+                    <div class="col-12">
+                        <button asp-page-handler="PreviewWalletDebit" class="btn btn-outline-primary" type="submit">
+                            <i class="bi bi-search"></i> پیش‌نمایش
+                        </button>
+                    </div>
+                </form>
+            }
+            else
+            {
+                <div class="empty-state">به کسر دستی کیف پول دسترسی ندارید.</div>
+            }
+        </div>
+
+        <div class="tab-pane fade @(Model.ActiveTab == "reports" ? "show active" : string.Empty)" id="reportedUsersOps" role="tabpanel">
+            @await Html.PartialAsync("_ReportedUsers", Model)
+        </div>
+
+        <div class="tab-pane fade @(Model.ActiveTab == "history" ? "show active" : string.Empty)" id="historyOps" role="tabpanel">
+            <div class="alert alert-light border mb-4">
+                <h2 class="section-title mb-2">تاریخچه عملیات ویژه</h2>
+                <p class="small text-muted mb-0">اینجا رد پای عملیات‌های انجام‌شده، عملیات‌های ناموفق، کاربر هدف، مبلغ، شناسه بلیت/سفارش/تراکنش کیف پول، دلیل و شماره تیکت پشتیبانی را نشان می‌دهد. این تاریخچه برای پیگیری داخلی و بررسی بعدی نگه داشته می‌شود.</p>
+            </div>
+            @await Html.PartialAsync("_SpecialOperationHistory", Model)
+        </div>
+    </div>
+</div>
+
+@if (Model.Preview is not null)
+{
+    <div class="content-card mt-4">
+        <div class="d-flex flex-wrap justify-content-between gap-3 align-items-start mb-3">
+            <div>
+                <h2 class="section-title mb-1">@Model.Preview.Title</h2>
+                <p class="text-muted small mb-0">این جدول آخرین کنترل قبل از اجراست. اگر هر مورد با انتظار شما فرق دارد، عملیات را اجرا نکنید و فرم را اصلاح کنید.</p>
+            </div>
+        </div>
+
+        @foreach (var warning in Model.Preview.Warnings)
+        {
+            <div class="alert alert-warning">@warning</div>
+        }
+
+        <div class="table-responsive">
+            <table class="table align-middle">
+                <tbody>
+                @foreach (var row in Model.Preview.Rows)
+                {
+                    <tr>
+                        <th class="w-25">@row.Label</th>
+                        <td class="@(row.IsDanger ? "text-danger fw-semibold" : string.Empty)">@row.Value</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+
+        @if (Model.Preview.Warnings.Count == 0)
+        {
+            <form method="post">
+                @if (Model.PreviewKey == "cancel")
+                {
+                    <input asp-for="CancelTicketInput.TicketId" type="hidden" />
+                    <input asp-for="CancelTicketInput.BuyerUserId" type="hidden" />
+                    <input asp-for="CancelTicketInput.SupportTicketNumber" type="hidden" />
+                    <input asp-for="CancelTicketInput.Reason" type="hidden" />
+                    <input asp-for="CancelTicketInput.IdempotencyKey" type="hidden" />
+                    <button asp-page-handler="ExecuteCancelTicket" class="btn btn-danger" type="submit">
+                        <i class="bi bi-check2-circle"></i> اجرای نهایی عملیات
+                    </button>
+                }
+                else if (Model.PreviewKey == "issue")
+                {
+                    <input asp-for="ManualIssueInput.UserId" type="hidden" />
+                    <input asp-for="ManualIssueInput.EventId" type="hidden" />
+                    <input asp-for="ManualIssueInput.SupportTicketNumber" type="hidden" />
+                    <input asp-for="ManualIssueInput.Reason" type="hidden" />
+                    <input asp-for="ManualIssueInput.IdempotencyKey" type="hidden" />
+                    <button asp-page-handler="ExecuteManualIssue" class="btn btn-danger" type="submit">
+                        <i class="bi bi-check2-circle"></i> اجرای نهایی عملیات
+                    </button>
+                }
+                else if (Model.PreviewKey == "credit")
+                {
+                    <input asp-for="WalletCreditInput.UserId" type="hidden" />
+                    <input asp-for="WalletCreditInput.Amount" type="hidden" />
+                    <input asp-for="WalletCreditInput.SupportTicketNumber" type="hidden" />
+                    <input asp-for="WalletCreditInput.Reason" type="hidden" />
+                    <input asp-for="WalletCreditInput.IdempotencyKey" type="hidden" />
+                    <button asp-page-handler="ExecuteWalletCredit" class="btn btn-danger" type="submit">
+                        <i class="bi bi-check2-circle"></i> اجرای نهایی عملیات
+                    </button>
+                }
+                else if (Model.PreviewKey == "debit")
+                {
+                    <input asp-for="WalletDebitInput.UserId" type="hidden" />
+                    <input asp-for="WalletDebitInput.Amount" type="hidden" />
+                    <input asp-for="WalletDebitInput.SupportTicketNumber" type="hidden" />
+                    <input asp-for="WalletDebitInput.Reason" type="hidden" />
+                    <input asp-for="WalletDebitInput.IdempotencyKey" type="hidden" />
+                    <button asp-page-handler="ExecuteWalletDebit" class="btn btn-danger" type="submit">
+                        <i class="bi bi-check2-circle"></i> اجرای نهایی عملیات
+                    </button>
+                }
+                else if (Model.PreviewKey == "restrict-ticket-purchase")
+                {
+                    <input asp-for="RestrictInput.UserId" type="hidden" />
+                    <input asp-for="RestrictInput.Reason" type="hidden" />
+                    <input asp-for="RestrictInput.SupportTicketNumber" type="hidden" />
+                    <input asp-for="RestrictInput.ExpiresAtUtc" type="hidden" />
+                    <input asp-for="RestrictInput.IdempotencyKey" type="hidden" />
+                    <button asp-page-handler="ExecuteRestrictTicketPurchase" class="btn btn-danger" type="submit">
+                        <i class="bi bi-shield-exclamation"></i> اجرای نهایی محدودسازی خرید
+                    </button>
+                }
+            </form>
+        }
+    </div>
+}
+
+@if (Model.ActiveTab != "history")
+{
+    <div class="mt-4">
+        @await Html.PartialAsync("_SpecialOperationHistory", Model)
+    </div>
+}

@@ -34,7 +34,10 @@ public class UserProfileRepository : IUserProfileRepository
 
     public async Task<UserProfile?> GetByIdAsync(long id, CancellationToken cancellationToken = default)
     {
-        return await _db.UserProfiles.FindAsync(new object[] { id }, cancellationToken);
+        return await _db.UserProfiles
+            .Include(p => p.Interests)
+            .Include(p => p.Images)
+            .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
     }
 
     public async Task<UserProfile?> GetByUserIdAsync(long userId, CancellationToken cancellationToken = default)
@@ -42,6 +45,7 @@ public class UserProfileRepository : IUserProfileRepository
         return await _db.UserProfiles
             .Include(p => p.User)
             .Include(p => p.Interests)
+            .Include(p => p.Images)
             .FirstOrDefaultAsync(p => p.UserId == userId, cancellationToken);
     }
 
@@ -50,6 +54,7 @@ public class UserProfileRepository : IUserProfileRepository
         return await _db.UserProfiles
             .Include(p => p.User)
             .Include(p => p.Interests)
+            .Include(p => p.Images)
             .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
     }
 

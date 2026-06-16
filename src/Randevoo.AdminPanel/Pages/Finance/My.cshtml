@@ -7,6 +7,7 @@
 <section class="page-header">
     <div>
         <h1>مالی من</h1>
+        <p class="text-muted mb-0">اینجا درآمد رویدادها را از گردش واقعی حساب جدا می‌بینید تا بدانید چه چیزی برآورد فروش است و چه چیزی وارد حساب شما شده است.</p>
     </div>
 </section>
 
@@ -19,7 +20,7 @@
 
 <section class="stats-grid">
     <div class="stat-card glass-panel">
-        <div class="stat-label">درآمد کل ریالی</div>
+        <div class="stat-label">درآمد تسویه‌شده</div>
         <div class="stat-value">@DisplayFormatter.ReportingMoney(Model.Finance.TotalCommissionIncomeIrr, Model.IsRtl)</div>
     </div>
     <div class="stat-card glass-panel">
@@ -27,7 +28,7 @@
         <div class="stat-value">@DisplayFormatter.ReportingMoney(Model.Finance.AvailableWithdrawalAmount, Model.IsRtl)</div>
     </div>
     <div class="stat-card glass-panel">
-        <div class="stat-label">در انتظار تسویه</div>
+        <div class="stat-label">برداشت در صف بررسی</div>
         <div class="stat-value">@DisplayFormatter.ReportingMoney(Model.Finance.PendingWithdrawalAmount, Model.IsRtl)</div>
     </div>
 </section>
@@ -35,18 +36,34 @@
 <section class="glass-panel p-4 mt-4">
     <ul class="nav nav-pills mb-4 finance-tab-nav" id="plannerFinanceTabs" role="tablist">
         <li class="nav-item" role="presentation">
-            <button class="nav-link active" id="finance-events-tab" data-bs-toggle="pill" data-bs-target="#finance-events-pane" type="button" role="tab" aria-controls="finance-events-pane" aria-selected="true">درآمد رویدادها</button>
+            <button class="nav-link active" id="finance-events-tab" data-bs-toggle="pill" data-bs-target="#finance-events-pane" type="button" role="tab" aria-controls="finance-events-pane" aria-selected="true">
+                <i class="bi bi-calendar2-check"></i>
+                خلاصه رویدادها
+            </button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link" id="finance-transactions-tab" data-bs-toggle="pill" data-bs-target="#finance-transactions-pane" type="button" role="tab" aria-controls="finance-transactions-pane" aria-selected="false">تراکنش‌های کمیسیون</button>
+            <button class="nav-link" id="finance-transactions-tab" data-bs-toggle="pill" data-bs-target="#finance-transactions-pane" type="button" role="tab" aria-controls="finance-transactions-pane" aria-selected="false">
+                <i class="bi bi-arrow-left-right"></i>
+                گردش حساب
+            </button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link" id="finance-withdrawals-tab" data-bs-toggle="pill" data-bs-target="#finance-withdrawals-pane" type="button" role="tab" aria-controls="finance-withdrawals-pane" aria-selected="false">درخواست تسویه</button>
+            <button class="nav-link" id="finance-withdrawals-tab" data-bs-toggle="pill" data-bs-target="#finance-withdrawals-pane" type="button" role="tab" aria-controls="finance-withdrawals-pane" aria-selected="false">
+                <i class="bi bi-bank"></i>
+                برداشت از حساب
+            </button>
         </li>
     </ul>
 
     <div class="tab-content" id="plannerFinanceTabsContent">
         <div class="tab-pane fade show active" id="finance-events-pane" role="tabpanel" aria-labelledby="finance-events-tab" tabindex="0">
+            <div class="planner-finance-context mb-4">
+                <i class="bi bi-info-circle"></i>
+                <div>
+                    <h2>نمای رویدادمحور فروش</h2>
+                    <p>این تب نشان می‌دهد هر رویداد چقدر فروش داشته و سهم تقریبی شما از همان رویداد چقدر است. این عدد زمانی قطعی و قابل برداشت می‌شود که رویداد تمام شود و تسویه رویداد ثبت شود.</p>
+                </div>
+            </div>
             <div class="table-responsive">
                 <table class="table align-middle">
                     <thead>
@@ -55,7 +72,7 @@
                             <th>زمان شروع</th>
                             <th>بلیت فروش رفته</th>
                             <th>فروش کل</th>
-                            <th>سهم شما</th>
+                            <th>سهم برگزارکننده</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -88,6 +105,13 @@
         </div>
 
         <div class="tab-pane fade" id="finance-transactions-pane" role="tabpanel" aria-labelledby="finance-transactions-tab" tabindex="0">
+            <div class="planner-finance-context mb-4">
+                <i class="bi bi-journal-check"></i>
+                <div>
+                    <h2>گردش واقعی حساب برگزارکننده</h2>
+                    <p>این تب دفتر حساب شماست: اعتبار تسویه رویداد، برداشت‌ها و تراکنش‌هایی که واقعاً روی موجودی قابل برداشت اثر گذاشته‌اند. برای پیگیری مالی رسمی، این بخش مبناست.</p>
+                </div>
+            </div>
             <div class="finance-card-list">
                 @foreach (var item in Model.Finance.Transactions)
                 {
@@ -112,6 +136,13 @@
         </div>
 
         <div class="tab-pane fade" id="finance-withdrawals-pane" role="tabpanel" aria-labelledby="finance-withdrawals-tab" tabindex="0">
+            <div class="planner-finance-context mb-4">
+                <i class="bi bi-cash-stack"></i>
+                <div>
+                    <h2>درخواست برداشت از موجودی قابل برداشت</h2>
+                    <p>بعد از اینکه درآمد رویدادها وارد حساب شما شد، می‌توانید از موجودی قابل برداشت درخواست پرداخت ثبت کنید. درخواست‌های باز تا زمان تایید مدیر از مبلغ قابل برداشت کم می‌شوند.</p>
+                </div>
+            </div>
             <div class="row g-4">
                 <div class="col-lg-4">
                     <form method="post" asp-page-handler="RequestWithdrawal" class="glass-panel p-4 sticky-panel">

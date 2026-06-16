@@ -59,7 +59,7 @@ public sealed class ActivityLogMiddleware
         if (HttpMethods.IsOptions(context.Request.Method))
             return false;
 
-        if (path.StartsWith("/api/auth/", StringComparison.OrdinalIgnoreCase))
+        if (path.StartsWith("/api/v1/platform/auth/", StringComparison.OrdinalIgnoreCase))
             return true;
 
         return context.User.Identity?.IsAuthenticated == true;

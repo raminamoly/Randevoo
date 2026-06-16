@@ -4,11 +4,16 @@
     ViewData["Title"] = "رویدادهای من";
 }
 
-<section class="page-header">
+<section class="page-header planner-events-header">
     <div>
+        <span class="page-kicker">داشبورد برگزارکننده</span>
         <h1>رویدادهای من</h1>
+        <p>وضعیت فروش، قدم بعدی و عملیات اصلی هر رویداد را از همین‌جا مدیریت کنید.</p>
     </div>
-    <a asp-page="/Events/Edit" class="btn btn-primary">ساخت رویداد</a>
+    <a asp-page="/Events/Edit" class="btn btn-primary">
+        <i class="bi bi-plus-lg"></i>
+        ساخت رویداد
+    </a>
 </section>
 
 @if (!string.IsNullOrWhiteSpace(Model.StatusMessage))
@@ -21,83 +26,163 @@
     <div class="alert alert-danger border-0 mb-4">@Model.ErrorMessage</div>
 }
 
-<div class="glass-panel p-4">
-    <div class="table-responsive">
-        <table class="table align-middle">
-            <thead>
-                <tr>
-                    <th>رویداد</th>
-                    <th>زمان شروع</th>
-                    <th>وضعیت عملیاتی</th>
-                    <th>وضعیت پروفایل</th>
-                    <th>نظر مدیر</th>
-                    <th>عملیات</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var item in Model.Events)
-                {
+<div class="glass-panel planner-events-panel">
+    @if (Model.Events.Count == 0)
+    {
+        <div class="planner-events-empty">
+            <div class="planner-events-empty-icon">
+                <i class="bi bi-calendar2-plus"></i>
+            </div>
+            <h2>هنوز رویدادی نساخته‌اید</h2>
+            <p>برای شروع، اولین رویداد خود را بسازید و بعد از تکمیل اطلاعات برای بررسی مدیر ارسال کنید.</p>
+            <a asp-page="/Events/Edit" class="btn btn-primary">ساخت رویداد</a>
+        </div>
+    }
+    else
+    {
+        <div class="planner-events-table-wrap">
+            <table class="table align-middle planner-events-table">
+                <thead>
                     <tr>
-                        <td>
-                            <div class="fw-semibold">@item.DisplayTitle</div>
-                            <div class="text-muted small">رویداد @item.DisplayCode</div>
-                            <div class="text-muted small">@item.ActiveDraft.City</div>
-                            @if (item.ActiveDraft.Tags.Count > 0)
-                            {
-                                <div class="event-chip-list mt-2">
-                                    @foreach (var tag in item.ActiveDraft.Tags.Take(3))
+                        <th>رویداد</th>
+                        <th>زمان</th>
+                        <th>وضعیت عملیاتی</th>
+                        <th>خلاصه فروش</th>
+                        <th>عملیات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.Events)
+                    {
+                        var actionsRowId = $"planner-event-actions-{item.Id}";
+                        var profileModalId = $"eventProfileReviewHistoryModal-{item.Id}";
+                        var transitionModel = Model.CreateStatusTransitionModal(item);
+                        var hasTransitionOptions = transitionModel.Options.Count > 0;
+
+                        <tr class="planner-event-row">
+                            <td data-label="رویداد">
+                                <div class="planner-event-title-cell">
+                                    <div class="planner-event-title-line">
+                                        <strong>@item.DisplayTitle</strong>
+                                        <span class="planner-profile-status-pill @Model.GetProfileIndicatorClass(item)" title="@Model.GetProfileIndicatorLabel(item)">
+                                            <i class="bi @Model.GetProfileIndicatorIcon(item)" aria-hidden="true"></i>
+                                            <span>@Model.GetProfileIndicatorLabel(item)</span>
+                                        </span>
+                                    </div>
+                                    <div class="planner-event-meta-line">
+                                        <span>رویداد @item.DisplayCode</span>
+                                        <span>@item.ActiveDraft.City</span>
+                                        <span>@item.ActiveDraft.EventModeName</span>
+                                    </div>
+                                    @if (Model.HasProfileReviewNote(item))
                                     {
-                                        <span class="event-chip">@tag</span>
+                                        <button type="button" class="planner-review-note-link" data-bs-toggle="modal" data-bs-target="#@profileModalId">
+                                            <i class="bi bi-chat-square-text"></i>
+                                            مشاهده نظر مدیر
+                                        </button>
                                     }
                                 </div>
-                            }
-                        </td>
-                        <td>@PersianDateFormatter.Format(item.ActiveDraft.StartAtUtc, Model.IsRtl)</td>
-                        <td><span class="status-badge @Model.GetOperationalStatusClass(item.OperationalStatus)">@DisplayFormatter.OperationalStatus(item.OperationalStatus)</span></td>
-                        <td><span class="status-badge @Model.GetProfileStatusClass(item.ApprovalStatus)">@DisplayFormatter.ProfileStatus(item.ApprovalStatus)</span></td>
-                        <td class="text-muted">@item.AdminReviewNote</td>
-                        <td class="text-end table-action-cell">
-                            <div class="dropdown">
-                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle table-action-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                    عملیات
-                                </button>
-                                <div class="dropdown-menu dropdown-menu-end action-menu shadow-sm border-0">
-                                    <a asp-page="/Events/Details" asp-route-id="@item.Id" class="dropdown-item">
-                                        <i class="bi bi-eye"></i>پروفایل رویداد
-                                    </a>
-                                    <a asp-page="/Events/Edit" asp-route-id="@item.Id" class="dropdown-item">
-                                        <i class="bi bi-pencil-square"></i>ویرایش رویداد
-                                    </a>
-                                    <a asp-page="/Events/Faqs" asp-route-eventId="@item.Id" class="dropdown-item">
-                                        <i class="bi bi-question-circle"></i>سوالات متداول
-                                    </a>
-                                    <a asp-page="/Participants/Index" asp-route-EventId="@item.Id" class="dropdown-item">
-                                        <i class="bi bi-people"></i>فهرست شرکت‌کنندگان
-                                    </a>
-                                    <a asp-page="/Buyers/Index" asp-route-EventId="@item.Id" class="dropdown-item">
-                                        <i class="bi bi-bag-check"></i>خریداران بلیت
-                                    </a>
-                                    <a asp-page="/Events/Sms" asp-route-eventId="@item.Id" class="dropdown-item">
-                                        <i class="bi bi-chat-dots"></i>پیام به شرکت کنندگان
-                                    </a>
-                                    <a asp-page="/Public/Event" asp-route-id="@item.Id" class="dropdown-item">
-                                        <i class="bi bi-box-arrow-up-left"></i>نمایش عمومی
-                                    </a>
-                                    <div class="dropdown-divider"></div>
-                                    <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#eventStatusTransitionModal-@item.Id">
-                                        <i class="bi bi-arrow-repeat"></i>تغییر وضعیت رویداد
-                                    </button>
+                            </td>
+                            <td data-label="زمان">
+                                <div class="planner-event-time">
+                                    <strong>@PersianDateFormatter.Format(item.ActiveDraft.StartAtUtc, Model.IsRtl)</strong>
+                                    <span>مدت: @Model.FormatDuration(item)</span>
                                 </div>
-                            </div>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    </div>
+                            </td>
+                            <td data-label="وضعیت عملیاتی">
+                                <span class="status-badge @Model.GetOperationalStatusClass(item.OperationalStatus)">
+                                    @DisplayFormatter.OperationalStatus(item.OperationalStatus)
+                                </span>
+                            </td>
+                            <td data-label="خلاصه فروش">
+                                <div class="planner-event-sales-summary">
+                                    <strong>@DisplayFormatter.Money(item.ConfirmedSalesAmountIrr, Model.IsRtl)</strong>
+                                    <span>@DisplayFormatter.Number(item.TicketsSoldCount) بلیت</span>
+                                    <span>@DisplayFormatter.Number(item.ParticipantsCount) شرکت‌کننده</span>
+                                </div>
+                            </td>
+                            <td data-label="عملیات" class="planner-event-actions-cell">
+                                <button type="button"
+                                        class="btn btn-sm btn-outline-primary planner-event-actions-toggle"
+                                        data-planner-event-actions-toggle
+                                        data-target="#@actionsRowId"
+                                        aria-controls="@actionsRowId"
+                                        aria-expanded="false">
+                                    <i class="bi bi-sliders2"></i>
+                                    عملیات
+                                    <i class="bi bi-chevron-down planner-event-actions-chevron"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        <tr id="@actionsRowId" class="planner-event-actions-row" hidden>
+                            <td colspan="5">
+                                <div class="planner-event-actions-panel">
+                                    <div class="planner-event-action-group">
+                                        <h3>پروفایل رویداد</h3>
+                                        <a asp-page="/Events/Details" asp-route-id="@item.Id" class="planner-event-action-link">
+                                            <i class="bi bi-eye"></i>
+                                            پروفایل رویداد
+                                        </a>
+                                        <a asp-page="/Events/Edit" asp-route-id="@item.Id" class="planner-event-action-link">
+                                            <i class="bi bi-pencil-square"></i>
+                                            ویرایش رویداد
+                                        </a>
+                                        <a asp-page="/Events/Faqs" asp-route-eventId="@item.Id" class="planner-event-action-link">
+                                            <i class="bi bi-question-circle"></i>
+                                            سوالات متداول
+                                        </a>
+                                        <a asp-page="/Public/Event" asp-route-id="@item.Id" class="planner-event-action-link">
+                                            <i class="bi bi-box-arrow-up-left"></i>
+                                            نمایش عمومی
+                                        </a>
+                                    </div>
+
+                                    <div class="planner-event-action-group">
+                                        <h3>مخاطبان و فروش</h3>
+                                        <a asp-page="/Participants/Index" asp-route-EventId="@item.Id" class="planner-event-action-link">
+                                            <i class="bi bi-people"></i>
+                                            فهرست شرکت‌کنندگان
+                                        </a>
+                                        <a asp-page="/Buyers/Index" asp-route-EventId="@item.Id" class="planner-event-action-link">
+                                            <i class="bi bi-bag-check"></i>
+                                            خریداران بلیت
+                                        </a>
+                                        <a asp-page="/Events/Sms" asp-route-eventId="@item.Id" class="planner-event-action-link">
+                                            <i class="bi bi-chat-dots"></i>
+                                            پیام به شرکت‌کنندگان
+                                        </a>
+                                    </div>
+
+                                    <div class="planner-event-action-group">
+                                        <h3>عملیات رویداد</h3>
+                                        @if (hasTransitionOptions)
+                                        {
+                                            <button type="button" class="planner-event-action-link as-button" data-bs-toggle="modal" data-bs-target="#eventStatusTransitionModal-@item.Id">
+                                                <i class="bi bi-arrow-repeat"></i>
+                                                تغییر وضعیت رویداد
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <button type="button" class="planner-event-action-link as-button is-disabled" disabled title="@transitionModel.EmptyMessage">
+                                                <i class="bi bi-lock"></i>
+                                                تغییر وضعیت رویداد
+                                            </button>
+                                            <p>@transitionModel.EmptyMessage</p>
+                                        }
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
 </div>
 
 @foreach (var item in Model.Events)
 {
     <partial name="_StatusTransitionModal" model="Model.CreateStatusTransitionModal(item)" />
+    <partial name="_ProfileReviewHistoryModal" model="Model.CreateProfileReviewHistoryModal(item)" />
 }

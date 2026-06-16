@@ -1,0 +1,5 @@
+Sample platform manual payment receipt
+
+Tracking: TEST-PLATFORM-001
+Destination: Randevoo platform account
+Status: Submitted for support review

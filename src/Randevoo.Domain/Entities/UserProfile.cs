@@ -14,18 +14,19 @@ public class UserProfile : BaseEntity , IAggregateRoot
 
 
     public string DisplayName { get; private set; } = null!;
-    public Gender Gender { get; private set; }
     public long? GenderId { get; private set; }
+    public Gender Gender => MapGender(GenderId);
     public GenderLookup? GenderLookup { get; private set; }
     public DateOnly DateOfBirth { get; private set; }
     public int BirthMonth { get; private set; }
-    public string ZodiacSign { get; private set; } = null!;
     public long? ZodiacSignId { get; private set; }
+    public string ZodiacSign => MapZodiacSignCode(ZodiacSignId);
     public ZodiacSignLookup? ZodiacSignLookup { get; private set; }
     public Height Height { get; private set; } = null!;
     public EducationLevel EducationLevel { get; private set; }
     public long? EducationLevelId { get; private set; }
     public EducationLevelLookup? EducationLevelLookup { get; private set; }
+    public UserProfileStatus ProfileStatus { get; private set; }
     public bool Smoking { get; private set; }
    
 
@@ -67,18 +68,17 @@ public class UserProfile : BaseEntity , IAggregateRoot
 
         User = user;
         DisplayName = GuardAgainst.String.InvalidLength(displayName, nameof(displayName), 2, 50);
-        Gender = GuardAgainst.Number.AgainstInvalidEnum<Gender>((int)gender, nameof(gender));
-        GenderId = MapGenderId(gender);
+        GenderId = MapGenderId(GuardAgainst.Number.AgainstInvalidEnum<Gender>((int)gender, nameof(gender)));
         DateOfBirth = GuardAgainst.Date.AgeRequirement(dateOfBirth, 18, nameof(dateOfBirth));
         BirthMonth = DateOfBirth.Month;
-        ZodiacSign = MapZodiacSign(DateOfBirth.Month, DateOfBirth.Day);
-        ZodiacSignId = MapZodiacSignId(ZodiacSign);
+        ZodiacSignId = MapZodiacSignId(MapZodiacSign(DateOfBirth.Month, DateOfBirth.Day));
         Location = GuardAgainst.Object.Null(location, nameof(location));
         (CountryId, CityId) = MapLocationIds(location.Country, location.City);
         Height = height ?? new Height(170);
 
         EducationLevel = EducationLevel.NotSpecified;
         EducationLevelId = MapEducationLevelId(EducationLevel);
+        ProfileStatus = ResolveProfileStatus();
         Smoking = false;
 
         // Add domain event for creation
@@ -123,6 +123,7 @@ public class UserProfile : BaseEntity , IAggregateRoot
 
         EducationLevel = GuardAgainst.Number.AgainstInvalidEnum<EducationLevel>((int)level, nameof(level));
         EducationLevelId = MapEducationLevelId(EducationLevel);
+        RefreshProfileStatus();
         UpdateTimestamp();
 
         AddDomainEvent(new EntityUpdatedEvent<UserProfile>(this, nameof(EducationLevel), oldLevel, level));
@@ -132,8 +133,8 @@ public class UserProfile : BaseEntity , IAggregateRoot
     {
         var oldGender = Gender;
 
-        Gender = GuardAgainst.Number.AgainstInvalidEnum<Gender>((int)gender, nameof(gender));
-        GenderId = MapGenderId(Gender);
+        GenderId = MapGenderId(GuardAgainst.Number.AgainstInvalidEnum<Gender>((int)gender, nameof(gender)));
+        RefreshProfileStatus();
         UpdateTimestamp();
 
         AddDomainEvent(new EntityUpdatedEvent<UserProfile>(this, nameof(Gender), oldGender, gender));
@@ -145,11 +146,25 @@ public class UserProfile : BaseEntity , IAggregateRoot
 
         DateOfBirth = GuardAgainst.Date.AgeRequirement(dateOfBirth, 18, nameof(dateOfBirth));
         BirthMonth = DateOfBirth.Month;
-        ZodiacSign = MapZodiacSign(DateOfBirth.Month, DateOfBirth.Day);
-        ZodiacSignId = MapZodiacSignId(ZodiacSign);
+        ZodiacSignId ??= MapZodiacSignId(MapZodiacSign(DateOfBirth.Month, DateOfBirth.Day));
+        RefreshProfileStatus();
         UpdateTimestamp();
 
         AddDomainEvent(new EntityUpdatedEvent<UserProfile>(this, nameof(DateOfBirth), oldDateOfBirth, dateOfBirth));
+    }
+
+    public void UpdateZodiacSign(long? zodiacSignId)
+    {
+        var normalized = zodiacSignId is null or < 1 or > 12
+            ? throw new BusinessRuleViolationException("Invalid zodiac sign", "Zodiac sign must be selected from the lookup list")
+            : zodiacSignId;
+
+        var oldZodiacSignId = ZodiacSignId;
+        ZodiacSignId = normalized;
+        RefreshProfileStatus();
+        UpdateTimestamp();
+
+        AddDomainEvent(new EntityUpdatedEvent<UserProfile>(this, nameof(ZodiacSignId), oldZodiacSignId ?? 0L, normalized));
     }
 
     public void SetSmoking(bool smokes)
@@ -164,6 +179,7 @@ public class UserProfile : BaseEntity , IAggregateRoot
 
     public void UpdateProfile(
         string displayName,
+        DateOnly dateOfBirth,
         Gender gender,
         Location location,
         Height height,
@@ -171,6 +187,7 @@ public class UserProfile : BaseEntity , IAggregateRoot
         bool smoking)
     {
         UpdateDisplayName(displayName);
+        UpdateDateOfBirth(dateOfBirth);
         UpdateGender(gender);
         UpdateLocation(location);
         UpdateHeight(height);
@@ -185,17 +202,23 @@ public class UserProfile : BaseEntity , IAggregateRoot
         EducationLevelId = educationLevelId ?? MapEducationLevelId(EducationLevel);
         GenderId = genderId ?? MapGenderId(Gender);
         ZodiacSignId = zodiacSignId ?? MapZodiacSignId(ZodiacSign);
+        RefreshProfileStatus();
         UpdateTimestamp();
+    }
+
+    public void RefreshProfileStatus()
+    {
+        ProfileStatus = ResolveProfileStatus();
     }
 
     public void AddInterest(Interest interest)
     {
         GuardAgainst.Object.Null(interest, nameof(interest));
 
-        if (_interests.Count >= 10)
+        if (_interests.Count >= 4)
             throw new BusinessRuleViolationException(
                 "Maximum interests exceeded",
-                "User cannot have more than 10 interests");
+                "User cannot have more than 4 interests");
 
         if (_interests.Any(i => i == interest))
             throw new BusinessRuleViolationException(
@@ -205,6 +228,7 @@ public class UserProfile : BaseEntity , IAggregateRoot
         _interests.Add(interest);
         interest.IncrementUsage(); // Track popularity
 
+        RefreshProfileStatus();
         UpdateTimestamp();
 
         AddDomainEvent(new InterestAddedEvent(this, interest));
@@ -240,8 +264,94 @@ public class UserProfile : BaseEntity , IAggregateRoot
 
         var profileImage = new UserProfileImage(this, imageUrl, displayOrder, isPrimary);
         _images.Add(profileImage);
+        RefreshProfileStatus();
         UpdateTimestamp();
         return profileImage;
+    }
+
+    public void ReplaceInterests(IEnumerable<Interest> interests)
+    {
+        var normalized = interests
+            .GroupBy(interest => interest.Name, StringComparer.OrdinalIgnoreCase)
+            .Select(group => group.First())
+            .ToList();
+
+        foreach (var existing in _interests.ToList())
+        {
+            if (normalized.Any(interest => interest.Name.Equals(existing.Name, StringComparison.OrdinalIgnoreCase)))
+                continue;
+
+            RemoveInterest(existing);
+        }
+
+        foreach (var interest in normalized)
+        {
+            if (_interests.Any(existing => existing.Name.Equals(interest.Name, StringComparison.OrdinalIgnoreCase)))
+                continue;
+
+            AddInterest(interest);
+        }
+
+        RefreshProfileStatus();
+    }
+
+    public void SetPrimaryImage(string? imageUrl)
+    {
+        if (string.IsNullOrWhiteSpace(imageUrl))
+            return;
+
+        var normalized = GuardAgainst.String.InvalidLength(imageUrl.Trim(), nameof(imageUrl), 2, 500);
+        var primary = _images.FirstOrDefault(image => image.IsPrimary)
+            ?? _images.OrderBy(image => image.DisplayOrder).FirstOrDefault();
+
+        if (primary is not null)
+        {
+            primary.Update(normalized, primary.DisplayOrder, true);
+            foreach (var image in _images.Where(image => image != primary))
+                image.Update(image.ImageUrl, image.DisplayOrder, false);
+        }
+        else
+        {
+            AddImage(normalized, 1, true);
+        }
+
+        RefreshProfileStatus();
+        UpdateTimestamp();
+    }
+
+    public void ReplaceImages(IEnumerable<string> imageUrls, string? primaryImageUrl = null)
+    {
+        var normalized = imageUrls
+            .Where(url => !string.IsNullOrWhiteSpace(url))
+            .Select(url => GuardAgainst.String.InvalidLength(url.Trim(), nameof(imageUrls), 2, 500))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (normalized.Count > 3)
+            throw new BusinessRuleViolationException(
+                "Maximum profile images exceeded",
+                "User profile cannot have more than 3 images");
+
+        _images.Clear();
+
+        if (normalized.Count == 0)
+        {
+            RefreshProfileStatus();
+            UpdateTimestamp();
+            return;
+        }
+
+        var primary = string.IsNullOrWhiteSpace(primaryImageUrl)
+            ? normalized[0]
+            : normalized.FirstOrDefault(url => url.Equals(primaryImageUrl.Trim(), StringComparison.OrdinalIgnoreCase)) ?? normalized[0];
+
+        for (var i = 0; i < normalized.Count; i++)
+        {
+            _images.Add(new UserProfileImage(this, normalized[i], i + 1, normalized[i].Equals(primary, StringComparison.OrdinalIgnoreCase)));
+        }
+
+        RefreshProfileStatus();
+        UpdateTimestamp();
     }
 
     public void RemoveInterest(Interest interest)
@@ -255,6 +365,7 @@ public class UserProfile : BaseEntity , IAggregateRoot
 
         _interests.Remove(interest);
         interest.DecrementUsage();
+        RefreshProfileStatus();
         UpdateTimestamp();
 
         AddDomainEvent(new InterestRemovedEvent(this, interest));
@@ -275,12 +386,40 @@ public class UserProfile : BaseEntity , IAggregateRoot
         return age;
     }
 
+    private UserProfileStatus ResolveProfileStatus()
+    {
+        var hasLocation =
+            !string.IsNullOrWhiteSpace(Location?.City) ||
+            CityId is not null;
+
+        var hasCoreFields =
+            !string.IsNullOrWhiteSpace(DisplayName) &&
+            Gender != Gender.Unknown &&
+            DateOfBirth != default &&
+            EducationLevel != EducationLevel.NotSpecified &&
+            hasLocation;
+
+        if (!hasCoreFields)
+            return UserProfileStatus.Incomplete;
+
+        return _interests.Count > 0 || _images.Count > 0
+            ? UserProfileStatus.Complete
+            : UserProfileStatus.ReadyToBuy;
+    }
+
     private static long? MapGenderId(Gender gender) => gender switch
     {
         Gender.Unknown => 1,
         Gender.Male => 2,
         Gender.Female => 3,
         _ => null
+    };
+
+    private static Gender MapGender(long? genderId) => genderId switch
+    {
+        2 => Gender.Male,
+        3 => Gender.Female,
+        _ => Gender.Unknown
     };
 
     private static long? MapEducationLevelId(EducationLevel educationLevel) => educationLevel switch
@@ -353,6 +492,23 @@ public class UserProfile : BaseEntity , IAggregateRoot
         "Aquarius" => 11,
         "Pisces" => 12,
         _ => null
+    };
+
+    private static string MapZodiacSignCode(long? zodiacSignId) => zodiacSignId switch
+    {
+        1 => "Aries",
+        2 => "Taurus",
+        3 => "Gemini",
+        4 => "Cancer",
+        5 => "Leo",
+        6 => "Virgo",
+        7 => "Libra",
+        8 => "Scorpio",
+        9 => "Sagittarius",
+        10 => "Capricorn",
+        11 => "Aquarius",
+        12 => "Pisces",
+        _ => string.Empty
     };
 }
 

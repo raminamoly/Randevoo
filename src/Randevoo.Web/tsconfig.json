@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ES2022",
+    "strict": true,
+    "outDir": "wwwroot/js",
+    "rootDir": "ClientApp/ts",
+    "sourceMap": true
+  },
+  "include": [
+    "ClientApp/ts/**/*.ts"
+  ]
+}

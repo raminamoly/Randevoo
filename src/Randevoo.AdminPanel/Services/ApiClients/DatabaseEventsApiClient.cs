@@ -131,7 +131,10 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
             .OrderByDescending(item => item.UpdatedAt ?? item.CreatedAt)
             .ToListAsync(cancellationToken);
 
-        return events.Select(DatabaseModelMapper.ToAdminDatingEvent).ToList();
+        var models = events.Select(DatabaseModelMapper.ToAdminDatingEvent).ToList();
+        await PopulateEventListSummariesAsync(models, cancellationToken);
+
+        return models;
     }
 
     public async Task<EventListResult> GetEventsPageAsync(MockUser currentUser, EventListFilter filter, CancellationToken cancellationToken = default)
@@ -1171,6 +1174,55 @@ public sealed class DatabaseEventsApiClient : IEventsApiClient
 
     private static string Truncate(string value, int maxLength)
         => value.Length <= maxLength ? value : value[..maxLength];
+
+    private async Task PopulateEventListSummariesAsync(IReadOnlyCollection<Models.Events.DatingEvent> events, CancellationToken cancellationToken)
+    {
+        if (events.Count == 0)
+            return;
+
+        var eventIds = events.Select(item => item.Id).ToList();
+        var ticketSummaries = await _db.EventTickets
+            .AsNoTracking()
+            .Where(ticket => eventIds.Contains(ticket.DatingEventId) && !ticket.IsRefunded && !ticket.IsRemoved)
+            .GroupBy(ticket => ticket.DatingEventId)
+            .Select(group => new
+            {
+                EventId = group.Key,
+                TicketsSoldCount = group.Count(),
+                ParticipantsCount = group.Select(ticket => ticket.UserId).Distinct().Count()
+            })
+            .ToDictionaryAsync(item => item.EventId, cancellationToken);
+
+        var salesSummaries = await _db.TicketOrders
+            .AsNoTracking()
+            .Where(order =>
+                eventIds.Contains(order.DatingEventId)
+                && order.PaymentStatus == TicketOrderPaymentStatus.Paid
+                && order.OrderStatus == TicketOrderStatus.Confirmed)
+            .GroupBy(order => order.DatingEventId)
+            .Select(group => new
+            {
+                EventId = group.Key,
+                BuyersCount = group.Select(order => order.BuyerUserId).Distinct().Count(),
+                ConfirmedSalesAmountIrr = group.Sum(order => order.ReportingNetAmountIrr)
+            })
+            .ToDictionaryAsync(item => item.EventId, cancellationToken);
+
+        foreach (var datingEvent in events)
+        {
+            if (ticketSummaries.TryGetValue(datingEvent.Id, out var ticketSummary))
+            {
+                datingEvent.TicketsSoldCount = ticketSummary.TicketsSoldCount;
+                datingEvent.ParticipantsCount = ticketSummary.ParticipantsCount;
+            }
+
+            if (salesSummaries.TryGetValue(datingEvent.Id, out var salesSummary))
+            {
+                datingEvent.BuyersCount = salesSummary.BuyersCount;
+                datingEvent.ConfirmedSalesAmountIrr = salesSummary.ConfirmedSalesAmountIrr;
+            }
+        }
+    }
 
     private async Task<User> RequireUserAsync(long userId, CancellationToken cancellationToken)
     {

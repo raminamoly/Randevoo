@@ -9,8 +9,21 @@
         <h1>تیکت های من با پشتیبانی</h1>
         <p class="text-muted mb-0">گفت‌وگوی شما با تیم پشتیبانی سایت درباره حساب، مالی، رویدادها و مسائل اجرایی.</p>
     </div>
-    <a class="btn btn-primary" asp-page="/Support/Create"><i class="bi bi-plus-circle"></i> تیکت جدید</a>
+    <button class="btn btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#createSupportTicketModal">
+        <i class="bi bi-plus-circle"></i>
+        تیکت جدید
+    </button>
 </section>
+
+@if (!string.IsNullOrWhiteSpace(Model.StatusMessage))
+{
+    <div class="alert alert-success border-0 mb-4">@Model.StatusMessage</div>
+}
+
+@if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+{
+    <div class="alert alert-danger border-0 mb-4">@Model.ErrorMessage</div>
+}
 
 <div class="glass-panel p-4">
     <div class="table-responsive">
@@ -47,3 +60,77 @@
         <div class="empty-state">هنوز تیکتی برای پشتیبانی سایت ثبت نکرده اید.</div>
     }
 </div>
+
+<div class="modal fade support-ticket-create-modal" id="createSupportTicketModal" tabindex="-1" aria-labelledby="createSupportTicketModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <form method="post" enctype="multipart/form-data">
+                <div class="modal-header">
+                    <div>
+                        <span class="event-status-guide-kicker">پشتیبانی سایت</span>
+                        <h2 class="modal-title" id="createSupportTicketModalLabel">ثبت تیکت جدید</h2>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="بستن"></button>
+                </div>
+                <div class="modal-body">
+                    <input asp-for="Input.TicketRecipientTypeId" type="hidden" />
+                    <div class="row g-3">
+                        <div class="col-12 col-lg-8">
+                            <label asp-for="Input.Title" class="form-label">عنوان</label>
+                            <input asp-for="Input.Title" class="form-control" />
+                            <span asp-validation-for="Input.Title" class="text-danger small"></span>
+                        </div>
+                        <div class="col-12 col-md-6 col-lg-4">
+                            <label asp-for="Input.TicketTypeId" class="form-label">نوع تیکت</label>
+                            <select asp-for="Input.TicketTypeId" class="form-select" asp-items="Model.TicketTypeOptions"></select>
+                            <span asp-validation-for="Input.TicketTypeId" class="text-danger small"></span>
+                        </div>
+                        <div class="col-12">
+                            <label asp-for="Input.EventId" class="form-label">رویداد مرتبط</label>
+                            <select asp-for="Input.EventId"
+                                    class="form-select"
+                                    asp-items="Model.EventSelectOptions"
+                                    data-searchable-select="true"
+                                    data-search-placeholder="جستجوی رویداد">
+                                <option value="">بدون رویداد مرتبط</option>
+                            </select>
+                            <span asp-validation-for="Input.EventId" class="text-danger small"></span>
+                        </div>
+                        <div class="col-12">
+                            <label asp-for="Input.Body" class="form-label">پیام</label>
+                            <textarea asp-for="Input.Body" class="form-control" rows="7"></textarea>
+                            <span asp-validation-for="Input.Body" class="text-danger small"></span>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">تصویر پیوست <span class="text-muted small">(اختیاری)</span></label>
+                            <input asp-for="Attachments" class="form-control" type="file" accept="image/*" multiple />
+                            <div class="form-text">اگر لازم بود تصویر اضافه کنید؛ حداکثر ۵ مگابایت برای هر تصویر.</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">انصراف</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-send"></i>
+                        ارسال تیکت
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    @if (Model.OpenCreateModal)
+    {
+        <script>
+            window.addEventListener("DOMContentLoaded", () => {
+                const modal = document.getElementById("createSupportTicketModal");
+                if (modal && window.bootstrap) {
+                    window.bootstrap.Modal.getOrCreateInstance(modal).show();
+                }
+            });
+        </script>
+    }
+}

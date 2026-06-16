@@ -46,19 +46,27 @@
             <select asp-for="Input.Target" class="form-select" asp-items="Model.TargetItems" id="targetSelect"></select>
             <div class="form-text" id="targetHint">گیرندگان مجاز با توجه به نقش و نوع پیام مشخص می‌شوند.</div>
         </div>
-        <div class="col-md-4" id="userPickerGroup">
-            <label asp-for="Input.TargetUserId" class="form-label">کاربر گیرنده</label>
-            <select asp-for="Input.TargetUserId" class="form-select searchable-select" asp-items="Model.UserItems">
-                <option value="">انتخاب کاربر</option>
-            </select>
-            <div class="form-text">برای برگزارکننده فقط کاربران مرتبط با رویداد انتخاب‌شده نمایش داده می‌شوند.</div>
-        </div>
         <div class="col-md-4" id="eventPickerGroup">
             <label asp-for="Input.EventId" class="form-label">رویداد</label>
-            <select asp-for="Input.EventId" class="form-select searchable-select" asp-items="Model.EventItems">
+            <select asp-for="Input.EventId"
+                    class="form-select"
+                    asp-items="Model.EventItems"
+                    data-searchable-select="true"
+                    data-search-placeholder="جستجوی رویداد">
                 <option value="">انتخاب رویداد</option>
             </select>
             <div class="form-text">رویدادهای فعال و اخیر نمایش داده می‌شوند. متن گزینه شامل کد رویداد است.</div>
+        </div>
+        <div class="col-md-4" id="userPickerGroup">
+            <label asp-for="Input.TargetUserId" class="form-label">شرکت‌کننده گیرنده</label>
+            <select asp-for="Input.TargetUserId"
+                    class="form-select"
+                    asp-items="Model.UserItems"
+                    data-searchable-select="true"
+                    data-search-placeholder="جستجوی شرکت‌کننده">
+                <option value="">اول رویداد را انتخاب کنید</option>
+            </select>
+            <div class="form-text" id="userPickerHint">بعد از انتخاب رویداد، شرکت‌کنندگان همان رویداد اینجا نمایش داده می‌شوند.</div>
         </div>
         <div class="col-12">
             <label asp-for="Input.Body" class="form-label">متن پیام</label>
@@ -97,12 +105,87 @@
             const typeHint = document.getElementById('messageTypeHint');
             const userGroup = document.getElementById('userPickerGroup');
             const eventGroup = document.getElementById('eventPickerGroup');
+            const eventSelect = document.getElementById('Input_EventId');
+            const userSelect = document.getElementById('Input_TargetUserId');
+            const userHint = document.getElementById('userPickerHint');
             const smsGroup = document.getElementById('smsGroup');
             const sendSms = document.getElementById('Input_SendSms');
             const summaryTitle = document.getElementById('composeSummaryTitle');
             const summaryApproval = document.getElementById('composeSummaryApproval');
 
             const eventTargets = new Set(['EventParticipants', 'EventBuyers']);
+            let usersAbortController = null;
+
+            function refreshSearchableSelect(select) {
+                select?.dispatchEvent(new Event('randevoo:refresh-searchable-select'));
+            }
+
+            function setUserOptions(items, placeholder) {
+                if (!userSelect) return;
+                const selectedValue = userSelect.value;
+                userSelect.innerHTML = '';
+                const empty = document.createElement('option');
+                empty.value = '';
+                empty.textContent = placeholder;
+                userSelect.appendChild(empty);
+
+                items.forEach(item => {
+                    const id = item.id ?? item.Id;
+                    const text = item.displayText ?? item.DisplayText;
+                    const option = document.createElement('option');
+                    option.value = id;
+                    option.textContent = text;
+                    userSelect.appendChild(option);
+                });
+
+                if (items.some(item => String(item.id ?? item.Id) === selectedValue)) {
+                    userSelect.value = selectedValue;
+                } else {
+                    userSelect.value = '';
+                }
+
+                refreshSearchableSelect(userSelect);
+            }
+
+            async function loadUsersForSelectedEvent() {
+                if (!userSelect || !eventSelect || targetSelect.value !== 'User') return;
+                const eventId = eventSelect.value;
+                if (!eventId) {
+                    setUserOptions([], 'اول رویداد را انتخاب کنید');
+                    if (userHint) userHint.textContent = 'برای انتخاب شرکت‌کننده، ابتدا رویداد را انتخاب کنید.';
+                    return;
+                }
+
+                usersAbortController?.abort();
+                usersAbortController = new AbortController();
+                userSelect.disabled = true;
+                setUserOptions([], 'در حال دریافت شرکت‌کنندگان...');
+                if (userHint) userHint.textContent = 'لیست شرکت‌کنندگان رویداد در حال بارگذاری است.';
+
+                try {
+                    const response = await fetch(`?handler=Users&eventId=${encodeURIComponent(eventId)}`, {
+                        headers: { 'Accept': 'application/json' },
+                        signal: usersAbortController.signal
+                    });
+                    if (!response.ok) throw new Error('request failed');
+                    const items = await response.json();
+                    setUserOptions(items, items.length ? 'انتخاب شرکت‌کننده' : 'برای این رویداد شرکت‌کننده‌ای پیدا نشد');
+                    if (userHint) {
+                        userHint.textContent = items.length
+                            ? `${items.length} شرکت‌کننده برای این رویداد قابل انتخاب است.`
+                            : 'برای این رویداد هنوز شرکت‌کننده قابل انتخاب وجود ندارد.';
+                    }
+                } catch (error) {
+                    if (error.name !== 'AbortError') {
+                        setUserOptions([], 'دریافت شرکت‌کنندگان ناموفق بود');
+                        if (userHint) userHint.textContent = 'دریافت لیست شرکت‌کنندگان انجام نشد؛ دوباره رویداد را انتخاب کنید.';
+                    }
+                } finally {
+                    userSelect.disabled = false;
+                    refreshSearchableSelect(userSelect);
+                }
+            }
+
             function refreshComposeUi() {
                 const option = typeSelect?.selectedOptions?.[0];
                 const allowedTargets = new Set((option?.dataset.targets || '').split(',').filter(Boolean));
@@ -127,7 +210,9 @@
                 userGroup.hidden = target !== 'User';
                 eventGroup.hidden = !(target === 'User' || eventTargets.has(target));
                 smsGroup.hidden = !supportsSms || !eventTargets.has(target);
+                if (target !== 'User' && userSelect) userSelect.value = '';
                 if (sendSms && smsGroup.hidden) sendSms.checked = false;
+                if (target === 'User') loadUsersForSelectedEvent();
 
                 const targetText = targetSelect.selectedOptions[0]?.textContent?.trim() || 'گیرنده';
                 const typeText = option?.textContent?.trim() || 'نوع پیام';
@@ -139,6 +224,7 @@
 
             typeSelect?.addEventListener('change', refreshComposeUi);
             targetSelect?.addEventListener('change', refreshComposeUi);
+            eventSelect?.addEventListener('change', loadUsersForSelectedEvent);
             sendSms?.addEventListener('change', refreshComposeUi);
             refreshComposeUi();
         })();

@@ -56,6 +56,7 @@ public record SupportTicketMessageDto(
     long Id,
     long SenderUserId,
     string SenderDisplayName,
+    string? SenderProfileImageUrl,
     UserRole SenderRole,
     long? RepresentedUserId,
     string? RepresentedDisplayName,
@@ -150,6 +151,7 @@ public static class SupportTicketDtoMapper
                 message.Id,
                 message.SenderUserId,
                 ResolveDisplayName(message.SenderUser),
+                ResolvePrimaryImageUrl(message.SenderUser),
                 message.SenderRole,
                 message.RepresentedUserId,
                 message.RepresentedUser is null ? null : ResolveDisplayName(message.RepresentedUser),
@@ -175,6 +177,13 @@ public static class SupportTicketDtoMapper
 
     public static string ResolveDisplayName(User user) =>
         user.Profile?.DisplayName ?? user.Email ?? user.MobileNumber;
+
+    private static string? ResolvePrimaryImageUrl(User user) =>
+        user.Profile?.Images
+            .OrderByDescending(image => image.IsPrimary)
+            .ThenBy(image => image.DisplayOrder)
+            .Select(image => image.ImageUrl)
+            .FirstOrDefault();
 
     private static string ResolveTicketTypeTitle(SupportTicket ticket) =>
         ticket.TicketType?.DisplayNameFa ?? ticket.TicketTypeId switch

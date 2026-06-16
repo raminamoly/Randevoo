@@ -6,6 +6,7 @@ namespace Randevoo.Application.Features.DatingProfile.Commands.UpdateDatingProfi
 public record UpdateDatingProfileCommand(
     long ProfileId,
     string DisplayName,
+    DateOnly DateOfBirth,
     Gender Gender,
     string Country,
     string City,
@@ -14,4 +15,8 @@ public record UpdateDatingProfileCommand(
     int HeightCm,
     EducationLevel EducationLevel,
     bool Smoking,
-    string? Region = null) : IRequest;
+    string? Region = null,
+    IReadOnlyList<string>? InterestNames = null,
+    long? ZodiacSignId = null,
+    IReadOnlyList<string>? PhotoUrls = null,
+    string? PrimaryImageUrl = null) : IRequest;

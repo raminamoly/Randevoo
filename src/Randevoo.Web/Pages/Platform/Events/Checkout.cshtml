@@ -1,0 +1,121 @@
+@page "/platform/events/{id:long}/checkout"
+@using Randevoo.Web.Services
+@model Randevoo.Web.Pages.Platform.Events.CheckoutModel
+@{
+    var item = Model.EventDetails;
+    var preview = Model.Preview;
+    var isManual = item?.PaymentCollectionMethod != 0;
+}
+
+@if (item is null)
+{
+    <div class="alert alert-warning rv-alert" role="alert">رویداد پیدا نشد.</div>
+}
+else
+{
+    <section class="rv-hero rv-checkout-hero">
+        <div>
+            <p class="rv-eyebrow">خرید بلیت</p>
+            <h1>@item.Title</h1>
+            <p>شرکت‌کننده، تخفیف و روش پرداخت را نهایی کن. بلیت فقط بعد از پرداخت موفق یا تایید رسید معتبر فعال می‌شود.</p>
+        </div>
+        <a class="btn btn-outline-primary" asp-page="/Platform/Events/Details" asp-route-id="@item.Id">
+            <i class="bi bi-arrow-right-circle" aria-hidden="true"></i>
+            <span>بازگشت به رویداد</span>
+        </a>
+    </section>
+
+    @if (Model.ErrorMessage is not null)
+    {
+        <div class="alert alert-warning rv-alert mt-3" role="alert">@Model.ErrorMessage</div>
+    }
+
+    <section class="rv-checkout-grid rv-section">
+        <form method="post" enctype="multipart/form-data" class="rv-checkout-form">
+            <section class="rv-detail-section">
+                <h2><i class="bi bi-person-check" aria-hidden="true"></i>شرکت‌کننده</h2>
+                <div class="rv-choice-grid">
+                    <label class="rv-choice-card">
+                        <input asp-for="Input.ParticipantMode" type="radio" value="@CheckoutParticipantMode.Self" />
+                        <span>
+                            <strong>برای خودم</strong>
+                            <small>بلیت به نام حساب فعلی صادر می‌شود.</small>
+                        </span>
+                    </label>
+                    <label class="rv-choice-card">
+                        <input asp-for="Input.ParticipantMode" type="radio" value="@CheckoutParticipantMode.Other" />
+                        <span>
+                            <strong>برای شرکت‌کننده دیگر</strong>
+                            <small>شماره موبایل کاربر موجود را وارد کن.</small>
+                        </span>
+                    </label>
+                </div>
+                <label asp-for="Input.ParticipantMobileNumber" class="form-label mt-3">شماره موبایل شرکت‌کننده دیگر</label>
+                <input asp-for="Input.ParticipantMobileNumber" class="form-control rv-ltr-input" placeholder="مثلاً 09120000000" />
+            </section>
+
+            <section class="rv-detail-section">
+                <h2><i class="bi bi-percent" aria-hidden="true"></i>کد تخفیف</h2>
+                <label asp-for="Input.DiscountCode" class="form-label">کد تخفیف</label>
+                <div class="rv-inline-action">
+                    <input asp-for="Input.DiscountCode" class="form-control rv-ltr-input" autocomplete="off" placeholder="اختیاری" />
+                    <button class="btn btn-outline-primary" asp-page-handler="Preview" type="submit">
+                        <i class="bi bi-calculator" aria-hidden="true"></i>
+                        <span>محاسبه قیمت</span>
+                    </button>
+                </div>
+            </section>
+
+            @if (isManual)
+            {
+                <section class="rv-detail-section rv-detail-section--success">
+                    <h2><i class="bi bi-receipt-cutoff" aria-hidden="true"></i>رسید پرداخت دستی</h2>
+                    <p>@(preview?.PaymentInstruction ?? item.OrganizerPaymentInstructions ?? "بعد از واریز، تصویر یا PDF رسید را بارگذاری کن.")</p>
+                    <label asp-for="ManualReceiptFile" class="form-label">فایل رسید</label>
+                    <input asp-for="ManualReceiptFile" class="form-control" type="file" accept="image/*,.pdf" />
+                    <label asp-for="Input.ManualReceiptTrackingNumber" class="form-label mt-3">شماره پیگیری</label>
+                    <input asp-for="Input.ManualReceiptTrackingNumber" class="form-control rv-ltr-input" placeholder="اختیاری" />
+                    <label asp-for="Input.ManualReceiptNote" class="form-label mt-3">توضیح پرداخت</label>
+                    <textarea asp-for="Input.ManualReceiptNote" class="form-control" rows="3" placeholder="اختیاری"></textarea>
+                </section>
+            }
+
+            <button class="btn btn-primary btn-lg w-100" asp-page-handler="Submit" type="submit">
+                <i class="bi bi-ticket-perforated-fill" aria-hidden="true"></i>
+                <span>@(isManual ? "ثبت سفارش و ارسال رسید" : "پرداخت و صدور بلیت")</span>
+            </button>
+        </form>
+
+        <aside class="rv-checkout-summary">
+            <section class="rv-detail-section rv-detail-section--emphasis">
+                <h2><i class="bi bi-wallet2" aria-hidden="true"></i>پیش‌نمایش پرداخت</h2>
+                @if (preview is null)
+                {
+                    <p>اطلاعات را وارد کن و روی محاسبه قیمت بزن.</p>
+                }
+                else
+                {
+                    <div class="rv-price-breakdown">
+                        <div>
+                            <span>شرکت‌کننده</span>
+                            <strong>@preview.ParticipantDisplayName</strong>
+                        </div>
+                        <div>
+                            <span>قیمت پایه</span>
+                            <strong>@RandevooDisplay.Money(preview.GrossAmount, preview.CurrencyCode)</strong>
+                        </div>
+                        <div>
+                            <span>تخفیف</span>
+                            <strong>@RandevooDisplay.Money(preview.DiscountAmount, preview.CurrencyCode)</strong>
+                        </div>
+                        <div class="rv-price-breakdown__total">
+                            <span>مبلغ قابل پرداخت</span>
+                            <strong>@RandevooDisplay.Money(preview.NetAmount, preview.CurrencyCode)</strong>
+                        </div>
+                    </div>
+                    <p class="rv-muted mt-3">@preview.PaymentInstruction</p>
+                }
+            </section>
+        </aside>
+    </section>
+}

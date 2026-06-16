@@ -1,6 +1,8 @@
 using System.Globalization;
+using System.Buffers.Binary;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -20,14 +22,27 @@ namespace Randevoo.AdminPanel.Pages.Events;
 [Authorize(Policy = Policies.AdminOrPlanner)]
 public class EditModel : PageModel
 {
+    public const int MinEventImageWidth = 1000;
+    public const int MinEventImageHeight = 625;
+    public const int EventImageAspectWidth = 16;
+    public const int EventImageAspectHeight = 10;
+    public const long MaxEventImageBytes = 5 * 1024 * 1024;
+    public const int MinGenderCapacity = 1;
+    public const int MaxGenderCapacity = 500;
+    public const int MinLikeLimit = 0;
+    public const int MaxLikeLimit = 10;
+    public const decimal MinTicketValueIrr = 100_000m;
+    public const decimal MaxTicketValueIrr = 200_000_000m;
+
     private readonly IEventsApiClient _eventsApi;
     private readonly IEventTagsApiClient _eventTagsApi;
     private readonly IUsersApiClient _usersApi;
     private readonly IFinanceApiClient _financeApi;
     private readonly ILocationsApiClient _locationsApi;
     private readonly CurrentSessionState _session;
+    private readonly IWebHostEnvironment _environment;
 
-    public EditModel(IEventsApiClient eventsApi, IEventTagsApiClient eventTagsApi, IUsersApiClient usersApi, IFinanceApiClient financeApi, ILocationsApiClient locationsApi, CurrentSessionState session)
+    public EditModel(IEventsApiClient eventsApi, IEventTagsApiClient eventTagsApi, IUsersApiClient usersApi, IFinanceApiClient financeApi, ILocationsApiClient locationsApi, CurrentSessionState session, IWebHostEnvironment environment)
     {
         _eventsApi = eventsApi;
         _eventTagsApi = eventTagsApi;
@@ -35,6 +50,7 @@ public class EditModel : PageModel
         _financeApi = financeApi;
         _locationsApi = locationsApi;
         _session = session;
+        _environment = environment;
     }
 
     [BindProperty]
@@ -227,20 +243,9 @@ public class EditModel : PageModel
             Input.EndAtUtc = endAtUtc;
         }
 
-        if (Image1File is not null)
-        {
-            Input.Image1 = await ToDataUrlAsync(Image1File);
-        }
-
-        if (Image2File is not null)
-        {
-            Input.Image2 = await ToDataUrlAsync(Image2File);
-        }
-
-        if (Image3File is not null)
-        {
-            Input.Image3 = await ToDataUrlAsync(Image3File);
-        }
+        var image1Upload = ValidateEventImage(Image1File, nameof(Image1File), "تصویر اول");
+        var image2Upload = ValidateEventImage(Image2File, nameof(Image2File), "تصویر دوم");
+        var image3Upload = ValidateEventImage(Image3File, nameof(Image3File), "تصویر سوم");
 
         if (current.Role == AdminRole.EventPlanner && ExistingEventId is long editId)
         {
@@ -271,6 +276,21 @@ public class EditModel : PageModel
         {
             await LoadExistingEventStatusAsync();
             return Page();
+        }
+
+        if (image1Upload is not null)
+        {
+            Input.Image1 = await SaveEventImageAsync(image1Upload, HttpContext.RequestAborted);
+        }
+
+        if (image2Upload is not null)
+        {
+            Input.Image2 = await SaveEventImageAsync(image2Upload, HttpContext.RequestAborted);
+        }
+
+        if (image3Upload is not null)
+        {
+            Input.Image3 = await SaveEventImageAsync(image3Upload, HttpContext.RequestAborted);
         }
 
         try
@@ -608,11 +628,8 @@ public class EditModel : PageModel
         Input.FemaleTicketCurrencyCode = NormalizeCurrencyCodeForForm(Input.FemaleTicketCurrencyCode);
         SyncSharedTicketCurrency();
 
-        if (Input.MaleTicketPrice is < 0.01m or > 1_000_000_000m)
-            ModelState.AddModelError(InputKey(nameof(EventDraftInput.MaleTicketPrice)), "مبلغ بلیت آقایان باید بیشتر از صفر و کمتر از ۱,۰۰۰,۰۰۰,۰۰۰ باشد.");
-
-        if (Input.FemaleTicketPrice is < 0.01m or > 1_000_000_000m)
-            ModelState.AddModelError(InputKey(nameof(EventDraftInput.FemaleTicketPrice)), "مبلغ بلیت خانم‌ها باید بیشتر از صفر و کمتر از ۱,۰۰۰,۰۰۰,۰۰۰ باشد.");
+        ValidateTicketPrice(InputKey(nameof(EventDraftInput.MaleTicketPrice)), Input.MaleTicketPrice, "مبلغ بلیت آقایان");
+        ValidateTicketPrice(InputKey(nameof(EventDraftInput.FemaleTicketPrice)), Input.FemaleTicketPrice, "مبلغ بلیت خانم‌ها");
 
         if (CurrencyLookupOptions.All(item => item.Name != Input.MaleTicketCurrencyCode))
             ModelState.AddModelError(InputKey(nameof(EventDraftInput.MaleTicketCurrencyCode)), "واحد پول بلیت آقایان معتبر نیست.");
@@ -638,14 +655,14 @@ public class EditModel : PageModel
             ModelState.Remove($"{nameof(Input)}.{nameof(EventDraftInput.OrganizerPaymentAccountId)}");
         }
 
-        if (Input.CapacityMale <= 0)
-            ModelState.AddModelError(InputKey(nameof(EventDraftInput.CapacityMale)), "ظرفیت آقایان باید بیشتر از صفر باشد.");
+        if (Input.CapacityMale is < MinGenderCapacity or > MaxGenderCapacity)
+            ModelState.AddModelError(InputKey(nameof(EventDraftInput.CapacityMale)), $"ظرفیت آقایان باید بین {MinGenderCapacity} تا {MaxGenderCapacity} نفر باشد.");
 
-        if (Input.CapacityFemale <= 0)
-            ModelState.AddModelError(InputKey(nameof(EventDraftInput.CapacityFemale)), "ظرفیت بانوان باید بیشتر از صفر باشد.");
+        if (Input.CapacityFemale is < MinGenderCapacity or > MaxGenderCapacity)
+            ModelState.AddModelError(InputKey(nameof(EventDraftInput.CapacityFemale)), $"ظرفیت بانوان باید بین {MinGenderCapacity} تا {MaxGenderCapacity} نفر باشد.");
 
-        if (Input.LikeLimit is < 0 or > 10)
-            ModelState.AddModelError(InputKey(nameof(EventDraftInput.LikeLimit)), "تعداد لایک مجاز باید بین 0 تا 10 باشد.");
+        if (Input.LikeLimit is < MinLikeLimit or > MaxLikeLimit)
+            ModelState.AddModelError(InputKey(nameof(EventDraftInput.LikeLimit)), $"تعداد لایک مجاز باید بین {MinLikeLimit} تا {MaxLikeLimit} باشد.");
 
         ValidateAgeRange(InputKey(nameof(EventDraftInput.AgeRangeForMale)), Input.AgeRangeForMale, "بازه سنی آقایان");
         ValidateAgeRange(InputKey(nameof(EventDraftInput.AgeRangeForFemale)), Input.AgeRangeForFemale, "بازه سنی بانوان");
@@ -754,13 +771,182 @@ public class EditModel : PageModel
 
     public static string GetProfileStatusClass(DomainEventApprovalStatus status) => DisplayFormatter.ApprovalStatusClass(status);
 
-    private static async Task<string> ToDataUrlAsync(IFormFile file)
+    private void ValidateTicketPrice(string key, decimal value, string label)
     {
-        await using var memory = new MemoryStream();
-        await file.CopyToAsync(memory);
-        var base64 = Convert.ToBase64String(memory.ToArray());
-        return $"data:{file.ContentType};base64,{base64}";
+        if (value <= 0)
+        {
+            ModelState.AddModelError(key, $"{label} باید بیشتر از صفر باشد.");
+            return;
+        }
+
+        var rate = CurrencyLookupOptions
+            .FirstOrDefault(item => string.Equals(item.Name, Input.MaleTicketCurrencyCode, StringComparison.OrdinalIgnoreCase))
+            ?.ExchangeRateToIrr;
+        if (rate is null or <= 0)
+            return;
+
+        var reportingValue = value * rate.Value;
+        if (reportingValue < MinTicketValueIrr || reportingValue > MaxTicketValueIrr)
+        {
+            ModelState.AddModelError(key, $"{label} باید ارزشی بین {FormatWholeNumber(MinTicketValueIrr)} تا {FormatWholeNumber(MaxTicketValueIrr)} ریال ایران داشته باشد.");
+        }
     }
+
+    private IFormFile? ValidateEventImage(IFormFile? file, string key, string label)
+    {
+        if (file is null || file.Length == 0)
+            return null;
+
+        if (file.Length > MaxEventImageBytes)
+        {
+            ModelState.AddModelError(key, $"{label} باید کمتر از ۵ مگابایت باشد.");
+            return null;
+        }
+
+        if (!IsSupportedEventImage(file))
+        {
+            ModelState.AddModelError(key, $"{label} باید با فرمت JPG یا PNG باشد.");
+            return null;
+        }
+
+        if (!TryReadImageDimensions(file, out var width, out var height))
+        {
+            ModelState.AddModelError(key, $"ابعاد {label} قابل خواندن نیست.");
+            return null;
+        }
+
+        if (width < MinEventImageWidth || height < MinEventImageHeight)
+        {
+            ModelState.AddModelError(key, $"{label} باید حداقل {MinEventImageWidth}×{MinEventImageHeight} پیکسل باشد.");
+            return null;
+        }
+
+        var expectedRatio = EventImageAspectWidth / (double)EventImageAspectHeight;
+        var actualRatio = width / (double)height;
+        if (Math.Abs(actualRatio - expectedRatio) > 0.06)
+        {
+            ModelState.AddModelError(key, $"{label} باید نسبت {EventImageAspectWidth}:{EventImageAspectHeight} داشته باشد. تصویر فعلی {width}×{height} است.");
+            return null;
+        }
+
+        return file;
+    }
+
+    private async Task<string> SaveEventImageAsync(IFormFile file, CancellationToken cancellationToken)
+    {
+        var extension = string.Equals(file.ContentType, "image/png", StringComparison.OrdinalIgnoreCase)
+            ? ".png"
+            : ".jpg";
+        var safeName = $"{Guid.NewGuid():N}{extension}";
+        var webRoot = string.IsNullOrWhiteSpace(_environment.WebRootPath)
+            ? Path.Combine(_environment.ContentRootPath, "wwwroot")
+            : _environment.WebRootPath;
+        var folder = Path.Combine(webRoot, "uploads", "events");
+        Directory.CreateDirectory(folder);
+        var path = Path.Combine(folder, safeName);
+        await using var stream = System.IO.File.Create(path);
+        await file.CopyToAsync(stream, cancellationToken);
+        return $"/uploads/events/{safeName}";
+    }
+
+    private static bool IsSupportedEventImage(IFormFile file)
+    {
+        var extension = Path.GetExtension(file.FileName);
+        return (string.Equals(file.ContentType, "image/jpeg", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(file.ContentType, "image/png", StringComparison.OrdinalIgnoreCase))
+            && (string.Equals(extension, ".jpg", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(extension, ".jpeg", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(extension, ".png", StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static bool TryReadImageDimensions(IFormFile file, out int width, out int height)
+    {
+        width = 0;
+        height = 0;
+
+        try
+        {
+            using var stream = file.OpenReadStream();
+            var header = new byte[24];
+            if (stream.Read(header, 0, header.Length) != header.Length)
+                return false;
+
+            if (header[0] == 0x89
+                && header[1] == 0x50
+                && header[2] == 0x4E
+                && header[3] == 0x47)
+            {
+                width = BinaryPrimitives.ReadInt32BigEndian(header.AsSpan(16, 4));
+                height = BinaryPrimitives.ReadInt32BigEndian(header.AsSpan(20, 4));
+                return width > 0 && height > 0;
+            }
+
+            if (header[0] == 0xFF && header[1] == 0xD8)
+            {
+                stream.Position = 2;
+                return TryReadJpegDimensions(stream, out width, out height);
+            }
+        }
+        catch
+        {
+            return false;
+        }
+
+        return false;
+    }
+
+    private static bool TryReadJpegDimensions(Stream stream, out int width, out int height)
+    {
+        width = 0;
+        height = 0;
+
+        while (stream.Position < stream.Length)
+        {
+            var prefix = stream.ReadByte();
+            if (prefix != 0xFF)
+                continue;
+
+            int marker;
+            do
+            {
+                marker = stream.ReadByte();
+            }
+            while (marker == 0xFF);
+
+            if (marker < 0)
+                return false;
+
+            if (marker is 0xD8 or 0xD9)
+                continue;
+
+            var length = ReadJpegSegmentLength(stream);
+            if (length < 2)
+                return false;
+
+            if (marker is 0xC0 or 0xC1 or 0xC2 or 0xC3 or 0xC5 or 0xC6 or 0xC7 or 0xC9 or 0xCA or 0xCB or 0xCD or 0xCE or 0xCF)
+            {
+                if (stream.ReadByte() < 0)
+                    return false;
+
+                height = ReadJpegSegmentLength(stream);
+                width = ReadJpegSegmentLength(stream);
+                return width > 0 && height > 0;
+            }
+
+            stream.Seek(length - 2, SeekOrigin.Current);
+        }
+
+        return false;
+    }
+
+    private static int ReadJpegSegmentLength(Stream stream)
+    {
+        var high = stream.ReadByte();
+        var low = stream.ReadByte();
+        return high < 0 || low < 0 ? -1 : (high << 8) + low;
+    }
+
+    private static string FormatWholeNumber(decimal value) => value.ToString("N0", CultureInfo.InvariantCulture);
 
     private static bool TryCombineDateAndTime(string dateText, string timeText, bool useShamsi, out DateTimeOffset combined, out string errorMessage)
     {

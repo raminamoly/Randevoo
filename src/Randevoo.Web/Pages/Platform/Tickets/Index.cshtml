@@ -1,0 +1,76 @@
+@page "/platform/tickets"
+@using Randevoo.Web.Services
+@model Randevoo.Web.Pages.Platform.Tickets.IndexModel
+@{
+    ViewData["Title"] = "سفارش‌ها و بلیت‌های من";
+}
+
+<section class="rv-hero">
+    <div>
+        <p class="rv-eyebrow">بلیت‌ها و سفارش‌ها</p>
+        <h1>سفارش‌ها و بلیت‌های من</h1>
+        <p>پرداخت‌های موفق، رسیدهای در انتظار تایید و بلیت‌های صادرشده را یکجا ببین.</p>
+    </div>
+</section>
+
+@if (Model.SuccessMessage is not null)
+{
+    <div class="alert alert-success rv-alert mt-3" role="status">@Model.SuccessMessage</div>
+}
+
+@if (Model.ErrorMessage is not null)
+{
+    <div class="alert alert-warning rv-alert mt-3" role="alert">@Model.ErrorMessage</div>
+}
+
+@if (Model.Tickets.Count == 0 && Model.ErrorMessage is null)
+{
+    <section class="rv-empty-state rv-section">
+        <strong>هنوز سفارشی نداری.</strong>
+        <span>رویداد مناسب را پیدا کن و بعد از ثبت خرید، وضعیت سفارش همین‌جا می‌آید.</span>
+        <a class="btn btn-primary mt-2" asp-page="/Platform/Events/Index">
+            <i class="bi bi-calendar-heart" aria-hidden="true"></i>
+            <span>دیدن رویدادها</span>
+        </a>
+    </section>
+}
+else
+{
+    <section class="rv-ticket-list rv-section" aria-label="سفارش‌ها و بلیت‌های من">
+        @foreach (var ticket in Model.Tickets)
+        {
+            <article class="rv-ticket-card">
+                <div class="rv-ticket-card__head">
+                    <h2>@ticket.EventTitle</h2>
+                    <span class="rv-ticket-status @Model.GetOrderStatusClass(ticket)">@Model.GetOrderStatus(ticket)</span>
+                </div>
+                <div class="rv-ticket-meta">
+                    <span>شروع: @RandevooDisplay.PersianDateTime(ticket.DateTimeStart)</span>
+                    <span>پایان: @RandevooDisplay.PersianDateTime(ticket.DateTimeEnd)</span>
+                    <span>شرکت‌کننده: @ticket.ParticipantDisplayName</span>
+                    <span>خریدار: @ticket.BuyerDisplayName</span>
+                    <span>روش پرداخت: @IndexModel.PaymentMethodLabel(ticket.PaymentCollectionMethod)</span>
+                    @if (ticket.TicketId is not null)
+                    {
+                        <span>شماره بلیت: @RandevooDisplay.ToPersianDigits(ticket.TicketId.Value.ToString())</span>
+                    }
+                    else if (ticket.ManualReceiptId is not null)
+                    {
+                        <span>رسید: @RandevooDisplay.ToPersianDigits(ticket.ManualReceiptId.Value.ToString())</span>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(ticket.RemovalReason))
+                    {
+                        <span>دلیل حذف: @ticket.RemovalReason</span>
+                    }
+                </div>
+                <div class="rv-ticket-card__footer">
+                    <strong class="rv-price">@RandevooDisplay.Money(ticket.NetAmount, ticket.CurrencyCode)</strong>
+                    <a class="btn btn-outline-primary btn-sm" asp-page="/Platform/Events/Details" asp-route-id="@ticket.EventId">
+                        <i class="bi bi-arrow-left-circle" aria-hidden="true"></i>
+                        <span>جزئیات رویداد</span>
+                    </a>
+                </div>
+            </article>
+        }
+    </section>
+}

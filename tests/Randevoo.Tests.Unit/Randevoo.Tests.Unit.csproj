@@ -18,6 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\Randevoo.Application\Randevoo.Application.csproj" />
     <ProjectReference Include="..\..\src\Randevoo.Domain\Randevoo.Domain.csproj" />
   </ItemGroup>
 

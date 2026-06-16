@@ -295,22 +295,22 @@ public sealed class DatabaseNotificationsApiClient : INotificationsApiClient
     public async Task<IReadOnlyList<NotificationUserOption>> SearchUserOptionsAsync(MockUser currentUser, long? eventId, string? search, CancellationToken cancellationToken = default)
     {
         IQueryable<User> query;
-        if (currentUser.Role == AdminRole.EventPlanner)
+        if (eventId is long selectedEventId)
         {
-            if (eventId is not long plannerEventId)
-                return Array.Empty<NotificationUserOption>();
-
-            var eventBelongsToPlanner = await _db.DatingEvents.AnyAsync(item => item.Id == plannerEventId && item.EventPlannerUserId == currentUser.Id, cancellationToken);
-            if (!eventBelongsToPlanner)
+            var canUseEvent = await _db.DatingEvents.AnyAsync(item => item.Id == selectedEventId
+                && (currentUser.Role != AdminRole.EventPlanner || item.EventPlannerUserId == currentUser.Id),
+                cancellationToken);
+            if (!canUseEvent)
                 return Array.Empty<NotificationUserOption>();
 
             var participantIds = _db.EventTickets
-                .Where(ticket => ticket.DatingEventId == plannerEventId && !ticket.IsRefunded && !ticket.IsRemoved)
+                .Where(ticket => ticket.DatingEventId == selectedEventId && !ticket.IsRefunded && !ticket.IsRemoved)
                 .Select(ticket => ticket.UserId);
-            var buyerIds = _db.TicketOrders
-                .Where(order => order.DatingEventId == plannerEventId && order.PaymentStatus == TicketOrderPaymentStatus.Paid)
-                .Select(order => order.BuyerUserId);
-            query = _db.Users.Where(user => participantIds.Contains(user.Id) || buyerIds.Contains(user.Id));
+            query = _db.Users.Where(user => participantIds.Contains(user.Id));
+        }
+        else if (currentUser.Role == AdminRole.EventPlanner)
+        {
+            return Array.Empty<NotificationUserOption>();
         }
         else
         {

@@ -42,7 +42,7 @@ public class DetailsModel : PageModel
     public SupportTicketReplyInput ReplyInput { get; set; } = new();
 
     [BindProperty]
-    public List<IFormFile> Attachments { get; set; } = new();
+    public List<IFormFile>? Attachments { get; set; }
 
     [BindProperty]
     public SupportTicketStatusInput StatusInput { get; set; } = new();
@@ -62,7 +62,7 @@ public class DetailsModel : PageModel
     {
         try
         {
-            var attachments = await CreateModel.SaveAttachmentsAsync(Attachments, _environment, cancellationToken);
+            var attachments = await CreateModel.SaveAttachmentsAsync(Attachments ?? [], _environment, cancellationToken);
             await _supportApi.ReplyAsync(CurrentUser, id, ReplyInput.Body, attachments, IsAdmin ? ReplyInput.RepresentedUserId : null, cancellationToken);
             StatusMessage = "پاسخ ثبت شد.";
         }

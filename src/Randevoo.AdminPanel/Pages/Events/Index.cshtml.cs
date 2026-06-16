@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using System.Globalization;
 using Randevoo.AdminPanel.Models.Auth;
 using Randevoo.AdminPanel.Models.Common;
 using Randevoo.AdminPanel.Models.Events;
@@ -233,6 +234,46 @@ public class IndexModel : PageModel
     public string GetOperationalStatusClass(EventOperationalStatus status) => DisplayFormatter.OperationalStatusClass(status);
 
     public string GetProfileStatusClass(DomainEventApprovalStatus status) => DisplayFormatter.ApprovalStatusClass(status);
+
+    public string FormatDuration(DatingEvent datingEvent)
+    {
+        var duration = datingEvent.ActiveDraft.EndAtUtc - datingEvent.ActiveDraft.StartAtUtc;
+        if (duration <= TimeSpan.Zero)
+            return "زمان پایان نیاز به بررسی دارد";
+
+        var days = (int)Math.Floor(duration.TotalDays);
+        var hours = duration.Hours;
+        var minutes = duration.Minutes;
+
+        var parts = new List<string>();
+        if (days > 0)
+            parts.Add($"{DisplayFormatter.Number(days)} روز");
+        if (hours > 0)
+            parts.Add($"{DisplayFormatter.Number(hours)} ساعت");
+        if (days == 0 && hours == 0 && minutes > 0)
+            parts.Add($"{DisplayFormatter.Number(minutes)} دقیقه");
+
+        return parts.Count == 0 ? "کمتر از یک دقیقه" : string.Join(" و ", parts);
+    }
+
+    public string GetPlannerInitials(string plannerName)
+    {
+        var parts = plannerName
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Take(2)
+            .ToArray();
+
+        if (parts.Length == 0)
+            return "؟";
+
+        if (parts.Length == 1)
+            return DisplayFormatter.ToPersianDigits(parts[0].Length <= 2 ? parts[0] : parts[0][..2]);
+
+        return DisplayFormatter.ToPersianDigits($"{parts[0][0]}{parts[1][0]}");
+    }
+
+    public string FormatPlannerId(long plannerUserId)
+        => DisplayFormatter.ToPersianDigits(plannerUserId.ToString(CultureInfo.InvariantCulture));
 
     public EventStatusTransitionModalViewModel CreateStatusTransitionModal(DatingEvent datingEvent)
     {

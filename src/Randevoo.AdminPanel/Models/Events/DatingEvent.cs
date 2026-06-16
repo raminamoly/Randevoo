@@ -50,6 +50,14 @@ public sealed class DatingEvent
 
     public bool IsCurrencyLocked { get; set; }
 
+    public int TicketsSoldCount { get; set; }
+
+    public int ParticipantsCount { get; set; }
+
+    public int BuyersCount { get; set; }
+
+    public decimal ConfirmedSalesAmountIrr { get; set; }
+
     public string DisplayCode => $"#{DisplayFormatter.Count(EventCode)}";
 
     public string DisplayTitleWithCode => $"{DisplayTitle} {DisplayCode}";

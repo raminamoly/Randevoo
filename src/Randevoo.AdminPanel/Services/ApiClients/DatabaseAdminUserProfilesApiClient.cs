@@ -227,9 +227,9 @@ public sealed class DatabaseAdminUserProfilesApiClient : IAdminUserProfilesApiCl
             new Coordinates(city?.Latitude ?? profile.Location.Coordinates.Latitude, city?.Longitude ?? profile.Location.Coordinates.Longitude),
             profile.Location.Region);
 
-        profile.UpdateDateOfBirth(input.DateOfBirth);
         profile.UpdateProfile(
             input.DisplayName,
+            input.DateOfBirth,
             input.Gender,
             location,
             new Height(input.HeightCentimeters),

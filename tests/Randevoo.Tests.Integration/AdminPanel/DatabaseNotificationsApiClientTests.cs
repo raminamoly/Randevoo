@@ -121,6 +121,32 @@ public class DatabaseNotificationsApiClientTests
     }
 
     [Fact]
+    public async Task PlannerUserOptions_LoadParticipantsOnly_ForSelectedOwnedEvent()
+    {
+        await using var db = AdminPanelTestData.CreateDbContext();
+        var planner = await AdminPanelTestData.CreateUserAsync(db, "+989122200051", UserRole.EventPlanner, "Planner");
+        var otherPlanner = await AdminPanelTestData.CreateUserAsync(db, "+989122200052", UserRole.EventPlanner, "Other planner");
+        var buyer = await AdminPanelTestData.CreateUserAsync(db, "+989122200053", UserRole.EndUser, "Buyer");
+        var participant = await AdminPanelTestData.CreateUserAsync(db, "+989122200054", UserRole.EndUser, "Participant", Gender.Female);
+        var ownedEvent = await AdminPanelTestData.CreateApprovedOpenEventAsync(db, planner, "Owned notification event");
+        var otherEvent = await AdminPanelTestData.CreateApprovedOpenEventAsync(db, otherPlanner, "Other notification event");
+        await AdminPanelTestData.SellTicketAsync(db, ownedEvent, buyer, participant, 100m);
+        await AdminPanelTestData.SellTicketAsync(db, otherEvent, buyer, buyer, 100m);
+        var service = new DatabaseNotificationsApiClient(db);
+        var plannerMock = AdminPanelTestData.AsMockUser(planner, AdminRole.EventPlanner);
+
+        var withoutEvent = await service.SearchUserOptionsAsync(plannerMock, null, null);
+        var ownedEventUsers = await service.SearchUserOptionsAsync(plannerMock, ownedEvent.Id, null);
+        var otherEventUsers = await service.SearchUserOptionsAsync(plannerMock, otherEvent.Id, null);
+
+        Assert.Empty(withoutEvent);
+        var user = Assert.Single(ownedEventUsers);
+        Assert.Equal(participant.Id, user.Id);
+        Assert.DoesNotContain(ownedEventUsers, item => item.Id == buyer.Id);
+        Assert.Empty(otherEventUsers);
+    }
+
+    [Fact]
     public async Task Planner_CannotSendNotification_ToAllPlanners_EvenWithTamperedPayload()
     {
         await using var db = AdminPanelTestData.CreateDbContext();

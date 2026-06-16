@@ -36,6 +36,12 @@ public class CreateModerationReportHandler : IRequestHandler<CreateModerationRep
         var reported = await _users.GetByIdAsync(request.ReportedUserId, cancellationToken)
             ?? throw new NotFoundException("User", request.ReportedUserId);
 
+        if (request.ReporterUserId == request.ReportedUserId)
+            throw new BusinessRuleViolationException("Invalid report", "User cannot report themselves");
+
+        if (await _reports.HasOpenDuplicateAsync(request.ReporterUserId, request.ReportedUserId, request.DatingEventId, cancellationToken))
+            throw new BusinessRuleViolationException("Duplicate report", "An open report already exists for this user in this event");
+
         if (request.DatingEventId is not null)
         {
             var reporterTicket = await _tickets.GetByEventAndUserAsync(request.DatingEventId.Value, request.ReporterUserId, cancellationToken);

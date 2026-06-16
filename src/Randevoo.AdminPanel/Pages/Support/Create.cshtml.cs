@@ -26,7 +26,7 @@ public class CreateModel : PageModel
     public SupportTicketCreateInput Input { get; set; } = new();
 
     [BindProperty]
-    public List<IFormFile> Attachments { get; set; } = new();
+    public List<IFormFile>? Attachments { get; set; }
 
     [TempData]
     public string? StatusMessage { get; set; }
@@ -56,7 +56,7 @@ public class CreateModel : PageModel
         var current = _session.CurrentUser ?? throw new InvalidOperationException("حساب جاری شناسایی نشد.");
         try
         {
-            var attachments = await SaveAttachmentsAsync(Attachments, _environment, cancellationToken);
+            var attachments = await SaveAttachmentsAsync(Attachments ?? [], _environment, cancellationToken);
             var ticket = await _supportApi.CreateTicketAsync(current, Input.Title, Input.TicketTypeId, Input.TicketRecipientTypeId, Input.EventId, Input.Body, attachments, cancellationToken);
             StatusMessage = "تیکت پشتیبانی ثبت شد.";
             return RedirectToPage("/Support/Details", new { id = ticket.Id });

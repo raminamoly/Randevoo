@@ -78,6 +78,91 @@ public class MyModel : PageModel
 
     public string GetProfileStatusClass(DomainEventApprovalStatus status) => DisplayFormatter.ApprovalStatusClass(status);
 
+    public string GetProfileIndicatorClass(DatingEvent datingEvent)
+    {
+        if (HasProfileReviewNote(datingEvent) && datingEvent.ApprovalStatus == DomainEventApprovalStatus.Draft)
+            return "needs-fix";
+
+        return datingEvent.ApprovalStatus switch
+        {
+            DomainEventApprovalStatus.PendingReview => "pending",
+            DomainEventApprovalStatus.Approved => "approved",
+            _ => "draft"
+        };
+    }
+
+    public string GetProfileIndicatorIcon(DatingEvent datingEvent)
+    {
+        if (HasProfileReviewNote(datingEvent) && datingEvent.ApprovalStatus == DomainEventApprovalStatus.Draft)
+            return "bi-exclamation-triangle";
+
+        return datingEvent.ApprovalStatus switch
+        {
+            DomainEventApprovalStatus.PendingReview => "bi-hourglass-split",
+            DomainEventApprovalStatus.Approved => "bi-check2-circle",
+            _ => "bi-pencil-square"
+        };
+    }
+
+    public string GetProfileIndicatorLabel(DatingEvent datingEvent)
+    {
+        if (HasProfileReviewNote(datingEvent) && datingEvent.ApprovalStatus == DomainEventApprovalStatus.Draft)
+            return "نیاز به اصلاح";
+
+        return DisplayFormatter.ProfileStatus(datingEvent.ApprovalStatus);
+    }
+
+    public bool HasProfileReviewNote(DatingEvent datingEvent)
+        => !string.IsNullOrWhiteSpace(datingEvent.AdminReviewNote);
+
+    public string FormatDuration(DatingEvent datingEvent)
+    {
+        var duration = datingEvent.ActiveDraft.EndAtUtc - datingEvent.ActiveDraft.StartAtUtc;
+        if (duration <= TimeSpan.Zero)
+            return "زمان پایان نیاز به بررسی دارد";
+
+        var days = (int)Math.Floor(duration.TotalDays);
+        var hours = duration.Hours;
+        var minutes = duration.Minutes;
+
+        var parts = new List<string>();
+        if (days > 0)
+            parts.Add($"{DisplayFormatter.Number(days)} روز");
+        if (hours > 0)
+            parts.Add($"{DisplayFormatter.Number(hours)} ساعت");
+        if (days == 0 && hours == 0 && minutes > 0)
+            parts.Add($"{DisplayFormatter.Number(minutes)} دقیقه");
+
+        return parts.Count == 0 ? "کمتر از یک دقیقه" : string.Join(" و ", parts);
+    }
+
+    public EventProfileReviewHistoryModalViewModel CreateProfileReviewHistoryModal(DatingEvent datingEvent)
+    {
+        var entries = datingEvent.ChangeLog
+            .Where(item => item.Category == "review")
+            .ToList();
+
+        if (entries.Count == 0 && HasProfileReviewNote(datingEvent))
+        {
+            entries.Add(new EventChangeLogEntry
+            {
+                Category = "review",
+                Action = "EventReviewNote",
+                ActorName = datingEvent.ReviewedByName ?? "مدیر",
+                Summary = "نظر مدیر",
+                Details = datingEvent.AdminReviewNote,
+                CreatedAtUtc = datingEvent.ReviewedAtUtc ?? datingEvent.UpdatedAtUtc
+            });
+        }
+
+        return new EventProfileReviewHistoryModalViewModel
+        {
+            EventId = datingEvent.Id,
+            EventTitle = datingEvent.DisplayTitleWithCode,
+            Entries = entries
+        };
+    }
+
     public EventStatusTransitionModalViewModel CreateStatusTransitionModal(DatingEvent datingEvent)
     {
         var current = _session.CurrentUser ?? throw new InvalidOperationException("حساب جاری شناسایی نشد.");

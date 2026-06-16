@@ -19,13 +19,20 @@ public class ProfileModel : PageModel
     private readonly IFinanceApiClient _financeApi;
     private readonly CurrentSessionState _session;
     private readonly MockAuthService _authService;
+    private readonly IWebHostEnvironment _environment;
 
-    public ProfileModel(IPlannerProfilesApiClient profilesApi, IFinanceApiClient financeApi, CurrentSessionState session, MockAuthService authService)
+    public ProfileModel(
+        IPlannerProfilesApiClient profilesApi,
+        IFinanceApiClient financeApi,
+        CurrentSessionState session,
+        MockAuthService authService,
+        IWebHostEnvironment environment)
     {
         _profilesApi = profilesApi;
         _financeApi = financeApi;
         _session = session;
         _authService = authService;
+        _environment = environment;
     }
 
     [BindProperty]
@@ -83,7 +90,7 @@ public class ProfileModel : PageModel
 
         if (ProfileImageFile is not null)
         {
-            Input.PictureUrl = await ToDataUrlAsync(ProfileImageFile);
+            Input.PictureUrl = await SavePlannerImageAsync(current.Id, ProfileImageFile);
         }
 
         var existingProfile = await _profilesApi.GetCurrentAsync(current);
@@ -123,12 +130,19 @@ public class ProfileModel : PageModel
         return RedirectToPage();
     }
 
-    private static async Task<string> ToDataUrlAsync(IFormFile file)
+    private async Task<string> SavePlannerImageAsync(long userId, IFormFile file)
     {
-        await using var memory = new MemoryStream();
-        await file.CopyToAsync(memory);
-        var base64 = Convert.ToBase64String(memory.ToArray());
-        return $"data:{file.ContentType};base64,{base64}";
+        var uploadsDirectory = Path.Combine(_environment.WebRootPath, "uploads", "planners");
+        Directory.CreateDirectory(uploadsDirectory);
+
+        var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+        var fileName = $"{userId}-{Guid.NewGuid():N}{extension}";
+        var absolutePath = Path.Combine(uploadsDirectory, fileName);
+
+        await using var stream = System.IO.File.Create(absolutePath);
+        await file.CopyToAsync(stream);
+
+        return $"/uploads/planners/{fileName}";
     }
 
 }

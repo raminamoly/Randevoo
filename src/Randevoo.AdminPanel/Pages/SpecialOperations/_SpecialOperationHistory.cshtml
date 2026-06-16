@@ -1,0 +1,94 @@
+@model Randevoo.AdminPanel.Pages.SpecialOperations.IndexModel
+@using Randevoo.AdminPanel.Services.State
+
+@if (!Model.CanViewHistory)
+{
+    <div class="empty-state">به تاریخچه عملیات ویژه دسترسی ندارید.</div>
+    return;
+}
+
+<div class="content-card">
+    <div class="d-flex justify-content-between align-items-center gap-3 mb-3">
+        <h2 class="section-title mb-0">تاریخچه عملیات ویژه</h2>
+        <span class="text-muted small">@DisplayFormatter.Count(Model.History.Count) رکورد آخر</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table align-middle">
+            <thead>
+                <tr>
+                    <th>شناسه</th>
+                    <th>عملیات</th>
+                    <th>وضعیت</th>
+                    <th>انجام‌دهنده</th>
+                    <th>کاربر هدف</th>
+                    <th>مبلغ</th>
+                    <th>ارجاع</th>
+                    <th>دلیل</th>
+                    <th>زمان</th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var item in Model.History)
+            {
+                <tr>
+                    <td>#@DisplayFormatter.Count((int)item.Id)</td>
+                    <td>@IndexModel.OperationTypeLabel(item.OperationType)</td>
+                    <td><span class="status-pill @IndexModel.StatusClass(item.Status)">@IndexModel.StatusLabel(item.Status)</span></td>
+                    <td>@item.PerformedByName</td>
+                    <td>
+                        @if (item.TargetUserId is long targetUserId)
+                        {
+                            <div>@item.TargetUserName</div>
+                            <div class="text-muted small">#@DisplayFormatter.Count((int)targetUserId)</div>
+                        }
+                        else
+                        {
+                            <span class="text-muted">-</span>
+                        }
+                    </td>
+                    <td>
+                        @if (item.Amount.HasValue)
+                        {
+                            @DisplayFormatter.CurrencyMoney(item.Amount.Value, item.CurrencyCode, Model.IsRtl)
+                        }
+                        else
+                        {
+                            <span class="text-muted">-</span>
+                        }
+                    </td>
+                    <td class="small">
+                        @if (item.RelatedTicketId is long ticketId)
+                        {
+                            <div>بلیت #@DisplayFormatter.Count((int)ticketId)</div>
+                        }
+                        @if (item.RelatedOrderId is long orderId)
+                        {
+                            <div>سفارش #@DisplayFormatter.Count((int)orderId)</div>
+                        }
+                        @if (item.RelatedWalletTransactionId is long transactionId)
+                        {
+                            <div>کیف پول #@DisplayFormatter.Count((int)transactionId)</div>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(item.SupportTicketNumber))
+                        {
+                            <div>تیکت: @item.SupportTicketNumber</div>
+                        }
+                    </td>
+                    <td class="table-wrap-cell">
+                        <div>@item.Reason</div>
+                        @if (!string.IsNullOrWhiteSpace(item.FailureMessage))
+                        {
+                            <div class="text-danger small">@item.FailureMessage</div>
+                        }
+                    </td>
+                    <td>@PersianDateFormatter.FormatDateTime(item.CreatedAtUtc, Model.IsRtl)</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+    @if (Model.History.Count == 0)
+    {
+        <div class="empty-state">هنوز عملیات ویژه‌ای ثبت نشده است.</div>
+    }
+</div>

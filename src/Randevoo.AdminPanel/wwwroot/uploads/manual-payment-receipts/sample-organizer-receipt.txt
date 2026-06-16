@@ -1,0 +1,5 @@
+Sample organizer manual payment receipt
+
+Tracking: TEST-ORGANIZER-001
+Destination: Event organizer account
+Status: Submitted for organizer review

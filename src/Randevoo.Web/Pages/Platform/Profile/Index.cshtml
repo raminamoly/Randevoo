@@ -1,0 +1,275 @@
+@page "/platform/profile"
+@using Randevoo.Web.Services
+@model Randevoo.Web.Pages.Platform.Profile.IndexModel
+@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "پروفایل کاربر";
+}
+
+<section class="rv-profile-head">
+    <div>
+        <p class="rv-eyebrow">پروفایل</p>
+        <h1>پروفایل کاربر</h1>
+        <p>@(Model.MobileNumber ?? "ورود انجام نشده")</p>
+    </div>
+    <form method="post">
+        <button class="btn btn-outline-secondary" type="submit" asp-page-handler="Logout">
+            <i class="bi bi-box-arrow-left" aria-hidden="true"></i>
+            <span>خروج</span>
+        </button>
+    </form>
+</section>
+
+@if (Model.ErrorMessage is not null)
+{
+    <div class="alert alert-warning rv-alert" role="alert">@Model.ErrorMessage</div>
+}
+@if (Model.SuccessMessage is not null)
+{
+    <div class="alert alert-success rv-alert" role="status">@Model.SuccessMessage</div>
+}
+
+<section class="rv-status-strip">
+    <span>وضعیت پروفایل</span>
+    <strong>@Model.ProfileStatusText</strong>
+</section>
+
+<form method="post" enctype="multipart/form-data" class="rv-form rv-profile-form" data-profile-form>
+    <input type="hidden" asp-for="ProfileId" />
+    <input type="hidden" asp-for="Form.DateOfBirth" />
+    <input type="hidden" asp-for="Form.Country" value="Iran" />
+    <input type="hidden" asp-for="Form.Latitude" />
+    <input type="hidden" asp-for="Form.Longitude" />
+    <input type="hidden" asp-for="Form.PrimaryImageUrl" data-primary-photo />
+
+    <section class="rv-profile-section">
+        <div class="rv-profile-section__head">
+            <div>
+                <p class="rv-eyebrow">عکس‌ها</p>
+                <h2>عکس‌های پروفایل</h2>
+            </div>
+            <span class="rv-counter">@RandevooDisplay.ToPersianDigits(Model.Form.PhotoUrls.Count.ToString()) / ۳</span>
+        </div>
+
+        <div class="rv-photo-grid" data-photo-grid>
+            @foreach (var photoUrl in Model.Form.PhotoUrls)
+            {
+                var publicPhotoUrl = RandevooDisplay.PublicImageUrl(photoUrl, Configuration);
+                var isPrimary = string.Equals(photoUrl, Model.Form.PrimaryImageUrl, StringComparison.OrdinalIgnoreCase);
+                <article class="rv-photo-tile @(isPrimary ? "is-primary" : "")" data-photo-tile>
+                    <input type="hidden" name="Form.PhotoUrls" value="@photoUrl" data-photo-url />
+                    <img src="@publicPhotoUrl" alt="عکس پروفایل" />
+                    <div class="rv-photo-tile__actions">
+                        <button class="btn btn-sm @(isPrimary ? "btn-primary" : "btn-light")" type="button" data-set-primary>
+                            <i class="bi bi-star-fill" aria-hidden="true"></i>
+                            <span>اصلی</span>
+                        </button>
+                        <button class="btn btn-sm btn-light" type="button" aria-label="حذف عکس" data-remove-photo>
+                            <i class="bi bi-trash3" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                </article>
+            }
+
+            @for (var i = Model.Form.PhotoUrls.Count; i < 3; i++)
+            {
+                <label class="rv-photo-upload">
+                    <i class="bi bi-plus-lg" aria-hidden="true"></i>
+                    <span>افزودن عکس</span>
+                    <input name="ProfileImageFiles" type="file" accept="image/png,image/jpeg,image/webp" multiple data-photo-input />
+                </label>
+            }
+        </div>
+        <div class="rv-photo-preview" data-photo-preview aria-live="polite"></div>
+        <span asp-validation-for="ProfileImageFiles" class="text-danger"></span>
+    </section>
+
+    <section class="rv-profile-section">
+        <div class="rv-profile-section__head">
+            <div>
+                <p class="rv-eyebrow">اطلاعات پایه</p>
+                <h2>خودت را معرفی کن</h2>
+            </div>
+        </div>
+
+        <label asp-for="Form.DisplayName">نام نمایشی</label>
+        <input asp-for="Form.DisplayName" class="form-control" maxlength="50" />
+        <span asp-validation-for="Form.DisplayName" class="text-danger"></span>
+
+        <div>
+            <span class="rv-field-label">جنسیت</span>
+            <div class="rv-choice-grid rv-choice-grid--two">
+                @foreach (var item in Model.GenderOptions)
+                {
+                    var selected = Model.Form.Gender.ToString() == item.Value;
+                    <label class="rv-choice-card @(selected ? "is-selected" : "")">
+                        @if (selected)
+                        {
+                            <input type="radio" name="Form.Gender" value="@item.Value" checked />
+                        }
+                        else
+                        {
+                            <input type="radio" name="Form.Gender" value="@item.Value" />
+                        }
+                        <i class="bi @item.Icon" aria-hidden="true"></i>
+                        <span>@item.Label</span>
+                    </label>
+                }
+            </div>
+            <span asp-validation-for="Form.Gender" class="text-danger"></span>
+        </div>
+
+        <div>
+            <label>تاریخ تولد شمسی</label>
+            <div class="rv-persian-date-picker">
+                <select asp-for="PersianBirthDay" class="form-select" aria-label="روز تولد">
+                    @foreach (var day in Model.PersianDays)
+                    {
+                        <option value="@day">@RandevooDisplay.ToPersianDigits(day.ToString())</option>
+                    }
+                </select>
+                <select asp-for="PersianBirthMonth" class="form-select" aria-label="ماه تولد">
+                    @foreach (var month in Model.PersianMonths)
+                    {
+                        <option value="@month.Value">@month.Label</option>
+                    }
+                </select>
+                <select asp-for="PersianBirthYear" class="form-select" aria-label="سال تولد">
+                    @foreach (var year in Model.PersianYears)
+                    {
+                        <option value="@year">@RandevooDisplay.ToPersianDigits(year.ToString())</option>
+                    }
+                </select>
+            </div>
+            <span asp-validation-for="Form.DateOfBirth" class="text-danger"></span>
+        </div>
+
+        <div class="rv-form-grid">
+            <div>
+                <label>کشور</label>
+                <select class="form-select" disabled>
+                    <option selected>ایران</option>
+                </select>
+            </div>
+            <div>
+                <label asp-for="Form.City">شهر</label>
+                <select asp-for="Form.City" class="form-select">
+                    @foreach (var city in Model.CityOptions)
+                    {
+                        <option value="@city.Code">@city.Label</option>
+                    }
+                </select>
+            </div>
+        </div>
+
+        <label asp-for="Form.Region">محله</label>
+        <input asp-for="Form.Region" class="form-control" maxlength="100" />
+    </section>
+
+    <section class="rv-profile-section">
+        <div class="rv-profile-section__head">
+            <div>
+                <p class="rv-eyebrow">جزئیات</p>
+                <h2>چند انتخاب سریع</h2>
+            </div>
+        </div>
+
+        <div class="rv-range-field">
+            <label asp-for="Form.HeightCm">قد</label>
+            <output data-height-output>@RandevooDisplay.ToPersianDigits(Model.Form.HeightCm.ToString()) سانتی‌متر</output>
+            <input asp-for="Form.HeightCm" class="form-range" type="range" min="140" max="210" step="1" data-height-slider />
+            <span asp-validation-for="Form.HeightCm" class="text-danger"></span>
+        </div>
+
+        <label asp-for="Form.EducationLevel">مدرک تحصیلی</label>
+        <select asp-for="Form.EducationLevel" class="form-select">
+            <option value="1">دیپلم</option>
+            <option value="2">دانشجو</option>
+            <option value="3">لیسانس</option>
+            <option value="4">فوق لیسانس</option>
+            <option value="5">دکترا</option>
+        </select>
+        <span asp-validation-for="Form.EducationLevel" class="text-danger"></span>
+
+        <label class="rv-toggle">
+            <input asp-for="Form.Smoking" />
+            <span class="rv-toggle__track">
+                <span>سیگاری نیستم</span>
+                <span>سیگاری هستم</span>
+            </span>
+        </label>
+    </section>
+
+    <section class="rv-profile-section">
+        <div class="rv-profile-section__head">
+            <div>
+                <p class="rv-eyebrow">زودیاک</p>
+                <h2>نشان خودت را انتخاب کن</h2>
+            </div>
+        </div>
+        <div class="rv-choice-grid rv-choice-grid--zodiac">
+            @foreach (var item in Model.ZodiacOptions)
+            {
+                var selected = Model.Form.ZodiacSignId?.ToString() == item.Value;
+                <label class="rv-choice-card @(selected ? "is-selected" : "")">
+                    @if (selected)
+                    {
+                        <input type="radio" name="Form.ZodiacSignId" value="@item.Value" checked />
+                    }
+                    else
+                    {
+                        <input type="radio" name="Form.ZodiacSignId" value="@item.Value" />
+                    }
+                    <i class="bi @item.Icon" aria-hidden="true"></i>
+                    <span>@item.Label</span>
+                </label>
+            }
+        </div>
+        <span asp-validation-for="Form.ZodiacSignId" class="text-danger"></span>
+    </section>
+
+    <section class="rv-profile-section">
+        <div class="rv-profile-section__head">
+            <div>
+                <p class="rv-eyebrow">علاقه‌مندی‌ها</p>
+                <h2>تا ۴ مورد انتخاب کن</h2>
+            </div>
+            <span class="rv-counter"><span data-interest-count>@RandevooDisplay.ToPersianDigits(Model.Form.SelectedInterestNames.Count.ToString())</span> / ۴</span>
+        </div>
+
+        @foreach (var group in Model.InterestGroups)
+        {
+            <div class="rv-interest-group">
+                <h3>@group.Title</h3>
+                <div class="rv-chip-grid" data-interest-group>
+                    @foreach (var item in group.Items)
+                    {
+                        var selected = Model.Form.SelectedInterestNames.Any(name => name.Equals(item.Name, StringComparison.OrdinalIgnoreCase));
+                        <label class="rv-interest-chip @(selected ? "is-selected" : "")">
+                            @if (selected)
+                            {
+                                <input type="checkbox" name="Form.SelectedInterestNames" value="@item.Name" checked data-interest-input />
+                            }
+                            else
+                            {
+                                <input type="checkbox" name="Form.SelectedInterestNames" value="@item.Name" data-interest-input />
+                            }
+                            <i class="bi @item.Icon" aria-hidden="true"></i>
+                            <span>@item.Name</span>
+                        </label>
+                    }
+                </div>
+            </div>
+        }
+        <span asp-validation-for="Form.SelectedInterestNames" class="text-danger"></span>
+    </section>
+
+    <button class="btn btn-primary btn-lg rv-save-profile" type="submit" asp-page-handler="Save">
+        <i class="bi bi-check2-circle" aria-hidden="true"></i>
+        <span>ذخیره پروفایل</span>
+    </button>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

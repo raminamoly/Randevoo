@@ -12,5 +12,12 @@ public record CreateDatingProfileCommand(
     string City,
     decimal Latitude,
     decimal Longitude,
-    int? HeightCm = null
+    int? HeightCm = null,
+    EducationLevel EducationLevel = EducationLevel.NotSpecified,
+    bool Smoking = false,
+    string? Region = null,
+    IReadOnlyList<string>? InterestNames = null,
+    long? ZodiacSignId = null,
+    IReadOnlyList<string>? PhotoUrls = null,
+    string? PrimaryImageUrl = null
 ) : IRequest<long>;

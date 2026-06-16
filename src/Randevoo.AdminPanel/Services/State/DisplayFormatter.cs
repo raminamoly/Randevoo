@@ -143,6 +143,9 @@ public static class DisplayFormatter
         BalanceTransactionType.PlatformCommissionRecognized => "شناسایی کمیسیون پلتفرم",
         BalanceTransactionType.ManualReceiptWalletCredit => "اعتبار کیف پول بابت رسید دستی",
         BalanceTransactionType.OrganizerManualReceiptLiability => "بدهی برگزارکننده بابت رسید دستی",
+        BalanceTransactionType.ManualWalletCredit => "شارژ دستی کیف پول",
+        BalanceTransactionType.ManualWalletDebit => "کسر دستی کیف پول",
+        BalanceTransactionType.ManualTicketPurchaseDebit => "کسر کیف پول بابت صدور دستی بلیت",
         _ => type.ToString()
     };
 

@@ -348,12 +348,173 @@ $(function () {
         $(host).closest("form").on("submit", sync);
     });
 
+    const setInlineValidationMessage = function (input, message) {
+        const field = input.closest(".gender-ticket-field, .image-manager-card, .col-md-6, .col-12") || input.parentElement;
+        if (!field) {
+            input.setCustomValidity(message || "");
+            return;
+        }
+
+        let messageElement = field.querySelector(".client-validation-message");
+        if (!messageElement) {
+            messageElement = document.createElement("span");
+            messageElement.className = "text-danger small d-block mt-1 client-validation-message";
+            const serverMessage = field.querySelector("[data-valmsg-for], .image-upload-validation");
+            field.insertBefore(messageElement, serverMessage || null);
+        }
+
+        messageElement.textContent = message || "";
+        messageElement.classList.toggle("d-none", !message);
+        input.setCustomValidity(message || "");
+    };
+
+    const getImageControls = function (source) {
+        const target = source.dataset.target || source.getAttribute("data-target");
+        const image = target ? document.querySelector(target) : null;
+        const card = source.closest(".image-manager-card");
+        const hiddenTarget = source.dataset.hiddenTarget
+            || source.getAttribute("data-hidden-target")
+            || card?.querySelector("[data-hidden-target]")?.getAttribute("data-hidden-target");
+        const fileTarget = source.dataset.fileTarget
+            || source.getAttribute("data-file-target")
+            || card?.querySelector("[data-file-target]")?.getAttribute("data-file-target");
+        const hidden = hiddenTarget ? document.querySelector(hiddenTarget) : null;
+        const file = fileTarget ? document.querySelector(fileTarget) : source;
+        const shell = image ? image.closest(".image-manager-preview-shell") : null;
+        const revertButton = card ? card.querySelector(".image-revert-button") : null;
+        return { image, hidden, file, card, shell, revertButton };
+    };
+
+    const initializeImageState = function (input) {
+        if (!input || input.dataset.imageStateReady === "true") {
+            return;
+        }
+
+        const controls = getImageControls(input);
+        input.dataset.imageStateReady = "true";
+        input.dataset.originalObjectUrl = "";
+        if (controls.hidden) {
+            controls.hidden.dataset.originalValue = controls.hidden.value || "";
+        }
+        if (controls.image) {
+            controls.image.dataset.originalSrc = controls.image.getAttribute("src") || "";
+        }
+    };
+
+    const setImagePreview = function (image, src) {
+        if (!image) {
+            return;
+        }
+
+        const shell = image.closest(".image-manager-preview-shell");
+        if (src) {
+            image.setAttribute("src", src);
+            image.classList.remove("d-none");
+            shell?.classList.remove("is-empty");
+        } else {
+            image.setAttribute("src", "");
+            image.classList.add("d-none");
+            shell?.classList.add("is-empty");
+        }
+    };
+
+    const releaseImageObjectUrl = function (input) {
+        if (input && input.dataset.currentObjectUrl) {
+            URL.revokeObjectURL(input.dataset.currentObjectUrl);
+            input.dataset.currentObjectUrl = "";
+        }
+    };
+
+    const updateImageRevertButton = function (input, forceChanged) {
+        if (!input) {
+            return;
+        }
+
+        initializeImageState(input);
+        const controls = getImageControls(input);
+        if (!controls.revertButton) {
+            return;
+        }
+
+        const originalValue = controls.hidden ? controls.hidden.dataset.originalValue || "" : "";
+        const hiddenValue = controls.hidden ? controls.hidden.value || "" : "";
+        const hasSelectedFile = Boolean(input.files && input.files.length > 0);
+        const changed = forceChanged || hasSelectedFile || hiddenValue !== originalValue;
+        controls.revertButton.classList.toggle("d-none", !changed);
+    };
+
+    document.querySelectorAll(".image-input").forEach(initializeImageState);
+
     $(".image-input").on("change", function () {
         const input = this;
         const target = $(input).data("target");
         const file = input.files && input.files[0];
 
+        initializeImageState(input);
+        setInlineValidationMessage(input, "");
+
         if (!file || !target) {
+            updateImageRevertButton(input, false);
+            return;
+        }
+
+        if (input.dataset.eventImageInput === "true") {
+            const standard = (window.randevooEventEdit && window.randevooEventEdit.eventImageStandard) || {};
+            const maxBytes = Number(standard.maxBytes || (5 * 1024 * 1024));
+            const minWidth = Number(standard.minWidth || 1000);
+            const minHeight = Number(standard.minHeight || 625);
+            const aspectWidth = Number(standard.aspectWidth || 16);
+            const aspectHeight = Number(standard.aspectHeight || 10);
+            const label = input.dataset.imageLabel || "تصویر";
+
+            if (!["image/jpeg", "image/png"].includes(file.type)) {
+                setInlineValidationMessage(input, label + " باید با فرمت JPG یا PNG باشد.");
+                input.value = "";
+                return;
+            }
+
+            if (file.size > maxBytes) {
+                setInlineValidationMessage(input, label + " باید کمتر از ۵ مگابایت باشد.");
+                input.value = "";
+                return;
+            }
+
+            const objectUrl = URL.createObjectURL(file);
+            const probe = new Image();
+            probe.onload = function () {
+                const expectedRatio = aspectWidth / aspectHeight;
+                const actualRatio = probe.naturalWidth / probe.naturalHeight;
+                if (probe.naturalWidth < minWidth || probe.naturalHeight < minHeight) {
+                    setInlineValidationMessage(input, label + " باید حداقل " + minWidth + "×" + minHeight + " پیکسل باشد.");
+                    input.value = "";
+                    URL.revokeObjectURL(objectUrl);
+                    input.dispatchEvent(new CustomEvent("randevoo:image-validation-complete", { bubbles: true }));
+                    return;
+                }
+
+                if (Math.abs(actualRatio - expectedRatio) > 0.06) {
+                    setInlineValidationMessage(input, label + " باید نسبت " + aspectWidth + ":" + aspectHeight + " داشته باشد. ابعاد فعلی " + probe.naturalWidth + "×" + probe.naturalHeight + " است.");
+                    input.value = "";
+                    URL.revokeObjectURL(objectUrl);
+                    input.dispatchEvent(new CustomEvent("randevoo:image-validation-complete", { bubbles: true }));
+                    return;
+                }
+
+                const image = $(target);
+                releaseImageObjectUrl(input);
+                input.dataset.currentObjectUrl = objectUrl;
+                image.attr("src", objectUrl).removeClass("d-none");
+                image.closest(".image-manager-preview-shell").removeClass("is-empty");
+                updateImageRevertButton(input, true);
+                input.dispatchEvent(new CustomEvent("randevoo:image-validation-complete", { bubbles: true }));
+            };
+            probe.onerror = function () {
+                setInlineValidationMessage(input, "ابعاد " + label + " قابل خواندن نیست.");
+                input.value = "";
+                URL.revokeObjectURL(objectUrl);
+                input.dispatchEvent(new CustomEvent("randevoo:image-validation-complete", { bubbles: true }));
+            };
+            probe.src = objectUrl;
             return;
         }
 
@@ -362,6 +523,7 @@ $(function () {
             const image = $(target);
             image.attr("src", e.target.result).removeClass("d-none");
             image.closest(".image-manager-preview-shell").removeClass("is-empty");
+            updateImageRevertButton(input, true);
         };
         reader.readAsDataURL(file);
     });
@@ -370,6 +532,13 @@ $(function () {
         const previewSelector = $(this).data("target");
         const hiddenSelector = $(this).data("hidden-target");
         const fileSelector = $(this).data("file-target");
+        const fileInput = fileSelector ? document.querySelector(fileSelector) : null;
+
+        if (fileInput) {
+            initializeImageState(fileInput);
+            releaseImageObjectUrl(fileInput);
+        }
+        const hadImageOrFile = Boolean((fileInput && fileInput.files && fileInput.files.length > 0) || (hiddenSelector && $(hiddenSelector).val()));
 
         if (previewSelector) {
             const image = $(previewSelector);
@@ -382,8 +551,34 @@ $(function () {
         }
 
         if (fileSelector) {
-            $(fileSelector).val("");
+            if (fileInput) {
+                fileInput.value = "";
+                setInlineValidationMessage(fileInput, "");
+                updateImageRevertButton(fileInput, hadImageOrFile);
+            }
         }
+    });
+
+    $(".image-revert-button").on("click", function () {
+        const controls = getImageControls(this);
+        const input = controls.file;
+        if (!input) {
+            return;
+        }
+
+        initializeImageState(input);
+        releaseImageObjectUrl(input);
+        input.value = "";
+        setInlineValidationMessage(input, "");
+
+        const originalValue = controls.hidden ? controls.hidden.dataset.originalValue || "" : "";
+        const originalSrc = controls.image ? controls.image.dataset.originalSrc || originalValue : originalValue;
+        if (controls.hidden) {
+            controls.hidden.value = originalValue;
+        }
+        setImagePreview(controls.image, originalSrc);
+        updateImageRevertButton(input, false);
+        input.dispatchEvent(new CustomEvent("randevoo:image-validation-complete", { bubbles: true }));
     });
 
     $("[data-tag-input='true']").each(function () {
@@ -1246,6 +1441,70 @@ $(function () {
             return Number.isFinite(rate) && rate > 0 ? rate : 1;
         };
 
+        const setWizardFieldError = function (input, message, showMessage) {
+            setInlineValidationMessage(input, showMessage && message ? message : "");
+            input.setCustomValidity(message || "");
+        };
+
+        const validateNumberRangeInput = function (input, showMessage) {
+            const label = input.dataset.numberLabel || "این مقدار";
+            const min = Number.parseInt(input.getAttribute("min") || "", 10);
+            const max = Number.parseInt(input.getAttribute("max") || "", 10);
+            const valueText = normalizeNumericInput(input.value || "").replace(/[^\d-]/g, "");
+            const value = Number.parseInt(valueText, 10);
+            let message = "";
+
+            if (!valueText || !Number.isFinite(value)) {
+                message = label + " را وارد کنید.";
+            } else if (Number.isFinite(min) && value < min || Number.isFinite(max) && value > max) {
+                message = label + " باید بین " + min.toLocaleString("fa-IR") + " تا " + max.toLocaleString("fa-IR") + " باشد.";
+            }
+
+            setWizardFieldError(input, message, showMessage);
+            return !message;
+        };
+
+        const validateTicketPriceInput = function (input, showMessage) {
+            const config = window.randevooEventEdit || {};
+            const range = config.ticketValueRangeIrr || {};
+            const min = Number(range.min || 100000);
+            const max = Number(range.max || 200000000);
+            const label = input.dataset.ticketLabel || "مبلغ بلیت";
+            const value = Number.parseFloat(normalizeNumericInput(input.value || "").replace(/[^\d.]/g, ""));
+            let message = "";
+
+            if (!Number.isFinite(value) || value <= 0) {
+                message = label + " را به عدد معتبر وارد کنید.";
+            } else {
+                const reportingValue = value * currentExchangeRateToIrr();
+                if (reportingValue < min || reportingValue > max) {
+                    message = label + " باید ارزشی بین " + min.toLocaleString("fa-IR") + " تا " + max.toLocaleString("fa-IR") + " ریال ایران داشته باشد.";
+                }
+            }
+
+            setWizardFieldError(input, message, showMessage);
+            return !message;
+        };
+
+        const validateWizardFields = function (showMessage) {
+            let numberInputsValid = true;
+            Array.from(form.querySelectorAll("[data-number-range='true']")).forEach(function (input) {
+                numberInputsValid = validateNumberRangeInput(input, showMessage) && numberInputsValid;
+            });
+
+            let ticketPricesValid = true;
+            Array.from(form.querySelectorAll("[data-ticket-price='true']")).forEach(function (input) {
+                ticketPricesValid = validateTicketPriceInput(input, showMessage) && ticketPricesValid;
+            });
+
+            let imageInputsValid = true;
+            Array.from(form.querySelectorAll("[data-event-image-input='true']")).forEach(function (input) {
+                imageInputsValid = input.validity.valid && imageInputsValid;
+            });
+
+            return numberInputsValid && ticketPricesValid && imageInputsValid;
+        };
+
         const formatReportingMoney = function (amount) {
             const converted = Math.round(amount * currentExchangeRateToIrr());
             return converted.toLocaleString("fa-IR", { maximumFractionDigits: 0 }) + " ریال ایران";
@@ -1398,6 +1657,7 @@ $(function () {
                 control.value = currencyText || currencyCode;
             });
             syncOrganizerPaymentAccounts();
+            validateWizardFields(true);
         };
 
         const syncEventReview = function () {
@@ -1532,8 +1792,22 @@ $(function () {
             });
         });
 
-        form.addEventListener("input", syncEventReview);
+        form.querySelectorAll("[data-number-range='true'], [data-ticket-price='true']").forEach(function (input) {
+            input.addEventListener("blur", function () {
+                validateWizardFields(true);
+            });
+        });
+
+        form.addEventListener("input", function () {
+            validateWizardFields(true);
+            syncEventReview();
+        });
         form.addEventListener("change", function () {
+            validateWizardFields(true);
+            syncEventReview();
+        });
+        form.addEventListener("randevoo:image-validation-complete", function () {
+            markStepErrors();
             syncEventReview();
         });
         form.addEventListener("click", function (event) {
@@ -1549,7 +1823,19 @@ $(function () {
             }
         });
 
-        form.addEventListener("submit", function () {
+        form.addEventListener("submit", function (event) {
+            if (!validateWizardFields(true)) {
+                markStepErrors();
+                const firstInvalidIndex = panels.findIndex(hasPanelErrors);
+                if (firstInvalidIndex >= 0) {
+                    setActiveStep(firstInvalidIndex);
+                }
+                event.preventDefault();
+                event.stopPropagation();
+                form.reportValidity();
+                return;
+            }
+
             window.setTimeout(function () {
                 markStepErrors();
                 const firstInvalidIndex = panels.findIndex(hasPanelErrors);
@@ -2160,4 +2446,58 @@ $(function () {
         cancellationMessageInput?.addEventListener("input", updateState);
         updateState();
     });
+});
+
+document.addEventListener("click", function (event) {
+    const toggle = event.target.closest("[data-planner-event-actions-toggle]");
+    if (!toggle) {
+        return;
+    }
+
+    const targetSelector = toggle.getAttribute("data-target");
+    const target = targetSelector ? document.querySelector(targetSelector) : null;
+    if (!target) {
+        return;
+    }
+
+    const shouldOpen = target.hasAttribute("hidden");
+    document.querySelectorAll("[data-planner-event-actions-toggle]").forEach(function (otherToggle) {
+        otherToggle.setAttribute("aria-expanded", "false");
+    });
+
+    document.querySelectorAll(".planner-event-actions-row").forEach(function (row) {
+        row.setAttribute("hidden", "");
+    });
+
+    if (shouldOpen) {
+        target.removeAttribute("hidden");
+        toggle.setAttribute("aria-expanded", "true");
+    }
+});
+
+document.addEventListener("click", function (event) {
+    const toggle = event.target.closest("[data-admin-event-actions-toggle]");
+    if (!toggle) {
+        return;
+    }
+
+    const targetSelector = toggle.getAttribute("data-target");
+    const target = targetSelector ? document.querySelector(targetSelector) : null;
+    if (!target) {
+        return;
+    }
+
+    const shouldOpen = target.hasAttribute("hidden");
+    document.querySelectorAll("[data-admin-event-actions-toggle]").forEach(function (otherToggle) {
+        otherToggle.setAttribute("aria-expanded", "false");
+    });
+
+    document.querySelectorAll(".admin-event-actions-row").forEach(function (row) {
+        row.setAttribute("hidden", "");
+    });
+
+    if (shouldOpen) {
+        target.removeAttribute("hidden");
+        toggle.setAttribute("aria-expanded", "true");
+    }
 });

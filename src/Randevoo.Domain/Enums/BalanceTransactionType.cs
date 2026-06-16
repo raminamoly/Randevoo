@@ -14,5 +14,8 @@ public enum BalanceTransactionType
     EventSettlementReversal = 9,
     PlatformCommissionRecognized = 10,
     ManualReceiptWalletCredit = 11,
-    OrganizerManualReceiptLiability = 12
+    OrganizerManualReceiptLiability = 12,
+    ManualWalletCredit = 13,
+    ManualWalletDebit = 14,
+    ManualTicketPurchaseDebit = 15
 }

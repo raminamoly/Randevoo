@@ -25,6 +25,17 @@ public class ModerationReportRepository : IModerationReportRepository
             .FirstOrDefaultAsync(report => report.Id == id, cancellationToken);
     }
 
+    public Task<bool> HasOpenDuplicateAsync(long reporterUserId, long reportedUserId, long? datingEventId, CancellationToken cancellationToken = default)
+    {
+        return _db.ModerationReports.AnyAsync(
+            report =>
+                report.ReporterUserId == reporterUserId
+                && report.ReportedUserId == reportedUserId
+                && report.DatingEventId == datingEventId
+                && report.Status == ModerationReportStatus.Pending,
+            cancellationToken);
+    }
+
     public async Task<IReadOnlyList<ModerationReport>> ListByReporterAsync(long reporterUserId, int limit = 50, long? afterId = null, DateTime? createdAfter = null, CancellationToken cancellationToken = default)
     {
         var query = _db.ModerationReports

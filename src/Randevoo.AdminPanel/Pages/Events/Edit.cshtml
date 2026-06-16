@@ -1,5 +1,6 @@
 @page "{id?}"
 @model Randevoo.AdminPanel.Pages.Events.EditModel
+@using System.Globalization
 @{
     ViewData["Title"] = Model.IsNew ? "ساخت رویداد" : "ویرایش رویداد";
     var currentCurrencyTitle = Model.CurrencyOptions.FirstOrDefault(item => item.Value == Model.Input.MaleTicketCurrencyCode)?.Text
@@ -279,7 +280,8 @@
                         <i class="bi bi-info-circle"></i>
                     </button>
                 </label>
-                <input asp-for="Input.LikeLimit" class="form-control" type="number" min="0" max="10" />
+                <input asp-for="Input.LikeLimit" class="form-control" type="number" min="@EditModel.MinLikeLimit" max="@EditModel.MaxLikeLimit" step="1" data-number-range="true" data-number-label="تعداد لایک مجاز" />
+                <div class="form-text">عدد استاندارد این بخش بین @EditModel.MinLikeLimit تا @EditModel.MaxLikeLimit است.</div>
                 <span asp-validation-for="Input.LikeLimit" class="text-danger small"></span>
             </div>
 
@@ -296,7 +298,8 @@
                             <div class="gender-ticket-row gender-ticket-row-price">
                                 <div class="gender-ticket-field">
                                     <label asp-for="Input.MaleTicketPrice" class="form-label">مبلغ بلیت آقایان</label>
-                                    <input asp-for="Input.MaleTicketPrice" class="form-control money-input" type="text" inputmode="numeric" autocomplete="off" />
+                                    <input asp-for="Input.MaleTicketPrice" class="form-control money-input" type="text" inputmode="numeric" autocomplete="off" data-ticket-price="true" data-ticket-label="مبلغ بلیت آقایان" />
+                                    <div class="form-text">ارزش بلیت باید در بازه منطقی رویداد باشد؛ سیستم آن را بر اساس ارز انتخاب‌شده کنترل می‌کند.</div>
                                     <span asp-validation-for="Input.MaleTicketPrice" class="text-danger small"></span>
                                 </div>
                                 <div class="gender-ticket-field">
@@ -330,7 +333,8 @@
                             <div class="gender-ticket-row gender-ticket-row-meta">
                                 <div class="gender-ticket-field">
                                     <label asp-for="Input.CapacityMale" class="form-label">ظرفیت</label>
-                                    <input asp-for="Input.CapacityMale" class="form-control" type="number" />
+                                    <input asp-for="Input.CapacityMale" class="form-control" type="number" min="@EditModel.MinGenderCapacity" max="@EditModel.MaxGenderCapacity" step="1" data-number-range="true" data-number-label="ظرفیت آقایان" />
+                                    <div class="form-text">@EditModel.MinGenderCapacity تا @EditModel.MaxGenderCapacity نفر</div>
                                     <span asp-validation-for="Input.CapacityMale" class="text-danger small"></span>
                                 </div>
                                 <div class="gender-ticket-field">
@@ -352,7 +356,8 @@
                             <div class="gender-ticket-row gender-ticket-row-price">
                                 <div class="gender-ticket-field">
                                     <label asp-for="Input.FemaleTicketPrice" class="form-label">مبلغ بلیت خانم‌ها</label>
-                                    <input asp-for="Input.FemaleTicketPrice" class="form-control money-input" type="text" inputmode="numeric" autocomplete="off" />
+                                    <input asp-for="Input.FemaleTicketPrice" class="form-control money-input" type="text" inputmode="numeric" autocomplete="off" data-ticket-price="true" data-ticket-label="مبلغ بلیت خانم‌ها" />
+                                    <div class="form-text">برای جلوگیری از مبلغ غیرعادی، معادل ریالی بلیت هم بررسی می‌شود.</div>
                                     <span asp-validation-for="Input.FemaleTicketPrice" class="text-danger small"></span>
                                 </div>
                                 <div class="gender-ticket-field">
@@ -365,7 +370,8 @@
                             <div class="gender-ticket-row gender-ticket-row-meta">
                                 <div class="gender-ticket-field">
                                     <label asp-for="Input.CapacityFemale" class="form-label">ظرفیت</label>
-                                    <input asp-for="Input.CapacityFemale" class="form-control" type="number" />
+                                    <input asp-for="Input.CapacityFemale" class="form-control" type="number" min="@EditModel.MinGenderCapacity" max="@EditModel.MaxGenderCapacity" step="1" data-number-range="true" data-number-label="ظرفیت بانوان" />
+                                    <div class="form-text">@EditModel.MinGenderCapacity تا @EditModel.MaxGenderCapacity نفر</div>
                                     <span asp-validation-for="Input.CapacityFemale" class="text-danger small"></span>
                                 </div>
                                 <div class="gender-ticket-field">
@@ -428,8 +434,11 @@
         </div>
 
         <div class="event-image-tabs-panel">
-            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
-                <h3 class="section-title mb-0">تصاویر رویداد</h3>
+            <div class="event-image-standard-card mb-3">
+                <div>
+                    <strong>استاندارد تصویر رویداد</strong>
+                    <span>برای اینکه کارت رویداد، اسلایدر و صفحه عمومی به‌هم نریزد، همه تصاویر باید افقی و با نسبت @EditModel.EventImageAspectWidth:@EditModel.EventImageAspectHeight باشند. حداقل ابعاد @EditModel.MinEventImageWidth×@EditModel.MinEventImageHeight پیکسل، فرمت مجاز JPG یا PNG و حجم مجاز حداکثر ۵ مگابایت است.</span>
+                </div>
                 <span class="image-manager-counter">3 / 3</span>
             </div>
 
@@ -459,7 +468,10 @@
                     <div class="image-manager-card image-manager-card-tabbed">
                         <div class="image-slot-head">
                             <div class="fw-semibold">تصویر اول</div>
-                            <button type="button" class="btn btn-sm btn-light image-clear-button" data-target="#preview1" data-hidden-target="#Input_Image1" data-file-target="#Image1File">حذف</button>
+                            <div class="image-slot-actions">
+                                <button type="button" class="btn btn-sm btn-outline-secondary image-revert-button d-none" data-target="#preview1" data-hidden-target="#Input_Image1" data-file-target="#Image1File">انصراف از تغییر</button>
+                                <button type="button" class="btn btn-sm btn-light image-clear-button" data-target="#preview1" data-hidden-target="#Input_Image1" data-file-target="#Image1File">حذف</button>
+                            </div>
                         </div>
                         <div class="image-manager-preview-shell @(string.IsNullOrWhiteSpace(Model.Input.Image1) ? "is-empty" : string.Empty)">
                             <img id="preview1" src="@Model.Input.Image1" alt="تصویر اول" class="image-manager-preview @(string.IsNullOrWhiteSpace(Model.Input.Image1) ? "d-none" : string.Empty)" />
@@ -468,7 +480,9 @@
                                 <span>کاور اصلی</span>
                             </div>
                         </div>
-                        <input type="file" class="form-control image-input" asp-for="Image1File" accept="image/*" data-target="#preview1" />
+                        <input type="file" class="form-control image-input" asp-for="Image1File" accept="image/jpeg,image/png" data-target="#preview1" data-event-image-input="true" data-image-label="تصویر اول" />
+                        <div class="form-text">برای کاور، تصویر افقی با نسبت @EditModel.EventImageAspectWidth:@EditModel.EventImageAspectHeight انتخاب کنید.</div>
+                        <span asp-validation-for="Image1File" class="text-danger small d-block mt-1 image-upload-validation"></span>
                     </div>
                 </div>
 
@@ -476,7 +490,10 @@
                     <div class="image-manager-card image-manager-card-tabbed">
                         <div class="image-slot-head">
                             <div class="fw-semibold">تصویر دوم</div>
-                            <button type="button" class="btn btn-sm btn-light image-clear-button" data-target="#preview2" data-hidden-target="#Input_Image2" data-file-target="#Image2File">حذف</button>
+                            <div class="image-slot-actions">
+                                <button type="button" class="btn btn-sm btn-outline-secondary image-revert-button d-none" data-target="#preview2" data-hidden-target="#Input_Image2" data-file-target="#Image2File">انصراف از تغییر</button>
+                                <button type="button" class="btn btn-sm btn-light image-clear-button" data-target="#preview2" data-hidden-target="#Input_Image2" data-file-target="#Image2File">حذف</button>
+                            </div>
                         </div>
                         <div class="image-manager-preview-shell @(string.IsNullOrWhiteSpace(Model.Input.Image2) ? "is-empty" : string.Empty)">
                             <img id="preview2" src="@Model.Input.Image2" alt="تصویر دوم" class="image-manager-preview @(string.IsNullOrWhiteSpace(Model.Input.Image2) ? "d-none" : string.Empty)" />
@@ -485,7 +502,9 @@
                                 <span>لوکیشن</span>
                             </div>
                         </div>
-                        <input type="file" class="form-control image-input" asp-for="Image2File" accept="image/*" data-target="#preview2" />
+                        <input type="file" class="form-control image-input" asp-for="Image2File" accept="image/jpeg,image/png" data-target="#preview2" data-event-image-input="true" data-image-label="تصویر دوم" />
+                        <div class="form-text">تصاویر هم‌نسبت، کارت رویداد و اسلایدر را مرتب نگه می‌دارند.</div>
+                        <span asp-validation-for="Image2File" class="text-danger small d-block mt-1 image-upload-validation"></span>
                     </div>
                 </div>
 
@@ -493,7 +512,10 @@
                     <div class="image-manager-card image-manager-card-tabbed">
                         <div class="image-slot-head">
                             <div class="fw-semibold">تصویر سوم</div>
-                            <button type="button" class="btn btn-sm btn-light image-clear-button" data-target="#preview3" data-hidden-target="#Input_Image3" data-file-target="#Image3File">حذف</button>
+                            <div class="image-slot-actions">
+                                <button type="button" class="btn btn-sm btn-outline-secondary image-revert-button d-none" data-target="#preview3" data-hidden-target="#Input_Image3" data-file-target="#Image3File">انصراف از تغییر</button>
+                                <button type="button" class="btn btn-sm btn-light image-clear-button" data-target="#preview3" data-hidden-target="#Input_Image3" data-file-target="#Image3File">حذف</button>
+                            </div>
                         </div>
                         <div class="image-manager-preview-shell @(string.IsNullOrWhiteSpace(Model.Input.Image3) ? "is-empty" : string.Empty)">
                             <img id="preview3" src="@Model.Input.Image3" alt="تصویر سوم" class="image-manager-preview @(string.IsNullOrWhiteSpace(Model.Input.Image3) ? "d-none" : string.Empty)" />
@@ -502,7 +524,9 @@
                                 <span>تجربه</span>
                             </div>
                         </div>
-                        <input type="file" class="form-control image-input" asp-for="Image3File" accept="image/*" data-target="#preview3" />
+                        <input type="file" class="form-control image-input" asp-for="Image3File" accept="image/jpeg,image/png" data-target="#preview3" data-event-image-input="true" data-image-label="تصویر سوم" />
+                        <div class="form-text">حداقل ابعاد مجاز @EditModel.MinEventImageWidth×@EditModel.MinEventImageHeight پیکسل است.</div>
+                        <span asp-validation-for="Image3File" class="text-danger small d-block mt-1 image-upload-validation"></span>
                     </div>
                 </div>
             </div>
@@ -710,6 +734,17 @@
             cityOptions: @Html.Raw(Model.CityOptionsJson),
             currencyRates: @Html.Raw(Model.CurrencyRatesJson),
             organizerPaymentAccounts: @Html.Raw(Model.OrganizerPaymentAccountOptionsJson),
+            ticketValueRangeIrr: {
+                min: @EditModel.MinTicketValueIrr.ToString(CultureInfo.InvariantCulture),
+                max: @EditModel.MaxTicketValueIrr.ToString(CultureInfo.InvariantCulture)
+            },
+            eventImageStandard: {
+                minWidth: @EditModel.MinEventImageWidth,
+                minHeight: @EditModel.MinEventImageHeight,
+                aspectWidth: @EditModel.EventImageAspectWidth,
+                aspectHeight: @EditModel.EventImageAspectHeight,
+                maxBytes: @EditModel.MaxEventImageBytes
+            },
             latitudeSelector: '#Input_Latitude',
             longitudeSelector: '#Input_Longitude'
         };

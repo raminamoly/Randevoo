@@ -85,12 +85,43 @@ public class UserProfileTests
     {
         var profile = CreateValidProfile();
 
-        for (var i = 0; i < 10; i++)
+        for (var i = 0; i < 4; i++)
         {
             profile.AddInterest(CreateInterest($"I{i}"));
         }
 
         Assert.Throws<BusinessRuleViolationException>(() => profile.AddInterest(CreateInterest("Overflow")));
+    }
+
+    [Fact]
+    public void ReplaceImages_WithThreeImages_SelectsRequestedPrimary()
+    {
+        var profile = CreateValidProfile();
+
+        profile.ReplaceImages(
+            [
+                "/uploads/profiles/one.webp",
+                "/uploads/profiles/two.webp",
+                "/uploads/profiles/three.webp"
+            ],
+            "/uploads/profiles/two.webp");
+
+        Assert.Equal(3, profile.Images.Count);
+        Assert.Equal("/uploads/profiles/two.webp", profile.Images.Single(image => image.IsPrimary).ImageUrl);
+    }
+
+    [Fact]
+    public void ReplaceImages_WithMoreThanThreeImages_ThrowsBusinessRuleViolationException()
+    {
+        var profile = CreateValidProfile();
+
+        Assert.Throws<BusinessRuleViolationException>(() => profile.ReplaceImages(
+            [
+                "/uploads/profiles/one.webp",
+                "/uploads/profiles/two.webp",
+                "/uploads/profiles/three.webp",
+                "/uploads/profiles/four.webp"
+            ]));
     }
 
     [Fact]

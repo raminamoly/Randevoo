@@ -46,9 +46,9 @@
             <span asp-validation-for="Input.Body" class="text-danger small"></span>
         </div>
         <div class="col-12">
-            <label class="form-label">تصویر پیوست</label>
+            <label class="form-label">تصویر پیوست <span class="text-muted small">(اختیاری)</span></label>
             <input asp-for="Attachments" class="form-control" type="file" accept="image/*" multiple />
-            <div class="form-text">حداکثر ۵ مگابایت برای هر تصویر.</div>
+            <div class="form-text">اگر لازم بود تصویر اضافه کنید؛ حداکثر ۵ مگابایت برای هر تصویر.</div>
         </div>
     </div>
     <div class="d-flex justify-content-end mt-4">

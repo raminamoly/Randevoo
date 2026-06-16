@@ -6,6 +6,7 @@ using Randevoo.Application.Interfaces.Auth;
 using Randevoo.Application.Interfaces.Currencies;
 using Randevoo.Application.Interfaces.Notifications;
 using Randevoo.Application.Interfaces.Privacy;
+using Randevoo.Application.EndUsers.Events;
 using Randevoo.Domain.Interfaces;
 using Randevoo.Domain.Interfaces.Repositories;
 using Randevoo.Infrastructure.Data;
@@ -25,16 +26,21 @@ public static class DependencyInjection
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 
         services.AddScoped<IUserProfileRepository, UserProfileRepository>();
+        services.AddScoped<IInterestRepository, InterestRepository>();
         services.AddScoped<IEventPlannerProfileRepository, EventPlannerProfileRepository>();
         services.AddScoped<IBalanceAccountRepository, BalanceAccountRepository>();
         services.AddScoped<IDatingEventRepository, DatingEventRepository>();
         services.AddScoped<IEventDiscountCodeRepository, EventDiscountCodeRepository>();
         services.AddScoped<IEventTicketRepository, EventTicketRepository>();
+        services.AddScoped<ITicketOrderRepository, TicketOrderRepository>();
+        services.AddScoped<IManualPaymentReceiptRepository, ManualPaymentReceiptRepository>();
+        services.AddScoped<IOnlinePaymentRepository, OnlinePaymentRepository>();
         services.AddScoped<IEventConversationRepository, EventConversationRepository>();
         services.AddScoped<IEventLikeRepository, EventLikeRepository>();
         services.AddScoped<IEventSurveyRepository, EventSurveyRepository>();
         services.AddScoped<IEventTypeRepository, EventTypeRepository>();
         services.AddScoped<IModerationReportRepository, ModerationReportRepository>();
+        services.AddScoped<IUserRestrictionRepository, UserRestrictionRepository>();
         services.AddScoped<ISupportTicketRepository, SupportTicketRepository>();
         services.AddScoped<IEventParticipantSmsRequestRepository, EventParticipantSmsRequestRepository>();
         services.AddScoped<ISmsQueueRepository, SmsQueueRepository>();
@@ -43,6 +49,7 @@ public static class DependencyInjection
         services.AddSingleton<ICodeHasher, Sha256CodeHasher>();
         services.AddSingleton<IAuthTokenPolicy, AuthTokenPolicy>();
         services.AddScoped<IPrivacyDataReader, PrivacyDataReader>();
+        services.AddScoped<IEndUserEventCatalogReader, EndUserEventCatalogReader>();
         services.AddScoped<IAuditLogger, AuditLogger>();
         services.AddScoped<ICurrencyExchangeRateProvider, CurrencyExchangeRateProvider>();
         services.AddScoped<IJwtTokenService, JwtTokenService>();

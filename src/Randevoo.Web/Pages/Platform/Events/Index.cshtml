@@ -1,0 +1,173 @@
+@page "/platform/events"
+@using Randevoo.Web.Services
+@model Randevoo.Web.Pages.Platform.Events.IndexModel
+@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "رویدادها";
+    var ageValue = Model.Age.GetValueOrDefault(28);
+    var ageLabel = Model.UseAge
+        ? $"{RandevooDisplay.ToPersianDigits(ageValue.ToString())} سال"
+        : "همه سنین";
+}
+
+<section class="rv-events-head">
+    <div class="rv-events-head__title">
+        <span>جست‌وجوی رویداد</span>
+        <h1>رویدادها</h1>
+    </div>
+    <form method="get" class="rv-filter-bar">
+        <div class="rv-filter-bar__row rv-filter-bar__row--modes" role="group" aria-label="نوع برگزاری">
+            <label class="rv-toggle-card">
+                <input asp-for="IncludeInPerson" />
+                <span class="rv-toggle-card__icon"><i class="bi bi-geo-alt" aria-hidden="true"></i></span>
+                <span>
+                    <strong>حضوری</strong>
+                    <small>رویدادهای شهرها</small>
+                </span>
+            </label>
+            <label class="rv-toggle-card">
+                <input asp-for="IncludeOnline" />
+                <span class="rv-toggle-card__icon"><i class="bi bi-broadcast-pin" aria-hidden="true"></i></span>
+                <span>
+                    <strong>آنلاین</strong>
+                    <small>بدون وابستگی به شهر</small>
+                </span>
+            </label>
+        </div>
+        <div class="rv-filter-bar__row">
+            <label class="rv-field">
+                <span>شهر</span>
+                <select asp-for="CityId" class="form-select">
+                    <option value="">همه شهرها</option>
+                    <option value="1">تهران</option>
+                    <option value="2">مشهد</option>
+                    <option value="3">شیراز</option>
+                    <option value="4">اصفهان</option>
+                    <option value="5">تبریز</option>
+                </select>
+            </label>
+            <label class="rv-field">
+                <span>مرتب‌سازی</span>
+                <select asp-for="Sort" class="form-select">
+                    <option value="Recommended">پیشنهادی</option>
+                    <option value="Soonest">نزدیک‌ترین زمان</option>
+                    <option value="Newest">جدیدترین</option>
+                    <option value="PriceLowToHigh">ارزان‌ترین</option>
+                </select>
+            </label>
+        </div>
+        <div class="rv-filter-bar__row rv-filter-bar__row--advanced">
+            <div class="rv-range-filter" data-range-filter>
+                <label class="rv-switch rv-switch--wide">
+                    <input asp-for="UseAge" data-range-toggle />
+                    <span>فیلتر بازه سنی</span>
+                </label>
+                <div class="rv-range-filter__control">
+                    <div>
+                        <span>سن شرکت‌کننده</span>
+                        <output data-range-output>@ageLabel</output>
+                    </div>
+                    <input asp-for="Age" type="range" min="18" max="60" value="@ageValue" data-range-input aria-label="سن شرکت‌کننده" />
+                </div>
+            </div>
+            <label class="rv-field">
+                <span>مدرک تحصیلی</span>
+                <select asp-for="EducationLevelId" class="form-select">
+                    <option value="">همه شرایط تحصیلی</option>
+                    <option value="2">دیپلم به بالا</option>
+                    <option value="3">کارشناسی به بالا</option>
+                    <option value="4">کارشناسی ارشد به بالا</option>
+                    <option value="5">دکتری حرفه‌ای یا PhD</option>
+                </select>
+            </label>
+        </div>
+        <div class="rv-filter-actions">
+            <a class="btn btn-outline-secondary" asp-page="/Platform/Events/Index">
+                <i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i>
+                <span>حذف فیلترها</span>
+            </a>
+            <button class="btn btn-primary" type="submit">
+                <i class="bi bi-funnel" aria-hidden="true"></i>
+                <span>اعمال فیلتر</span>
+            </button>
+        </div>
+    </form>
+</section>
+
+@if (Model.ErrorMessage is not null)
+{
+    <div class="alert alert-warning rv-alert" role="alert">@Model.ErrorMessage</div>
+}
+
+@if (Model.Events.Items.Count == 0)
+{
+    <section class="rv-empty-state">
+        <strong>رویدادی برای نمایش نیست.</strong>
+        <span>فیلترها را تغییر بده یا بعداً دوباره سر بزن.</span>
+    </section>
+}
+else
+{
+    <section class="rv-event-grid" aria-label="فهرست رویدادها">
+        @foreach (var item in Model.Events.Items)
+        {
+            var imageUrl = RandevooDisplay.PublicImageUrl(item.ImageUrl, Configuration);
+            <article class="rv-event-card">
+                <a asp-page="/Platform/Events/Details" asp-route-id="@item.Id" class="rv-event-card__media">
+                    @if (!string.IsNullOrWhiteSpace(imageUrl))
+                    {
+                        <img src="@imageUrl" alt="@item.Title" loading="lazy" />
+                    }
+                    else
+                    {
+                        <span><i class="bi bi-calendar-heart" aria-hidden="true"></i>@item.EventType</span>
+                    }
+                </a>
+                <div class="rv-event-card__body">
+                    <div class="rv-event-card__header">
+                        <span class="rv-status-pill @RandevooDisplay.EventStatusClass(item.UserFacingStatus)">@RandevooDisplay.EventStatusLabel(item.UserFacingStatus)</span>
+                        @if (!string.IsNullOrWhiteSpace(item.OrganizerTitle))
+                        {
+                            <span class="rv-event-card__host">@item.OrganizerTitle</span>
+                        }
+                    </div>
+                    <div class="rv-event-card__meta">
+                        <span><i class="bi bi-geo-alt" aria-hidden="true"></i>@item.City</span>
+                        <span><i class="bi @(item.IsOnline ? "bi-broadcast" : "bi-people")" aria-hidden="true"></i>@(item.IsOnline ? "آنلاین" : "حضوری")</span>
+                        <span><i class="bi bi-calendar2-week" aria-hidden="true"></i>@item.EventType</span>
+                    </div>
+                    <h2><a asp-page="/Platform/Events/Details" asp-route-id="@item.Id">@item.Title</a></h2>
+                    <div class="rv-event-card__date"><i class="bi bi-clock" aria-hidden="true"></i>@RandevooDisplay.PersianDateTime(item.StartsAtUtc)</div>
+                    <div class="rv-tag-row">
+                        @foreach (var tag in item.Tags.Take(3))
+                        {
+                            <span>@tag</span>
+                        }
+                    </div>
+                    <div class="rv-event-card__stats">
+                        <span><i class="bi bi-gender-male" aria-hidden="true"></i>آقایان @RandevooDisplay.ToPersianDigits(item.MaleRemainingCapacity.ToString()) نفر</span>
+                        <span><i class="bi bi-gender-female" aria-hidden="true"></i>خانم‌ها @RandevooDisplay.ToPersianDigits(item.FemaleRemainingCapacity.ToString()) نفر</span>
+                    </div>
+                    <div class="rv-event-card__footer">
+                        <strong class="rv-price">@RandevooDisplay.Money(item.StartingPrice, item.CurrencyCode)</strong>
+                        <a class="btn btn-sm btn-outline-primary" asp-page="/Platform/Events/Details" asp-route-id="@item.Id">
+                            <i class="bi bi-arrow-left-circle" aria-hidden="true"></i>
+                            <span>جزئیات</span>
+                        </a>
+                    </div>
+                </div>
+            </article>
+        }
+    </section>
+
+    <nav class="rv-pager" aria-label="صفحه‌بندی">
+        @if (Model.Events.Page > 1)
+        {
+            <a class="btn btn-outline-secondary" asp-page="/Platform/Events/Index" asp-route-pageNumber="@(Model.Events.Page - 1)" asp-route-cityId="@Model.CityId" asp-route-includeOnline="@Model.IncludeOnline" asp-route-includeInPerson="@Model.IncludeInPerson" asp-route-useAge="@Model.UseAge" asp-route-age="@Model.Age" asp-route-educationLevelId="@Model.EducationLevelId" asp-route-sort="@Model.Sort">قبلی</a>
+        }
+        @if (Model.Events.HasNextPage)
+        {
+            <a class="btn btn-outline-secondary" asp-page="/Platform/Events/Index" asp-route-pageNumber="@(Model.Events.Page + 1)" asp-route-cityId="@Model.CityId" asp-route-includeOnline="@Model.IncludeOnline" asp-route-includeInPerson="@Model.IncludeInPerson" asp-route-useAge="@Model.UseAge" asp-route-age="@Model.Age" asp-route-educationLevelId="@Model.EducationLevelId" asp-route-sort="@Model.Sort">بعدی</a>
+        }
+    </nav>
+}

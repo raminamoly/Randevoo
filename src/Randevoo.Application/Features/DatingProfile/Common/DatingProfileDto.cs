@@ -8,36 +8,52 @@ public record DatingProfileDto(
     long UserId,
     string DisplayName,
     Gender Gender,
+    long? GenderId,
     DateOnly DateOfBirth,
     int Age,
+    long? ZodiacSignId,
     int HeightCm,
     EducationLevel EducationLevel,
+    UserProfileStatus ProfileStatus,
     bool Smoking,
     string Country,
     string City,
     string? Region,
     decimal Latitude,
     decimal Longitude,
-    IReadOnlyList<string> Interests)
+    IReadOnlyList<string> Interests,
+    string? PrimaryImageUrl,
+    IReadOnlyList<string> ImageUrls)
 {
     public static DatingProfileDto FromEntity(UserProfile profile)
     {
+        var orderedImages = profile.Images
+            .OrderByDescending(image => image.IsPrimary)
+            .ThenBy(image => image.DisplayOrder)
+            .Select(image => image.ImageUrl)
+            .ToList();
+
         return new DatingProfileDto(
             profile.Id,
             profile.UserId,
             profile.DisplayName,
             profile.Gender,
+            profile.GenderId,
             profile.DateOfBirth,
             profile.Age,
+            profile.ZodiacSignId,
             profile.Height.Centimeters,
             profile.EducationLevel,
+            profile.ProfileStatus,
             profile.Smoking,
             profile.Country?.Name ?? LookupCountryName(profile.CountryId) ?? profile.Location.Country,
             profile.City?.Name ?? LookupCityName(profile.CityId) ?? profile.Location.City,
             profile.Location.Region,
             profile.Location.Coordinates.Latitude,
             profile.Location.Coordinates.Longitude,
-            profile.Interests.Select(i => i.Name).ToList());
+            profile.Interests.Select(i => i.Name).ToList(),
+            orderedImages.FirstOrDefault(),
+            orderedImages);
     }
 
     private static string? LookupCountryName(long? countryId) => countryId switch

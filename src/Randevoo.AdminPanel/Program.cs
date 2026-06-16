@@ -24,6 +24,7 @@ builder.Services.AddRazorPages(options =>
     options.Conventions.AuthorizeFolder("/DiscountCodes");
     options.Conventions.AuthorizeFolder("/Tags");
     options.Conventions.AuthorizeFolder("/Finance");
+    options.Conventions.AuthorizeFolder("/SpecialOperations", Policies.SupportOrAdmin);
     options.Conventions.AuthorizeFolder("/Support", Policies.AdminPlannerOrSupport);
     options.Conventions.AuthorizeFolder("/Participants", Policies.AdminPlannerOrSupport);
     options.Conventions.AuthorizeFolder("/Buyers", Policies.AdminPlannerOrSupport);
@@ -62,6 +63,7 @@ builder.Services.AddScoped<IDashboardApiClient, DatabaseDashboardApiClient>();
 builder.Services.AddScoped<IAdminAnalyticsApiClient, DatabaseAdminAnalyticsApiClient>();
 builder.Services.AddScoped<IPlannerProfilesApiClient, DatabasePlannerProfilesApiClient>();
 builder.Services.AddScoped<IFinanceApiClient, DatabaseFinanceApiClient>();
+builder.Services.AddScoped<ISpecialOperationsApiClient, DatabaseSpecialOperationsApiClient>();
 builder.Services.AddScoped<INotificationsApiClient, DatabaseNotificationsApiClient>();
 builder.Services.AddScoped<ILocationsApiClient, DatabaseLocationsApiClient>();
 builder.Services.AddScoped<ISupportTicketsApiClient, DatabaseSupportTicketsApiClient>();
@@ -101,10 +103,7 @@ builder.Services.AddAuthorization(options =>
 
 var app = builder.Build();
 
-if (builder.Configuration.GetValue<bool>("SampleData:Enabled"))
-{
-    await app.Services.MigrateAndSeedSampleDataAsync();
-}
+await app.Services.InitializeDatabaseAsync();
 
 await app.Services.SyncOperationPermissionCatalogAsync();
 

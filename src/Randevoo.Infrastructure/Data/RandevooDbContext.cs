@@ -15,6 +15,7 @@ public class RandevooDbContext : DbContext
     public DbSet<UserProfile> UserProfiles => Set<UserProfile>();
     public DbSet<UserProfileImage> UserProfileImages => Set<UserProfileImage>();
     public DbSet<Interest> Interests => Set<Interest>();
+    public DbSet<InterestTagMapping> InterestTagMappings => Set<InterestTagMapping>();
     public DbSet<EventPlannerProfile> EventPlannerProfiles => Set<EventPlannerProfile>();
     public DbSet<Country> Countries => Set<Country>();
     public DbSet<City> Cities => Set<City>();
@@ -47,6 +48,7 @@ public class RandevooDbContext : DbContext
     public DbSet<EventDiscountCode> EventDiscountCodes => Set<EventDiscountCode>();
     public DbSet<Tag> Tags => Set<Tag>();
     public DbSet<EventTag> EventTags => Set<EventTag>();
+    public DbSet<UserFacingEventStatus> UserFacingEventStatuses => Set<UserFacingEventStatus>();
     public DbSet<EventTicket> EventTickets => Set<EventTicket>();
     public DbSet<EventLike> EventLikes => Set<EventLike>();
     public DbSet<EventConversation> EventConversations => Set<EventConversation>();
@@ -56,6 +58,7 @@ public class RandevooDbContext : DbContext
     public DbSet<EventSurveyRating> EventSurveyRatings => Set<EventSurveyRating>();
     public DbSet<EventType> EventTypes => Set<EventType>();
     public DbSet<ModerationReport> ModerationReports => Set<ModerationReport>();
+    public DbSet<UserRestriction> UserRestrictions => Set<UserRestriction>();
     public DbSet<SupportTicket> SupportTickets => Set<SupportTicket>();
     public DbSet<SupportTicketMessage> SupportTicketMessages => Set<SupportTicketMessage>();
     public DbSet<SupportTicketAttachment> SupportTicketAttachments => Set<SupportTicketAttachment>();
@@ -73,6 +76,7 @@ public class RandevooDbContext : DbContext
     public DbSet<NotificationPriorityLookup> NotificationPriorities => Set<NotificationPriorityLookup>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+    public DbSet<SpecialOperationLog> SpecialOperationLogs => Set<SpecialOperationLog>();
     public DbSet<PermissionAction> PermissionActions => Set<PermissionAction>();
     public DbSet<RoleOperationPermission> RoleOperationPermissions => Set<RoleOperationPermission>();
     public DbSet<UserOperationPermissionOverride> UserOperationPermissionOverrides => Set<UserOperationPermissionOverride>();
@@ -148,6 +152,34 @@ public class RandevooDbContext : DbContext
             b.HasIndex(log => new { log.Status, log.CreatedAt });
             b.HasIndex(log => new { log.TargetType, log.TargetId });
             b.HasIndex(log => log.CreatedAt);
+        });
+
+        modelBuilder.Entity<SpecialOperationLog>(b =>
+        {
+            b.ToTable("SpecialOperationLogs");
+            b.HasKey(log => log.Id);
+            b.Property(log => log.OperationType).IsRequired().HasMaxLength(80);
+            b.Property(log => log.Status).IsRequired().HasMaxLength(40);
+            b.Property(log => log.Amount).HasPrecision(18, 2);
+            b.Property(log => log.CurrencyCode).HasMaxLength(12);
+            b.Property(log => log.Reason).IsRequired().HasMaxLength(1000);
+            b.Property(log => log.SupportTicketNumber).HasMaxLength(80);
+            b.Property(log => log.IdempotencyKey).IsRequired().HasMaxLength(120);
+            b.Property(log => log.RequestPayloadJson).HasMaxLength(8000);
+            b.Property(log => log.PreviewPayloadJson).HasMaxLength(8000);
+            b.Property(log => log.ResultPayloadJson).HasMaxLength(8000);
+            b.Property(log => log.FailureMessage).HasMaxLength(1000);
+            b.Property(log => log.CorrelationId).HasMaxLength(100);
+            b.HasIndex(log => log.IdempotencyKey).IsUnique();
+            b.HasIndex(log => new { log.OperationType, log.CreatedAt });
+            b.HasIndex(log => new { log.Status, log.CreatedAt });
+            b.HasIndex(log => log.PerformedByUserId);
+            b.HasIndex(log => log.TargetUserId);
+            b.HasIndex(log => log.RelatedTicketId);
+            b.HasIndex(log => log.RelatedOrderId);
+            b.HasIndex(log => log.RelatedEventId);
+            b.HasIndex(log => log.RelatedWalletTransactionId);
+            b.HasQueryFilter(log => !log.IsDeleted);
         });
 
         modelBuilder.Entity<UserRoleLookup>(b =>
@@ -373,7 +405,10 @@ public class RandevooDbContext : DbContext
                 new { Id = 10L, Name = "EventSettlementReversal", DisplayNameFa = "برگشت بستانکاری رویداد", IsActive = true, DisplayOrder = 10, CreatedAt = new DateTime(2026, 6, 11, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
                 new { Id = 11L, Name = "PlatformCommissionRecognized", DisplayNameFa = "شناسایی کمیسیون پلتفرم", IsActive = true, DisplayOrder = 11, CreatedAt = new DateTime(2026, 6, 11, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
                 new { Id = 12L, Name = "ManualReceiptWalletCredit", DisplayNameFa = "اعتبار کیف پول بابت رسید دستی", IsActive = true, DisplayOrder = 12, CreatedAt = new DateTime(2026, 6, 14, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
-                new { Id = 13L, Name = "OrganizerManualReceiptLiability", DisplayNameFa = "بدهی برگزارکننده بابت رسید دستی", IsActive = true, DisplayOrder = 13, CreatedAt = new DateTime(2026, 6, 14, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false });
+                new { Id = 13L, Name = "OrganizerManualReceiptLiability", DisplayNameFa = "بدهی برگزارکننده بابت رسید دستی", IsActive = true, DisplayOrder = 13, CreatedAt = new DateTime(2026, 6, 14, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 14L, Name = "ManualWalletCredit", DisplayNameFa = "شارژ دستی کیف پول", IsActive = true, DisplayOrder = 14, CreatedAt = new DateTime(2026, 6, 15, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 15L, Name = "ManualWalletDebit", DisplayNameFa = "کسر دستی کیف پول", IsActive = true, DisplayOrder = 15, CreatedAt = new DateTime(2026, 6, 15, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 16L, Name = "ManualTicketPurchaseDebit", DisplayNameFa = "کسر کیف پول بابت صدور دستی بلیت", IsActive = true, DisplayOrder = 16, CreatedAt = new DateTime(2026, 6, 15, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false });
         });
 
         modelBuilder.Entity<CurrencyLookup>(b =>
@@ -389,7 +424,7 @@ public class RandevooDbContext : DbContext
             b.HasIndex(currency => currency.Code).IsUnique();
             b.HasQueryFilter(currency => !currency.IsDeleted);
             b.HasData(
-                new { Id = 1L, Code = "IRR", DisplayNameFa = "ریال ایران", Symbol = "ریال", DecimalPlaces = 0, IsActive = true, DisplayOrder = 1, CreatedAt = new DateTime(2026, 6, 8, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
+                new { Id = 1L, Code = "IRR", DisplayNameFa = "ریال", Symbol = "ریال", DecimalPlaces = 0, IsActive = true, DisplayOrder = 1, CreatedAt = new DateTime(2026, 6, 8, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
                 new { Id = 2L, Code = "EUR", DisplayNameFa = "یورو", Symbol = "€", DecimalPlaces = 2, IsActive = true, DisplayOrder = 2, CreatedAt = new DateTime(2026, 6, 8, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
                 new { Id = 3L, Code = "USD", DisplayNameFa = "دلار آمریکا", Symbol = "$", DecimalPlaces = 2, IsActive = true, DisplayOrder = 3, CreatedAt = new DateTime(2026, 6, 8, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
                 new { Id = 4L, Code = "CAD", DisplayNameFa = "دلار کانادا", Symbol = "C$", DecimalPlaces = 2, IsActive = true, DisplayOrder = 4, CreatedAt = new DateTime(2026, 6, 8, 0, 0, 0, DateTimeKind.Utc), IsDeleted = false },
@@ -866,9 +901,12 @@ public class RandevooDbContext : DbContext
             b.HasKey(p => p.Id);
             b.Property(p => p.DisplayName).IsRequired().HasMaxLength(50);
             b.Property(p => p.BirthMonth).IsRequired();
-            b.Property(p => p.ZodiacSign).IsRequired().HasMaxLength(30);
+            b.Ignore(p => p.Gender);
+            b.Ignore(p => p.ZodiacSign);
+            b.Property(p => p.ProfileStatus).HasDefaultValue(UserProfileStatus.Incomplete).IsRequired();
             b.HasIndex(p => p.DisplayName).IsUnique();
             b.HasIndex(p => p.UserId).IsUnique();
+            b.HasIndex(p => p.ProfileStatus);
             b.HasIndex(p => p.CountryId);
             b.HasIndex(p => p.CityId);
             b.HasIndex(p => p.EducationLevelId);
@@ -953,6 +991,25 @@ public class RandevooDbContext : DbContext
             b.Property(i => i.Category).HasMaxLength(30);
             b.Property(i => i.UsageCount).IsRequired();
             b.HasQueryFilter(i => !i.IsDeleted);
+        });
+
+        modelBuilder.Entity<InterestTagMapping>(b =>
+        {
+            b.ToTable("InterestTagMappings");
+            b.HasKey(mapping => mapping.Id);
+            b.Property(mapping => mapping.RelevanceWeight).IsRequired();
+            b.Property(mapping => mapping.IsActive).IsRequired();
+            b.HasIndex(mapping => new { mapping.InterestId, mapping.TagId }).IsUnique();
+            b.HasIndex(mapping => new { mapping.IsActive, mapping.RelevanceWeight });
+            b.HasQueryFilter(mapping => !mapping.IsDeleted && !mapping.Interest.IsDeleted && !mapping.Tag.IsDeleted);
+            b.HasOne(mapping => mapping.Interest)
+                .WithMany()
+                .HasForeignKey(mapping => mapping.InterestId)
+                .OnDelete(DeleteBehavior.Cascade);
+            b.HasOne(mapping => mapping.Tag)
+                .WithMany()
+                .HasForeignKey(mapping => mapping.TagId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<DatingEvent>(b =>
@@ -1183,6 +1240,21 @@ public class RandevooDbContext : DbContext
                 .OnDelete(DeleteBehavior.Restrict);
         });
 
+        modelBuilder.Entity<UserFacingEventStatus>(b =>
+        {
+            b.ToTable("UserFacingEventStatuses");
+            b.HasKey(status => status.Id);
+            b.Property(status => status.Status).IsRequired();
+            b.Property(status => status.LastEvaluatedAtUtc).IsRequired();
+            b.HasIndex(status => status.DatingEventId).IsUnique();
+            b.HasIndex(status => new { status.Status, status.LastEvaluatedAtUtc });
+            b.HasQueryFilter(status => !status.IsDeleted && !status.DatingEvent.IsDeleted);
+            b.HasOne(status => status.DatingEvent)
+                .WithMany()
+                .HasForeignKey(status => status.DatingEventId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
         modelBuilder.Entity<TicketOrder>(b =>
         {
             b.ToTable("TicketOrders");
@@ -1393,6 +1465,8 @@ public class RandevooDbContext : DbContext
             b.HasIndex(report => report.Status);
             b.HasIndex(report => report.ReporterUserId);
             b.HasIndex(report => report.ReportedUserId);
+            b.HasIndex(report => new { report.ReportedUserId, report.Status, report.CreatedAt });
+            b.HasIndex(report => new { report.ReporterUserId, report.ReportedUserId, report.DatingEventId, report.Status });
             b.HasQueryFilter(report => !report.IsDeleted);
             b.HasOne(report => report.ReporterUser)
                 .WithMany()
@@ -1413,6 +1487,31 @@ public class RandevooDbContext : DbContext
             b.HasOne(report => report.ReviewedByAdminUser)
                 .WithMany()
                 .HasForeignKey(report => report.ReviewedByAdminUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<UserRestriction>(b =>
+        {
+            b.ToTable("UserRestrictions");
+            b.HasKey(restriction => restriction.Id);
+            b.Property(restriction => restriction.RestrictionType).IsRequired();
+            b.Property(restriction => restriction.Reason).IsRequired().HasMaxLength(1000);
+            b.Property(restriction => restriction.RemovalReason).HasMaxLength(1000);
+            b.Property(restriction => restriction.IsActive).IsRequired();
+            b.HasIndex(restriction => new { restriction.UserId, restriction.RestrictionType, restriction.IsActive });
+            b.HasIndex(restriction => restriction.ExpiresAtUtc);
+            b.HasQueryFilter(restriction => !restriction.IsDeleted);
+            b.HasOne(restriction => restriction.User)
+                .WithMany()
+                .HasForeignKey(restriction => restriction.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            b.HasOne(restriction => restriction.CreatedByUser)
+                .WithMany()
+                .HasForeignKey(restriction => restriction.CreatedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            b.HasOne(restriction => restriction.RemovedByUser)
+                .WithMany()
+                .HasForeignKey(restriction => restriction.RemovedByUserId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
 

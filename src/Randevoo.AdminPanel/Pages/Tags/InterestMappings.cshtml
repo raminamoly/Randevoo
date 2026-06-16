@@ -1,0 +1,183 @@
+@page "{id?}"
+@model Randevoo.AdminPanel.Pages.Tags.InterestMappingsModel
+@{
+    ViewData["Title"] = "نگاشت علاقه‌ها به تگ‌ها";
+    var editorExpanded = Model.IsEditing || !ViewData.ModelState.IsValid;
+    var editorCollapseId = "interestTagMappingEditorPanel";
+}
+
+<section class="page-header">
+    <div>
+        <h1>نگاشت علاقه‌ها به تگ‌ها</h1>
+        <p class="text-muted mb-0">این نگاشت برای اولویت‌بندی رویدادها در پنل کاربران نهایی استفاده می‌شود.</p>
+    </div>
+    <a asp-page="/Tags/Index" class="btn btn-outline-secondary">
+        <i class="bi bi-bookmarks-fill"></i>
+        <span>مدیریت تگ‌ها</span>
+    </a>
+</section>
+
+@if (!string.IsNullOrWhiteSpace(Model.StatusMessage))
+{
+    <div class="alert alert-info border-0 mb-4">@Model.StatusMessage</div>
+}
+
+<div class="settings-editor-stack">
+    <section class="glass-panel base-data-editor-shell">
+        <div class="base-data-editor-bar">
+            <div>
+                <span class="base-data-editor-kicker">پیشنهاددهی کاربران نهایی</span>
+                <h2 class="section-title mb-0">@((Model.IsEditing) ? "ویرایش نگاشت" : "ایجاد نگاشت")</h2>
+            </div>
+            <button class="btn btn-primary base-data-editor-toggle"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#@editorCollapseId"
+                    aria-expanded="@(editorExpanded.ToString().ToLowerInvariant())"
+                    aria-controls="@editorCollapseId">
+                <i class="bi @(Model.IsEditing ? "bi-pencil-square" : "bi-link-45deg")"></i>
+                <span>@(Model.IsEditing ? "نمایش فرم ویرایش" : "افزودن نگاشت")</span>
+            </button>
+        </div>
+
+        <div id="@editorCollapseId" class="collapse @(editorExpanded ? "show" : string.Empty)">
+            <div class="base-data-editor-body">
+                <form method="post">
+                    <input type="hidden" asp-for="Id" />
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger border-0 mb-3"></div>
+
+                    <div class="row g-3 align-items-end">
+                        <div class="col-lg-4">
+                            <label asp-for="Input.InterestId" class="form-label">علاقه</label>
+                            <select asp-for="Input.InterestId" class="form-select" disabled="@Model.IsEditing">
+                                <option value="">انتخاب علاقه</option>
+                                @foreach (var item in Model.Interests)
+                                {
+                                    <option value="@item.Id">@item.Name (@DisplayFormatter.Count(item.UsageCount))</option>
+                                }
+                            </select>
+                            @if (Model.IsEditing)
+                            {
+                                <input type="hidden" asp-for="Input.InterestId" />
+                            }
+                            <span asp-validation-for="Input.InterestId" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-lg-4">
+                            <label asp-for="Input.TagId" class="form-label">تگ رویداد</label>
+                            <select asp-for="Input.TagId" class="form-select" disabled="@Model.IsEditing">
+                                <option value="">انتخاب تگ</option>
+                                @foreach (var item in Model.Tags)
+                                {
+                                    <option value="@item.Id">@item.Name</option>
+                                }
+                            </select>
+                            @if (Model.IsEditing)
+                            {
+                                <input type="hidden" asp-for="Input.TagId" />
+                            }
+                            <span asp-validation-for="Input.TagId" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-lg-2">
+                            <label asp-for="Input.RelevanceWeight" class="form-label">وزن</label>
+                            <input asp-for="Input.RelevanceWeight" class="form-control" type="number" min="1" max="100" />
+                            <span asp-validation-for="Input.RelevanceWeight" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-lg-2">
+                            <div class="form-check form-switch settings-editor-switch">
+                                <input asp-for="Input.IsActive" class="form-check-input" />
+                                <label asp-for="Input.IsActive" class="form-check-label">فعال</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex flex-wrap gap-2 justify-content-end mt-4">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check2-circle"></i>
+                            <span>ذخیره نگاشت</span>
+                        </button>
+                        @if (Model.IsEditing)
+                        {
+                            <a asp-page="/Tags/InterestMappings" class="btn btn-outline-secondary">ثبت نگاشت جدید</a>
+                        }
+                    </div>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <section class="glass-panel p-4">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
+            <div>
+                <h2 class="section-title mb-1">نگاشت‌های فعال برای پیشنهاددهی</h2>
+                <p class="text-muted mb-0">وزن بالاتر یعنی رویدادهای دارای آن تگ برای کاربرانی با آن علاقه بالاتر نمایش داده می‌شود.</p>
+            </div>
+            <span class="status-badge status-info">@DisplayFormatter.Count(Model.Mappings.Count) نگاشت</span>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th>علاقه</th>
+                        <th>تگ</th>
+                        <th>وزن</th>
+                        <th>وضعیت</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.Mappings)
+                    {
+                        <tr>
+                            <td>
+                                <div class="fw-semibold">@item.InterestName</div>
+                                <div class="text-muted small">
+                                    @if (!string.IsNullOrWhiteSpace(item.InterestCategory))
+                                    {
+                                        <span>@item.InterestCategory · </span>
+                                    }
+                                    <span>@DisplayFormatter.Count(item.InterestUsageCount) کاربر</span>
+                                </div>
+                            </td>
+                            <td><span class="status-badge status-neutral">@item.TagName</span></td>
+                            <td class="fw-semibold">@DisplayFormatter.Count(item.RelevanceWeight)</td>
+                            <td><span class="status-badge @(item.IsActive ? "status-approved" : "status-closed")">@(item.IsActive ? "فعال" : "غیرفعال")</span></td>
+                            <td class="text-end table-action-cell">
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle table-action-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        عملیات
+                                    </button>
+                                    <div class="dropdown-menu dropdown-menu-end action-menu shadow-sm border-0">
+                                        <a asp-page="/Tags/InterestMappings" asp-route-id="@item.Id" class="dropdown-item">
+                                            <i class="bi bi-pencil-square"></i>ویرایش وزن و وضعیت
+                                        </a>
+                                        <form method="post" asp-page-handler="Delete" onsubmit="return confirm('نگاشت حذف شود؟');">
+                                            <input type="hidden" name="id" value="@item.Id" />
+                                            <button class="dropdown-item text-danger" type="submit">
+                                                <i class="bi bi-trash3"></i>حذف نگاشت
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        @if (Model.Mappings.Count == 0)
+        {
+            <div class="empty-state mt-3">
+                <i class="bi bi-link-45deg"></i>
+                <strong>هنوز نگاشتی ثبت نشده است.</strong>
+                <span>برای فعال شدن پیشنهاددهی مبتنی بر علاقه، چند علاقه پرتکرار را به تگ‌های رویداد وصل کنید.</span>
+            </div>
+        }
+    </section>
+</div>
+
+<partial name="_ValidationScriptsPartial" />

@@ -62,6 +62,16 @@ public class CreateModel : PageModel
         }
     }
 
+    public async Task<IActionResult> OnGetUsersAsync(long? eventId, string? search, CancellationToken cancellationToken)
+    {
+        var users = await _notificationsApi.SearchUserOptionsAsync(CurrentUser(), eventId, search, cancellationToken);
+        return new JsonResult(users.Select(item => new
+        {
+            item.Id,
+            item.DisplayText
+        }));
+    }
+
     public IEnumerable<SelectListItem> MessageTypeItems => MessageTypes.Select(item => new SelectListItem(item.Label, item.Type.ToString()));
     public IEnumerable<SelectListItem> PriorityItems => Priorities.Select(item => new SelectListItem(item.Label, item.Priority.ToString()));
     public IEnumerable<SelectListItem> TargetItems => Targets.Select(item => new SelectListItem(item.Label, item.Value));

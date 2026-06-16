@@ -14,6 +14,7 @@
         || path.StartsWith("/UserProfiles", StringComparison.OrdinalIgnoreCase);
     var supportActive = path.StartsWith("/Support", StringComparison.OrdinalIgnoreCase);
     var notificationsActive = path.StartsWith("/Notifications", StringComparison.OrdinalIgnoreCase);
+    var specialOperationsActive = path.StartsWith("/SpecialOperations", StringComparison.OrdinalIgnoreCase);
     var financeActive = path.StartsWith("/Finance", StringComparison.OrdinalIgnoreCase)
         || (isPlanner && path.StartsWith("/Planner/BankAccounts", StringComparison.OrdinalIgnoreCase));
     var settingsActive = path.StartsWith("/Settings", StringComparison.OrdinalIgnoreCase)
@@ -127,18 +128,12 @@
                 <i class="bi bi-chevron-down nav-tree-chevron"></i>
             </button>
             <div id="participantsTree" class="collapse nav-subnav @(participantActive ? "show" : string.Empty)">
-                <a class="nav-link @(path.StartsWith("/Participants", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/Participants/Index">
+                <a class="nav-link @(path.StartsWith("/Participants", StringComparison.OrdinalIgnoreCase) || path.StartsWith("/UserProfiles", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/Participants/Index">
                     <i class="bi bi-person-lines-fill"></i><span>فهرست شرکت‌کنندگان</span>
                 </a>
                 <a class="nav-link @(path.StartsWith("/Buyers", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/Buyers/Index">
                     <i class="bi bi-bag-check"></i><span>خریداران بلیت</span>
                 </a>
-                @if (isAdmin)
-                {
-                    <a class="nav-link @(path.StartsWith("/UserProfiles", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/UserProfiles/Index">
-                        <i class="bi bi-person-bounding-box"></i><span>پروفایل شرکت‌کنندگان</span>
-                    </a>
-                }
             </div>
         </div>
     }
@@ -173,9 +168,6 @@
                     <a class="nav-link @(path.StartsWith("/Support/My", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/Support/My">
                         <i class="bi bi-ticket-perforated"></i><span>تیکت‌های من با پشتیبانی</span>
                     </a>
-                    <a class="nav-link @(path.StartsWith("/Support/Create", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/Support/Create">
-                        <i class="bi bi-plus-circle"></i><span>ثبت تیکت</span>
-                    </a>
                 }
             </div>
         </div>
@@ -208,6 +200,13 @@
                 }
             </div>
         </div>
+    }
+
+    @if (isAdmin || isSupport)
+    {
+        <a class="nav-link @(specialOperationsActive ? "active" : string.Empty)" asp-page="/SpecialOperations/Index">
+            <i class="bi bi-tools"></i><span>عملیات ویژه</span>
+        </a>
     }
 
     @if (isAdmin || isPlanner || isSupport)
@@ -279,8 +278,11 @@
                 <a class="nav-link @(path.StartsWith("/DiscountCodes", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/DiscountCodes/Index">
                     <i class="bi bi-percent"></i><span>تخفیف‌ها</span>
                 </a>
-                <a class="nav-link @(path.StartsWith("/Tags", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/Tags/Index">
+                <a class="nav-link @((path.Equals("/Tags", StringComparison.OrdinalIgnoreCase) || path.StartsWith("/Tags/Index", StringComparison.OrdinalIgnoreCase)) ? "active" : string.Empty)" asp-page="/Tags/Index">
                     <i class="bi bi-bookmarks-fill"></i><span>تگ‌ها</span>
+                </a>
+                <a class="nav-link @(path.StartsWith("/Tags/InterestMappings", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/Tags/InterestMappings">
+                    <i class="bi bi-link-45deg"></i><span>نگاشت علاقه به تگ</span>
                 </a>
                 <a class="nav-link @(path.StartsWith("/Settings/Locations", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-page="/Settings/Locations">
                     <i class="bi bi-geo-alt-fill"></i><span>کشورها و شهرها</span>

@@ -96,6 +96,13 @@ public class ManualPaymentReceipt : BaseEntity, IAggregateRoot
         AddDomainEvent(new EntityCreatedEvent<ManualPaymentReceipt>(this));
     }
 
+    public void LinkTicketOrder(TicketOrder ticketOrder)
+    {
+        TicketOrder = GuardAgainst.Object.Null(ticketOrder, nameof(ticketOrder));
+        TicketOrderId = ticketOrder.Id > 0 ? ticketOrder.Id : null;
+        UpdateTimestamp();
+    }
+
     public void Approve(User reviewer, TicketOrder ticketOrder, EventTicket eventTicket)
     {
         if (Status != ManualPaymentReceiptStatus.Submitted)

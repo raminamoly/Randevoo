@@ -44,6 +44,9 @@ public class UserModel : PageModel
         BalanceTransactionType.EmergencyRemovalRefund => "بازگشت اضطراری",
         BalanceTransactionType.ManualReceiptWalletCredit => "اعتبار کیف پول بابت رسید دستی",
         BalanceTransactionType.OrganizerManualReceiptLiability => "بدهی برگزارکننده بابت رسید دستی",
+        BalanceTransactionType.ManualWalletCredit => "شارژ دستی کیف پول",
+        BalanceTransactionType.ManualWalletDebit => "کسر دستی کیف پول",
+        BalanceTransactionType.ManualTicketPurchaseDebit => "کسر کیف پول بابت صدور دستی بلیت",
         BalanceTransactionType.AdminAdjustment => "اصلاح مدیر",
         _ => type.ToString()
     };

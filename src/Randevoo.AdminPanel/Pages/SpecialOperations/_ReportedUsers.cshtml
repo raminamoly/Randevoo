@@ -1,0 +1,302 @@
+@model Randevoo.AdminPanel.Pages.SpecialOperations.IndexModel
+@using Randevoo.AdminPanel.Services.State
+@using Randevoo.Domain.Enums
+
+@if (!Model.CanViewUserReports)
+{
+    <div class="empty-state">به فهرست کاربران ریپورت‌شده دسترسی ندارید.</div>
+    return;
+}
+
+<div class="alert alert-light border mb-4">
+    <h2 class="section-title mb-2">کاربران ریپورت‌شده</h2>
+    <p class="small text-muted mb-2">این بخش ادعای کاربران دیگر را نشان می‌دهد، نه اثبات تخلف. قبل از هر اقدام، پروفایل، تعداد گزارش‌ها، متن گزارش‌ها و وضعیت قبلی کاربر را بررسی کنید.</p>
+    <ul class="small mb-0 lh-lg">
+        <li>محدودسازی خرید فقط جلوی خرید بلیت جدید را می‌گیرد و روی ورود، کیف پول، بلیت‌های قبلی یا سفارش‌های قبلی اثر نمی‌گذارد.</li>
+        <li>هشدار فقط یک اعلان داخلی برای کاربر می‌سازد و وضعیت حساب را تغییر نمی‌دهد.</li>
+        <li>هر review، هشدار، محدودسازی یا رفع محدودیت در تاریخچه عملیات ویژه ثبت می‌شود.</li>
+    </ul>
+</div>
+
+<form method="get" class="row g-3 align-items-end mb-4">
+    <input type="hidden" name="ReportsTab" value="true" />
+    <div class="col-md-4">
+        <label asp-for="ReportFilter.SearchTerm" class="form-label">جستجو</label>
+        <input asp-for="ReportFilter.SearchTerm" class="form-control" placeholder="نام، موبایل یا شناسه کاربر" />
+    </div>
+    <div class="col-md-3">
+        <label asp-for="ReportFilter.Status" class="form-label">وضعیت گزارش</label>
+        <select asp-for="ReportFilter.Status" class="form-select">
+            <option value="">همه وضعیت‌ها</option>
+            <option value="@((int)ModerationReportStatus.Pending)">باز</option>
+            <option value="@((int)ModerationReportStatus.Reviewed)">بررسی‌شده</option>
+            <option value="@((int)ModerationReportStatus.Dismissed)">رد شده</option>
+            <option value="@((int)ModerationReportStatus.ActionTaken)">اقدام شده</option>
+        </select>
+    </div>
+    <div class="col-md-3">
+        <label asp-for="ReportFilter.MinimumOpenReports" class="form-label">حداقل گزارش باز</label>
+        <input asp-for="ReportFilter.MinimumOpenReports" class="form-control" />
+    </div>
+    <div class="col-md-2">
+        <button class="btn btn-outline-primary w-100" type="submit">
+            <i class="bi bi-filter"></i> اعمال
+        </button>
+    </div>
+</form>
+
+<div class="table-responsive">
+    <table class="table align-middle">
+        <thead>
+            <tr>
+                <th>کاربر</th>
+                <th>گزارش‌ها</th>
+                <th>آخرین گزارش</th>
+                <th>وضعیت</th>
+                <th>عملیات</th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach (var item in Model.ReportedUsers.Items)
+        {
+            <tr>
+                <td>
+                    <div class="d-flex align-items-center gap-2">
+                        <img src="@(item.ProfileImageUrl ?? "/images/logo.png")" alt="@item.DisplayName" class="admin-participant-avatar" loading="lazy" onerror="this.src='/images/logo.png';" />
+                        <div>
+                            <div class="fw-semibold">@item.DisplayName</div>
+                            <div class="text-muted small">@item.MobileNumber · #@DisplayFormatter.Count((int)item.UserId)</div>
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    <div>@DisplayFormatter.Count(item.TotalReports) گزارش کل</div>
+                    <div class="text-danger small">@DisplayFormatter.Count(item.OpenReports) گزارش باز</div>
+                </td>
+                <td>
+                    <div>@IndexModel.ReportReasonLabel(item.LatestReason)</div>
+                    <div class="text-muted small">@PersianDateFormatter.FormatDateTime(item.LastReportedAtUtc, Model.IsRtl)</div>
+                    <div class="text-muted small table-wrap-cell">@item.LatestDescription</div>
+                </td>
+                <td>
+                    @if (item.HasActiveTicketPurchaseRestriction)
+                    {
+                        <span class="status-pill status-rejected">خرید محدود</span>
+                        <div class="text-muted small mt-1">@item.ActiveRestrictionReason</div>
+                    }
+                    else
+                    {
+                        <span class="status-pill status-approved">بدون محدودیت خرید</span>
+                    }
+                </td>
+                <td>
+                    <a asp-page="/UserProfiles/Details" asp-route-id="@item.UserId" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-person-lines-fill"></i> پروفایل
+                    </a>
+                    <a asp-page="/SpecialOperations" asp-route-ReportsTab="true" asp-route-SelectedReportedUserId="@item.UserId" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-list-check"></i> جزئیات
+                    </a>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>
+
+@if (Model.ReportedUsers.Items.Count == 0)
+{
+    <div class="empty-state">هنوز گزارشی با این فیلترها وجود ندارد.</div>
+}
+
+@if (Model.SelectedReportedUser is not null)
+{
+    var selected = Model.SelectedReportedUser;
+    <div class="content-card mt-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+            <div class="d-flex align-items-center gap-3">
+                <img src="@(selected.ProfileImageUrl ?? "/images/logo.png")" alt="@selected.DisplayName" class="planner-avatar-lg planner-profile-photo" loading="lazy" onerror="this.src='/images/logo.png';" />
+                <div>
+                    <h2 class="section-title mb-1">@selected.DisplayName</h2>
+                    <div class="text-muted small">@selected.MobileNumber · #@DisplayFormatter.Count((int)selected.UserId)</div>
+                    <div class="mt-2">
+                        <span class="status-pill @(selected.IsUserActive ? "status-approved" : "status-rejected")">@(selected.IsUserActive ? "حساب فعال" : "حساب غیرفعال")</span>
+                        @if (selected.HasActiveTicketPurchaseRestriction)
+                        {
+                            <span class="status-pill status-rejected">خرید بلیت محدود</span>
+                        }
+                    </div>
+                </div>
+            </div>
+            <a asp-page="/UserProfiles/Details" asp-route-id="@selected.UserId" class="btn btn-outline-secondary">
+                <i class="bi bi-person-lines-fill"></i> مشاهده پروفایل کامل
+            </a>
+        </div>
+
+        <div class="row g-3 mb-4">
+            @if (Model.CanSendUserReportWarning)
+            {
+                <div class="col-xl-4 col-lg-6">
+                    <form method="post" asp-page-handler="SendUserReportWarning" class="border rounded-3 p-3 h-100">
+                        <input type="hidden" name="ReportsTab" value="true" />
+                        <input type="hidden" name="SelectedReportedUserId" value="@selected.UserId" />
+                        <input type="hidden" name="WarningInput.IdempotencyKey" value="@Guid.NewGuid().ToString("N")" />
+                        <input type="hidden" name="WarningInput.UserId" value="@selected.UserId" />
+                        <h3 class="h6 mb-2">ارسال هشدار</h3>
+                        <p class="small text-muted mb-2">برای وقتی که هنوز نمی‌خواهید حساب یا خرید کاربر را محدود کنید، اما لازم است یک اخطار رسمی داخل پنل کاربر ثبت شود.</p>
+                        <textarea asp-for="WarningInput.Message" class="form-control" rows="3"></textarea>
+                        <div class="form-text">فقط اعلان داخلی ثبت می‌شود؛ حساب یا خرید کاربر تغییر نمی‌کند.</div>
+                        <button class="btn btn-outline-warning mt-3" type="submit">
+                            <i class="bi bi-bell"></i> ارسال هشدار
+                        </button>
+                    </form>
+                </div>
+            }
+            @if (Model.CanSendUserReportNotification)
+            {
+                <div class="col-xl-4 col-lg-6">
+                    <form method="post" asp-page-handler="SendUserReportNotification" class="border rounded-3 p-3 h-100">
+                        <input type="hidden" name="ReportsTab" value="true" />
+                        <input type="hidden" name="SelectedReportedUserId" value="@selected.UserId" />
+                        <input type="hidden" name="NotificationInput.IdempotencyKey" value="@Guid.NewGuid().ToString("N")" />
+                        <input type="hidden" name="NotificationInput.UserId" value="@selected.UserId" />
+                        <h3 class="h6 mb-2">ارسال نوتیفیکیشن</h3>
+                        <p class="small text-muted mb-2">برای پیام دلخواه پشتیبانی؛ این کار فقط یک اعلان داخلی می‌سازد و وضعیت حساب یا خرید را تغییر نمی‌دهد.</p>
+                        <label asp-for="NotificationInput.Title" class="form-label small">عنوان</label>
+                        <input asp-for="NotificationInput.Title" class="form-control form-control-sm mb-2" />
+                        <label asp-for="NotificationInput.Message" class="form-label small">متن نوتیفیکیشن</label>
+                        <textarea asp-for="NotificationInput.Message" class="form-control" rows="3" placeholder="متن پیام برای کاربر"></textarea>
+                        <button class="btn btn-outline-primary mt-3" type="submit">
+                            <i class="bi bi-send"></i> ارسال نوتیفیکیشن
+                        </button>
+                    </form>
+                </div>
+            }
+            @if (Model.CanDeactivateReportedUser)
+            {
+                <div class="col-xl-4 col-lg-6">
+                    <form method="post" asp-page-handler="DeactivateReportedUser" class="border border-danger rounded-3 p-3 h-100" onsubmit="return confirm('حساب این کاربر غیرفعال شود؟ این عملیات حساس است و در تاریخچه عملیات ویژه ثبت می‌شود.');">
+                        <input type="hidden" name="ReportsTab" value="true" />
+                        <input type="hidden" name="SelectedReportedUserId" value="@selected.UserId" />
+                        <input type="hidden" name="DeactivateUserInput.IdempotencyKey" value="@Guid.NewGuid().ToString("N")" />
+                        <input type="hidden" name="DeactivateUserInput.UserId" value="@selected.UserId" />
+                        <h3 class="h6 mb-2 text-danger">غیرفعال کردن حساب</h3>
+                        <p class="small text-muted mb-2">برای موارد جدی بعد از بررسی گزارش‌ها؛ حساب کاربر غیرفعال می‌شود و یک نوتیفیکیشن داخلی برای او ثبت می‌شود.</p>
+                        <label asp-for="DeactivateUserInput.Reason" class="form-label small">دلیل داخلی عملیات</label>
+                        <textarea asp-for="DeactivateUserInput.Reason" class="form-control" rows="2" placeholder="دلیل قابل مشاهده در لاگ عملیات ویژه"></textarea>
+                        <label asp-for="DeactivateUserInput.NotificationMessage" class="form-label small mt-2">متن نوتیفیکیشن کاربر</label>
+                        <textarea asp-for="DeactivateUserInput.NotificationMessage" class="form-control" rows="3"></textarea>
+                        <button class="btn btn-danger mt-3" type="submit" disabled="@(!selected.IsUserActive)">
+                            <i class="bi bi-person-x"></i> غیرفعال کردن کاربر
+                        </button>
+                    </form>
+                </div>
+            }
+            @if (Model.CanRestrictTicketPurchase)
+            {
+                <div class="col-xl-4 col-lg-6">
+                    <form method="post" asp-page-handler="PreviewRestrictTicketPurchase" class="border rounded-3 p-3 h-100">
+                        <input type="hidden" name="ReportsTab" value="true" />
+                        <input type="hidden" name="SelectedReportedUserId" value="@selected.UserId" />
+                        <input type="hidden" name="RestrictInput.IdempotencyKey" value="@Guid.NewGuid().ToString("N")" />
+                        <input type="hidden" name="RestrictInput.UserId" value="@selected.UserId" />
+                        <h3 class="h6 mb-2">محدود کردن خرید بلیت</h3>
+                        <textarea asp-for="RestrictInput.Reason" class="form-control" rows="3" placeholder="دلیل محدودسازی"></textarea>
+                        <div class="form-text">بعد از پیش‌نمایش، کاربر دیگر نمی‌تواند بلیت جدید بخرد و اعلان داخلی دریافت می‌کند.</div>
+                        <button class="btn btn-outline-danger mt-3" type="submit" disabled="@selected.HasActiveTicketPurchaseRestriction">
+                            <i class="bi bi-shield-exclamation"></i> پیش‌نمایش محدودسازی
+                        </button>
+                    </form>
+                </div>
+            }
+            @if (Model.CanRemoveTicketPurchaseRestriction && selected.HasActiveTicketPurchaseRestriction)
+            {
+                <div class="col-12">
+                    <form method="post" asp-page-handler="RemoveTicketPurchaseRestriction" class="border rounded-3 p-3">
+                        <input type="hidden" name="ReportsTab" value="true" />
+                        <input type="hidden" name="SelectedReportedUserId" value="@selected.UserId" />
+                        <input type="hidden" name="RemoveRestrictionInput.IdempotencyKey" value="@Guid.NewGuid().ToString("N")" />
+                        <input type="hidden" name="RemoveRestrictionInput.UserId" value="@selected.UserId" />
+                        <label asp-for="RemoveRestrictionInput.Reason" class="form-label">دلیل رفع محدودیت</label>
+                        <textarea asp-for="RemoveRestrictionInput.Reason" class="form-control" rows="2"></textarea>
+                        <button class="btn btn-outline-success mt-3" type="submit">
+                            <i class="bi bi-unlock"></i> برداشتن محدودیت خرید
+                        </button>
+                    </form>
+                </div>
+            }
+        </div>
+
+        <div class="table-responsive">
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th>گزارش‌دهنده</th>
+                        <th>رویداد</th>
+                        <th>دلیل</th>
+                        <th>متن گزارش</th>
+                        <th>وضعیت</th>
+                        <th>بررسی</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var report in selected.Reports)
+                {
+                    <tr>
+                        <td>
+                            <div>@report.ReporterName</div>
+                            <div class="text-muted small">#@DisplayFormatter.Count((int)report.ReporterUserId)</div>
+                        </td>
+                        <td>
+                            @if (report.EventId is long eventId)
+                            {
+                                <div>@report.EventTitle</div>
+                                <div class="text-muted small">#@DisplayFormatter.Count((int)eventId)</div>
+                            }
+                            else
+                            {
+                                <span class="text-muted">بدون رویداد</span>
+                            }
+                        </td>
+                        <td>@IndexModel.ReportReasonLabel(report.Reason)</td>
+                        <td class="table-wrap-cell">
+                            <div>@report.Description</div>
+                            <div class="text-muted small">@PersianDateFormatter.FormatDateTime(report.CreatedAtUtc, Model.IsRtl)</div>
+                        </td>
+                        <td>
+                            <span class="status-pill @(report.Status == ModerationReportStatus.Pending ? "status-pending" : report.Status == ModerationReportStatus.Dismissed ? "status-draft" : "status-approved")">
+                                @IndexModel.ReportStatusLabel(report.Status)
+                            </span>
+                            @if (!string.IsNullOrWhiteSpace(report.AdminReviewNote))
+                            {
+                                <div class="text-muted small mt-1">@report.AdminReviewNote</div>
+                            }
+                        </td>
+                        <td>
+                            @if (Model.CanReviewUserReports && report.Status == ModerationReportStatus.Pending)
+                            {
+                                <form method="post" asp-page-handler="ReviewUserReport" class="d-flex flex-column gap-2">
+                                    <input type="hidden" name="ReportsTab" value="true" />
+                                    <input type="hidden" name="ReviewReportInput.IdempotencyKey" value="@Guid.NewGuid().ToString("N")" />
+                                    <input type="hidden" name="ReviewReportInput.ReportId" value="@report.Id" />
+                                    <input type="hidden" name="SelectedReportedUserId" value="@selected.UserId" />
+                                    <select asp-for="ReviewReportInput.Status" class="form-select form-select-sm">
+                                        <option value="@((int)ModerationReportStatus.Reviewed)">بررسی‌شده، بدون اقدام</option>
+                                        <option value="@((int)ModerationReportStatus.Dismissed)">رد گزارش</option>
+                                        <option value="@((int)ModerationReportStatus.ActionTaken)">اقدام انجام شد</option>
+                                    </select>
+                                    <textarea asp-for="ReviewReportInput.Note" class="form-control form-control-sm" rows="2" placeholder="یادداشت ادمین"></textarea>
+                                    <button class="btn btn-sm btn-outline-primary" type="submit">ثبت بررسی</button>
+                                </form>
+                            }
+                            else
+                            {
+                                <span class="text-muted small">-</span>
+                            }
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}

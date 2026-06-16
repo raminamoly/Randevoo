@@ -1,0 +1,326 @@
+@page "/platform/events/{id:long}"
+@using Randevoo.Web.Services
+@model Randevoo.Web.Pages.Platform.Events.DetailsModel
+@inject IConfiguration Configuration
+@{
+    var item = Model.EventDetails;
+    var imageUrls = item?.ImageUrls
+        .Select(image => RandevooDisplay.PublicImageUrl(image, Configuration))
+        .Where(image => !string.IsNullOrWhiteSpace(image))
+        .ToList() ?? [];
+    var organizerImageUrl = RandevooDisplay.PublicImageUrl(item?.Organizer.PictureUrl, Configuration);
+    var faqItems = item?.Faqs
+        .Where(faq => !string.IsNullOrWhiteSpace(faq.Question) && !string.IsNullOrWhiteSpace(faq.Answer))
+        .ToList() ?? [];
+    var maleSoldCount = item is null ? 0 : Math.Max(0, item.MaleCapacity - item.MaleRemainingCapacity);
+    var femaleSoldCount = item is null ? 0 : Math.Max(0, item.FemaleCapacity - item.FemaleRemainingCapacity);
+}
+
+@if (Model.ErrorMessage is not null)
+{
+    <div class="alert alert-warning rv-alert" role="alert">@Model.ErrorMessage</div>
+}
+else if (item is not null)
+{
+    <article class="rv-detail rv-detail--immersive">
+        <section class="rv-detail-hero">
+            <div class="rv-detail-hero__media">
+                @if (imageUrls.Count > 1)
+                {
+                    <div id="eventGallery" class="carousel slide rv-event-carousel" data-bs-ride="carousel">
+                        <div class="carousel-indicators">
+                            @for (var index = 0; index < imageUrls.Count; index++)
+                            {
+                                <button type="button"
+                                        data-bs-target="#eventGallery"
+                                        data-bs-slide-to="@index"
+                                        class="@(index == 0 ? "active" : "")"
+                                        aria-current="@(index == 0 ? "true" : null)"
+                                        aria-label="تصویر @RandevooDisplay.ToPersianDigits((index + 1).ToString())"></button>
+                            }
+                        </div>
+                        <div class="carousel-inner">
+                            @for (var index = 0; index < imageUrls.Count; index++)
+                            {
+                                <div class="carousel-item @(index == 0 ? "active" : "")">
+                                    <img src="@imageUrls[index]" alt="@item.Title" loading="@(index == 0 ? "eager" : "lazy")" />
+                                </div>
+                            }
+                        </div>
+                        <button class="carousel-control-prev" type="button" data-bs-target="#eventGallery" data-bs-slide="prev" aria-label="تصویر قبلی">
+                            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                        </button>
+                        <button class="carousel-control-next" type="button" data-bs-target="#eventGallery" data-bs-slide="next" aria-label="تصویر بعدی">
+                            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                        </button>
+                    </div>
+                }
+                else if (imageUrls.Count == 1)
+                {
+                    <img src="@imageUrls[0]" alt="@item.Title" loading="eager" />
+                }
+                else
+                {
+                    <span><i class="bi bi-calendar-heart" aria-hidden="true"></i>@item.EventType</span>
+                }
+            </div>
+
+            <div class="rv-detail-hero__content">
+                <div class="rv-detail__topline">
+                    <span class="rv-status-pill @RandevooDisplay.EventStatusClass(item.UserFacingStatus)">@RandevooDisplay.EventStatusLabel(item.UserFacingStatus)</span>
+                    <span class="rv-code-pill">رویداد @RandevooDisplay.ToPersianDigits(item.EventCode.ToString())</span>
+                </div>
+
+                <h1>@item.Title</h1>
+                <p class="rv-detail__lede">
+                    @(item.IsOnline
+                        ? $"برگزاری آنلاین در {(string.IsNullOrWhiteSpace(item.OnlinePlatform) ? "پلتفرم تعیین‌شده" : item.OnlinePlatform)}"
+                        : $"{(string.IsNullOrWhiteSpace(item.VenueName) ? item.City : item.VenueName)}، {item.City}")
+                </p>
+
+                <div class="rv-event-card__meta">
+                    <span><i class="bi bi-geo-alt" aria-hidden="true"></i>@item.City</span>
+                    <span><i class="bi bi-pin-map" aria-hidden="true"></i>@item.Country</span>
+                    @if (item.IsOnline)
+                    {
+                        <span><i class="bi bi-broadcast" aria-hidden="true"></i>آنلاین</span>
+                    }
+                    else if (!string.IsNullOrWhiteSpace(item.Region))
+                    {
+                        <span><i class="bi bi-signpost-split" aria-hidden="true"></i>@item.Region</span>
+                    }
+                </div>
+
+                @if (item.Tags.Count > 0)
+                {
+                    <div class="rv-tag-row">
+                        @foreach (var tag in item.Tags)
+                        {
+                            <span>@tag</span>
+                        }
+                    </div>
+                }
+
+                <section class="rv-detail-facts" aria-label="خلاصه رویداد">
+                    <div class="rv-detail-fact">
+                        <i class="bi bi-calendar2-event" aria-hidden="true"></i>
+                        <span>شروع</span>
+                        <strong>@RandevooDisplay.PersianDateTime(item.StartsAtUtc)</strong>
+                    </div>
+                    <div class="rv-detail-fact">
+                        <i class="bi bi-hourglass-split" aria-hidden="true"></i>
+                        <span>پایان</span>
+                        <strong>@RandevooDisplay.PersianDateTime(item.EndsAtUtc)</strong>
+                    </div>
+                    <div class="rv-detail-fact">
+                        <i class="bi bi-stopwatch" aria-hidden="true"></i>
+                        <span>مدت</span>
+                        <strong>@RandevooDisplay.Duration(item.StartsAtUtc, item.EndsAtUtc)</strong>
+                    </div>
+                    <div class="rv-detail-fact">
+                        <i class="bi bi-credit-card-2-front" aria-hidden="true"></i>
+                        <span>روش پرداخت</span>
+                        <strong>@RandevooDisplay.PaymentMethodLabel(item.PaymentCollectionMethod)</strong>
+                    </div>
+                </section>
+            </div>
+        </section>
+
+        <div class="rv-detail__body">
+            <section class="rv-detail-grid">
+                <section class="rv-detail-section rv-detail-section--emphasis">
+                    <h2><i class="bi bi-ticket-perforated" aria-hidden="true"></i>بلیت و ظرفیت</h2>
+                    <div class="rv-capacity-grid">
+                        <article class="rv-capacity-card rv-capacity-card--male">
+                            <div class="rv-capacity-card__head">
+                                <strong><i class="bi bi-gender-male" aria-hidden="true"></i>آقایان</strong>
+                                <span class="rv-price">@RandevooDisplay.Money(item.MaleTicketPrice, item.CurrencyCode)</span>
+                            </div>
+                            <div class="rv-capacity-card__number">
+                                <strong>@RandevooDisplay.ToPersianDigits(item.MaleRemainingCapacity.ToString())</strong>
+                                <span>نفر باقی‌مانده</span>
+                            </div>
+                            <div class="rv-capacity-meter">
+                                <span style="width:@(item.MaleCapacity == 0 ? 0 : maleSoldCount * 100 / item.MaleCapacity)%"></span>
+                            </div>
+                            <div class="rv-capacity-card__meta">
+                                <span>ظرفیت کل @RandevooDisplay.ToPersianDigits(item.MaleCapacity.ToString()) نفر</span>
+                                <span>@RandevooDisplay.ToPersianDigits(item.MaleRemainingCapacity.ToString()) نفر باقی‌مانده</span>
+                            </div>
+                        </article>
+                        <article class="rv-capacity-card rv-capacity-card--female">
+                            <div class="rv-capacity-card__head">
+                                <strong><i class="bi bi-gender-female" aria-hidden="true"></i>خانم‌ها</strong>
+                                <span class="rv-price">@RandevooDisplay.Money(item.FemaleTicketPrice, item.CurrencyCode)</span>
+                            </div>
+                            <div class="rv-capacity-card__number">
+                                <strong>@RandevooDisplay.ToPersianDigits(item.FemaleRemainingCapacity.ToString())</strong>
+                                <span>نفر باقی‌مانده</span>
+                            </div>
+                            <div class="rv-capacity-meter">
+                                <span style="width:@(item.FemaleCapacity == 0 ? 0 : femaleSoldCount * 100 / item.FemaleCapacity)%"></span>
+                            </div>
+                            <div class="rv-capacity-card__meta">
+                                <span>ظرفیت کل @RandevooDisplay.ToPersianDigits(item.FemaleCapacity.ToString()) نفر</span>
+                                <span>@RandevooDisplay.ToPersianDigits(item.FemaleRemainingCapacity.ToString()) نفر باقی‌مانده</span>
+                            </div>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="rv-detail-section">
+                    <h2><i class="bi bi-shield-check" aria-hidden="true"></i>شرایط شرکت</h2>
+                    <div class="rv-requirement-list">
+                        <div>
+                            <span>بازه سنی آقایان</span>
+                            <strong>@RandevooDisplay.ToPersianDigits(item.MaleMinAge.ToString()) تا @RandevooDisplay.ToPersianDigits(item.MaleMaxAge.ToString()) سال</strong>
+                        </div>
+                        <div>
+                            <span>بازه سنی خانم‌ها</span>
+                            <strong>@RandevooDisplay.ToPersianDigits(item.FemaleMinAge.ToString()) تا @RandevooDisplay.ToPersianDigits(item.FemaleMaxAge.ToString()) سال</strong>
+                        </div>
+                        <div>
+                            <span>شرط تحصیلی</span>
+                            <strong>@RandevooDisplay.EducationRestrictionLabel(item.EducationLevelRestriction)</strong>
+                        </div>
+                        <div>
+                            <span>وضعیت خرید</span>
+                            <strong>@item.EligibilityMessage</strong>
+                        </div>
+                    </div>
+                </section>
+            </section>
+
+            <section class="rv-detail-section">
+                <h2><i class="bi bi-signpost-2" aria-hidden="true"></i>محل و دسترسی</h2>
+                <div class="rv-location-grid">
+                    <div>
+                        <span>نوع برگزاری</span>
+                        <strong>@(item.IsOnline ? "آنلاین" : "حضوری")</strong>
+                    </div>
+                    @if (item.IsOnline)
+                    {
+                        <div>
+                            <span>پلتفرم</span>
+                            <strong>@(item.OnlinePlatform ?? "پس از ورود اعلام می‌شود")</strong>
+                        </div>
+                        @if (!string.IsNullOrWhiteSpace(item.OnlineAccessInstructions))
+                        {
+                            <div class="rv-location-grid__wide">
+                                <span>راهنمای ورود</span>
+                                <strong>@item.OnlineAccessInstructions</strong>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div>
+                            <span>محل برگزاری</span>
+                            <strong>@(item.VenueName ?? "اعلام نشده")</strong>
+                        </div>
+                        <div>
+                            <span>شهر و منطقه</span>
+                            <strong>@item.City@(string.IsNullOrWhiteSpace(item.Region) ? string.Empty : $"، {item.Region}")</strong>
+                        </div>
+                        <div class="rv-location-grid__wide">
+                            <span>آدرس</span>
+                            <strong>@item.Address</strong>
+                        </div>
+                    }
+                </div>
+            </section>
+
+            @if (!string.IsNullOrWhiteSpace(item.OrganizerPaymentInstructions))
+            {
+                <section class="rv-detail-section rv-detail-section--success">
+                    <h2><i class="bi bi-receipt" aria-hidden="true"></i>راهنمای پرداخت</h2>
+                    <p>@item.OrganizerPaymentInstructions</p>
+                </section>
+            }
+
+            @if (Model.PurchaseErrorMessage is not null)
+            {
+                <div class="alert alert-warning rv-alert" role="alert">@Model.PurchaseErrorMessage</div>
+            }
+
+            <section class="rv-detail-section">
+                <h2><i class="bi bi-patch-check" aria-hidden="true"></i>برگزارکننده</h2>
+                <div class="rv-organizer-card rv-organizer-card--expanded">
+                    <div class="rv-organizer-card__avatar">
+                        @if (!string.IsNullOrWhiteSpace(organizerImageUrl))
+                        {
+                            <img src="@organizerImageUrl" alt="تصویر برگزارکننده @item.Organizer.Title" loading="lazy" />
+                        }
+                        else
+                        {
+                            <i class="bi bi-building-heart" aria-hidden="true"></i>
+                        }
+                    </div>
+                    <div class="rv-organizer-card__content">
+                        <strong>@(item.Organizer.Title ?? "راندوو")</strong>
+                        <span><i class="bi bi-star-fill" aria-hidden="true"></i> امتیاز @RandevooDisplay.ToPersianDigits(item.Organizer.AverageRating.ToString("0.0")) از @RandevooDisplay.ToPersianDigits(item.Organizer.SurveyCount.ToString()) نظر</span>
+                        @if (!string.IsNullOrWhiteSpace(item.Organizer.Resume))
+                        {
+                            <p>@item.Organizer.Resume</p>
+                        }
+                        <div class="rv-organizer-stats">
+                            <span>مجموع رویدادها @RandevooDisplay.ToPersianDigits(item.Organizer.HostedEventCount.ToString())</span>
+                            <span>برگزارشده @RandevooDisplay.ToPersianDigits(item.Organizer.CompletedEventCount.ToString())</span>
+                            <span>لغوشده @RandevooDisplay.ToPersianDigits(item.Organizer.CancelledEventCount.ToString())</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            @if (faqItems.Count > 0)
+            {
+                <section class="rv-detail-section">
+                    <h2><i class="bi bi-question-circle" aria-hidden="true"></i>سوالات پرتکرار</h2>
+                    <div class="rv-faq-list">
+                        @foreach (var faq in faqItems)
+                        {
+                            <article class="rv-faq-card">
+                                <h3>@faq.Question</h3>
+                                <p>@faq.Answer</p>
+                            </article>
+                        }
+                    </div>
+                </section>
+            }
+
+            <section class="rv-detail-section">
+                <h2><i class="bi bi-card-text" aria-hidden="true"></i>درباره این رویداد</h2>
+                <div class="rv-richtext">@Html.Raw(item.DescriptionHtml)</div>
+            </section>
+
+            <div class="rv-sticky-action">
+                @if (item.CanBuyTicket)
+                {
+                    <a class="btn btn-primary btn-lg w-100" asp-page="/Platform/Events/Checkout" asp-route-id="@item.Id">
+                        <i class="bi bi-ticket-perforated-fill" aria-hidden="true"></i>
+                        <span>خرید بلیت</span>
+                    </a>
+                }
+                else if (!Model.IsSignedIn)
+                {
+                    <a class="btn btn-primary btn-lg w-100"
+                       asp-page="/Platform/Account/Login"
+                       asp-route-returnUrl="@($"/platform/events/{item.Id}")">
+                        <i class="bi bi-phone" aria-hidden="true"></i>
+                        <span>ورود و خرید بلیت</span>
+                    </a>
+                }
+                else
+                {
+                    <div class="rv-detail-section rv-detail-section--warning">
+                        <p>@item.EligibilityMessage</p>
+                        <a class="btn btn-outline-primary w-100" asp-page="/Platform/Profile/Index">
+                            <i class="bi bi-person-vcard" aria-hidden="true"></i>
+                            <span>بررسی پروفایل</span>
+                        </a>
+                    </div>
+                }
+            </div>
+        </div>
+    </article>
+}

@@ -39,5 +39,17 @@ public class OperationPermissionCatalogTests
         OperationPermissionCatalog.Find("operationPermissions", "manage").Should().NotBeNull();
         OperationPermissionCatalog.Find("participants", "emergencyRefund").Should().NotBeNull();
         OperationPermissionCatalog.Find("withdrawals", "confirm").Should().NotBeNull();
+        OperationPermissionCatalog.Find("specialOperations", "view").Should().NotBeNull();
+        OperationPermissionCatalog.Find("specialOperations", "cancelTicketRefundToWallet").Should().NotBeNull();
+        OperationPermissionCatalog.Find("specialOperations", "manualIssueTicketWithWalletDebit").Should().NotBeNull();
+        OperationPermissionCatalog.Find("specialOperations", "manualWalletCredit").Should().NotBeNull();
+        OperationPermissionCatalog.Find("specialOperations", "manualWalletDebit").Should().NotBeNull();
+        OperationPermissionCatalog.Find("specialOperations", "userReportsView").Should().NotBeNull();
+        OperationPermissionCatalog.Find("specialOperations", "userReportsReview").Should().NotBeNull();
+        OperationPermissionCatalog.Find("specialOperations", "userReportsRestrictTicketPurchase").Should().NotBeNull();
+        OperationPermissionCatalog.Find("specialOperations", "userReportsRemoveRestriction").Should().NotBeNull();
+        OperationPermissionCatalog.Find("specialOperations", "userReportsSendWarning").Should().NotBeNull();
+        OperationPermissionCatalog.Find("specialOperations", "userReportsSendNotification").Should().NotBeNull();
+        OperationPermissionCatalog.Find("specialOperations", "userReportsDeactivateUser").Should().NotBeNull();
     }
 }

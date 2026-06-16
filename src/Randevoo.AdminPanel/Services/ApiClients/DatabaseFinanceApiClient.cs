@@ -526,6 +526,8 @@ public sealed class DatabaseFinanceApiClient : IFinanceApiClient
             .Include(item => item.ParticipantUser)
             .ThenInclude(user => user.Profile)
             .Include(item => item.EventDiscountCode)
+            .Include(item => item.TicketOrder)
+            .ThenInclude(order => order!.BuyerUser)
             .FirstOrDefaultAsync(item => item.Id == receiptId, cancellationToken)
             ?? throw new InvalidOperationException("رسید پرداخت پیدا نشد.");
 
@@ -545,34 +547,39 @@ public sealed class DatabaseFinanceApiClient : IFinanceApiClient
         var profile = receipt.ParticipantUser.Profile
             ?? throw new InvalidOperationException("پروفایل شرکت‌کننده برای صدور بلیت پیدا نشد.");
 
-        var platformCommission = receipt.Amount * receipt.DatingEvent.EventPlannerCommissionPercent / 100m;
-        var order = new TicketOrder(
-            receipt.DatingEvent,
-            receipt.ParticipantUser,
-            receipt.OriginalAmount,
-            receipt.DiscountAmount,
-            receipt.Amount,
-            platformCommission,
-            receipt.PaymentCollectionMethod,
-            receipt.CurrencyCode,
-            receipt.ExchangeRateToIrr,
-            receipt.ExchangeRateCapturedAtUtc,
-            receipt.ExchangeRateId,
-            receipt.EventDiscountCode,
-            TicketOrderPaymentStatus.Paid,
-            TicketOrderStatus.Confirmed,
-            $"Manual receipt #{receipt.Id}");
+        var order = receipt.TicketOrder;
+        if (order is null)
+        {
+            var platformCommission = receipt.Amount * receipt.DatingEvent.EventPlannerCommissionPercent / 100m;
+            order = new TicketOrder(
+                receipt.DatingEvent,
+                receipt.ParticipantUser,
+                receipt.OriginalAmount,
+                receipt.DiscountAmount,
+                receipt.Amount,
+                platformCommission,
+                receipt.PaymentCollectionMethod,
+                receipt.CurrencyCode,
+                receipt.ExchangeRateToIrr,
+                receipt.ExchangeRateCapturedAtUtc,
+                receipt.ExchangeRateId,
+                receipt.EventDiscountCode,
+                TicketOrderPaymentStatus.Pending,
+                TicketOrderStatus.PendingPayment,
+                $"Manual receipt #{receipt.Id}");
+            _db.TicketOrders.Add(order);
+        }
+
         order.MarkPaid(reviewer.Id);
 
         var ticket = receipt.DatingEvent.SellTicket(order, receipt.ParticipantUser, profile, receipt.Amount, receipt.EventDiscountCode);
         ticket.CaptureExchangeRate(receipt.ExchangeRateToIrr, receipt.ExchangeRateCapturedAtUtc, receipt.ExchangeRateId);
         receipt.EventDiscountCode?.RegisterUsage(DateTime.UtcNow);
-        _db.TicketOrders.Add(order);
 
         if (receipt.DestinationType != ManualPaymentDestinationType.Organizer)
         {
             _db.OnlinePayments.Add(new OnlinePayment(
-                receipt.ParticipantUser,
+                order.BuyerUser,
                 receipt.Amount,
                 "PlatformManualTransfer",
                 $"manual-receipt-{receipt.Id}",
@@ -651,11 +658,13 @@ public sealed class DatabaseFinanceApiClient : IFinanceApiClient
 
         var receipt = await _db.ManualPaymentReceipts
             .Include(item => item.DatingEvent)
+            .Include(item => item.TicketOrder)
             .FirstOrDefaultAsync(item => item.Id == receiptId, cancellationToken)
             ?? throw new InvalidOperationException("رسید پرداخت پیدا نشد.");
 
         EnsureReceiptReviewAccess(currentUser, receipt);
         receipt.Reject(reviewer, reason);
+        receipt.TicketOrder?.MarkRejected(reviewer.Id, reason);
         await _db.SaveChangesAsync(cancellationToken);
     }
 

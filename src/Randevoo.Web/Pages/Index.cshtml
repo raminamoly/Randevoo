@@ -1,0 +1,120 @@
+@page
+@using Randevoo.Web.Services
+@model IndexModel
+@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "خانه";
+}
+
+<section class="rv-hero rv-hero--landing">
+    <picture class="rv-hero__image">
+        <img src="~/images/hero-social-events.jpg" alt="فضای صمیمی یک رویداد اجتماعی راندوو" fetchpriority="high" />
+    </picture>
+    <div class="rv-hero__content">
+        <p class="rv-eyebrow">راندوو</p>
+        <h1>آدم‌های تازه را در رویدادهای واقعی شهر خودت ببین.</h1>
+        <p>راندوو جایی است برای پیدا کردن رویدادهای اجتماعی امن، دیدن جزئیات برگزارکننده، بررسی شرایط شرکت و خرید بلیت با چند لمس ساده.</p>
+        <div class="rv-hero__actions">
+            <a class="btn btn-primary btn-lg" asp-page="/Events/Index">
+                <i class="bi bi-calendar-heart" aria-hidden="true"></i>
+                <span>دیدن رویدادها</span>
+            </a>
+            <a class="btn btn-light btn-lg" asp-page="/Platform/Account/Login">
+                <i class="bi bi-phone" aria-hidden="true"></i>
+                <span>ورود با موبایل</span>
+            </a>
+        </div>
+    </div>
+</section>
+
+<section class="rv-section">
+    <div class="rv-section__title">
+        <div>
+            <p class="rv-eyebrow">رویدادهای باز</p>
+            <h2>قبل از ثبت‌نام ببین چه خبر است</h2>
+        </div>
+        <a class="btn btn-outline-primary" asp-page="/Events/Index">
+            <i class="bi bi-grid" aria-hidden="true"></i>
+            <span>همه رویدادها</span>
+        </a>
+    </div>
+
+    @if (Model.ErrorMessage is not null)
+    {
+        <div class="alert alert-warning rv-alert" role="alert">@Model.ErrorMessage</div>
+    }
+    else if (Model.Events.Items.Count == 0)
+    {
+        <section class="rv-empty-state">
+            <strong>فعلاً رویدادی برای نمایش نیست.</strong>
+            <span>به‌زودی رویدادهای جدید اینجا نمایش داده می‌شوند.</span>
+        </section>
+    }
+    else
+    {
+        <section class="rv-event-grid rv-event-grid--home" aria-label="رویدادهای پیشنهادی">
+            @foreach (var item in Model.Events.Items)
+            {
+                var imageUrl = RandevooDisplay.PublicImageUrl(item.ImageUrl, Configuration);
+                <article class="rv-event-card">
+                    <a asp-page="/Events/Details" asp-route-id="@item.Id" class="rv-event-card__media">
+                        @if (!string.IsNullOrWhiteSpace(imageUrl))
+                        {
+                            <img src="@imageUrl" alt="@item.Title" loading="lazy" />
+                        }
+                        else
+                        {
+                            <span><i class="bi bi-calendar-heart" aria-hidden="true"></i>@item.EventType</span>
+                        }
+                    </a>
+                    <div class="rv-event-card__body">
+                        <div class="rv-event-card__header">
+                            <span class="rv-status-pill @RandevooDisplay.EventStatusClass(item.UserFacingStatus)">@RandevooDisplay.EventStatusLabel(item.UserFacingStatus)</span>
+                            @if (!string.IsNullOrWhiteSpace(item.OrganizerTitle))
+                            {
+                                <span class="rv-event-card__host">@item.OrganizerTitle</span>
+                            }
+                        </div>
+                        <div class="rv-event-card__meta">
+                            <span><i class="bi bi-geo-alt" aria-hidden="true"></i>@item.City</span>
+                            @if (item.IsOnline)
+                            {
+                                <span><i class="bi bi-broadcast" aria-hidden="true"></i>آنلاین</span>
+                            }
+                        </div>
+                        <h2><a asp-page="/Events/Details" asp-route-id="@item.Id">@item.Title</a></h2>
+                        <div class="rv-event-card__date"><i class="bi bi-clock" aria-hidden="true"></i>@RandevooDisplay.PersianDateTime(item.StartsAtUtc)</div>
+                        <div class="rv-event-card__footer">
+                            <strong class="rv-price">@RandevooDisplay.Money(item.StartingPrice, item.CurrencyCode)</strong>
+                            <a class="btn btn-sm btn-outline-primary" asp-page="/Events/Details" asp-route-id="@item.Id">
+                                <i class="bi bi-arrow-left-circle" aria-hidden="true"></i>
+                                <span>جزئیات</span>
+                            </a>
+                        </div>
+                    </div>
+                </article>
+            }
+        </section>
+    }
+</section>
+
+<section class="rv-section">
+    <h2>مسیر کاربر در راندوو</h2>
+    <div class="rv-feature-list">
+        <article>
+            <i class="bi bi-search-heart" aria-hidden="true"></i>
+            <strong>اول ببین</strong>
+            <span>لیست رویدادها و جزئیات عمومی بدون ورود قابل مشاهده است.</span>
+        </article>
+        <article>
+            <i class="bi bi-person-vcard" aria-hidden="true"></i>
+            <strong>بعد پروفایل بساز</strong>
+            <span>برای خرید بلیت، پروفایل کوتاه و ساده خودت را تکمیل می‌کنی.</span>
+        </article>
+        <article>
+            <i class="bi bi-chat-heart" aria-hidden="true"></i>
+            <strong>بعد ارتباط بگیر</strong>
+            <span>بلیت، پیام‌ها و تعاملات بعد از رویداد داخل پلتفرم مدیریت می‌شود.</span>
+        </article>
+    </div>
+</section>
